@@ -28,24 +28,31 @@ Reference (what already exists): https://wikelotrades.com , community Excel spre
 - [x] Settings: language (en/uk, runtime switching via ResourceDictionary) and theme (System/Light/Dark), persisted to `settings.json`
 - [x] VS Code: tasks, launch, extensions, settings
 - [ ] **After the first `dotnet restore`: pin exact package versions in the csproj** (currently floating `4.*` / `8.*` / `10.*`)
-- [ ] App icon (`.ico`) — add `<ApplicationIcon>` to the csproj + `ui:TitleBar Icon`
+- [x] App icon (`.ico`) — `<ApplicationIcon>` in the csproj + `ui:TitleBar` icon (`src/Assets/`)
 
 ## Phase 1 — API client
 
-- [ ] Explore swagger at `docs.star-citizen.wiki`: find Wikelo mission endpoints
-      (cross-check with pages like `api.star-citizen.wiki/missions/...`, `?filter[...]` filters)
-- [ ] `Services/Api/StarCitizenWikiClient` via `IHttpClientFactory` + `System.Text.Json`
-- [ ] Models: `WikeloContract` (name, Emporium location, requirements: item+quantity, rewards, game version)
-- [ ] Disk cache of the response (`%AppData%\WikeloContractor\cache\contracts.json` + timestamp),
-      TTL + manual refresh; the app works offline from the cache
-- [ ] Network error handling (InfoBar in the UI)
-- [ ] Unit tests for model parsing (`tests/` project)
+- [x] Explore swagger at `docs.star-citizen.wiki`: Wikelo missions come from
+      `GET /api/missions?filter[reputation_scope]=Wikelo&page[size]=200` (60 entries, one page);
+      requirements are in `hauling_summary`, rewards only in `GET /api/missions/{uuid}` (`reward_items`)
+- [x] `Services/Api/StarCitizenWikiClient` via `IHttpClientFactory` + `System.Text.Json`
+- [x] Models: `WikeloContract` (title, requirements: item+quantity, reputation, game version);
+      rewards will be added with the contract detail view (Phase 2) from the mission detail endpoint
+- [x] Disk cache of the response (`%AppData%\WikeloContractor\cache\contracts.json`):
+      invalidated only when a new LIVE game version appears (`GET /api/game-versions`);
+      the version is re-checked at most every 12h + manual "Check for updates" in Settings;
+      the app works offline from the cache (stale fallback, offline badge)
+- [x] Network error handling (InfoBar in the UI: load error / offline warning)
+- [x] Unit tests (`tests/` project, xUnit): DTO/model parsing, API client (429 + Retry-After,
+      version selection, item classification), catalog service (cache, rate-limit gate,
+      version-based invalidation), localization key parity (en/uk)
 
 ## Phase 2 — Catalog
 
-- [ ] Contract list: cards or table (`ui:Card` / `ListView`), search (`AutoSuggestBox`)
-- [ ] Filters: by reward type (Ship / Weapon / Armor / Other), by Emporium location
-- [ ] Contract details: full list of requirements and rewards
+- [x] Contract list: cards with requirements, rewards, reputation; local search box
+- [x] Filters: by reward category (Ships / Ground vehicles / Paints / Weapons / Armor / Other,
+      derived from reward item data via background enrichment) and by required resource
+- [ ] Contract details: full list of requirements and rewards (incl. SCU-based amounts from `hauling_orders`)
 - [ ] "Tracked" flag on a contract (persisted)
 - [ ] Aggregation: combined resource list across all tracked contracts
 
@@ -70,7 +77,12 @@ Reference (what already exists): https://wikelotrades.com , community Excel spre
 - [ ] Start with Windows (optional)
 - [ ] File logging (`Microsoft.Extensions.Logging` + a simple file provider)
 - [ ] Velopack: auto-update + installer
-- [ ] GitHub Actions: build + release
+- [ ] Versioning: SemVer with git tags (`vX.Y.Z`) on GitHub as the single source of truth;
+      the tag version is injected into the build (`dotnet build -p:Version=X.Y.Z`),
+      the app shows its version in Settings (already reads it from the assembly)
+- [ ] GitHub Actions — CI: run unit tests + build on every PR to `dev`/`main`
+- [ ] GitHub Actions — release: on pushing a `vX.Y.Z` tag, build with the tag version,
+      package (installer/zip) and publish a GitHub Release with the artifacts
 
 ## Phase 6 (optional) — Cloud sync
 

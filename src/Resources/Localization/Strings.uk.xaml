@@ -10,7 +10,25 @@
   <sys:String x:Key="Nav_Settings">Налаштування</sys:String>
 
   <sys:String x:Key="Catalog_Title">Контракти Wikelo</sys:String>
-  <sys:String x:Key="Catalog_Placeholder">Тут з'явиться каталог контрактів (Фаза 2).</sys:String>
+  <sys:String x:Key="Catalog_Search">Пошук контрактів...</sys:String>
+  <sys:String x:Key="Catalog_Filter_AllCategories">Всі категорії</sys:String>
+  <sys:String x:Key="Catalog_Filter_AllResources">Всі ресурси</sys:String>
+  <sys:String x:Key="Catalog_Cat_Ships">Кораблі</sys:String>
+  <sys:String x:Key="Catalog_Cat_Vehicles">Наземна техніка</sys:String>
+  <sys:String x:Key="Catalog_Cat_Paints">Фарби та лівреї</sys:String>
+  <sys:String x:Key="Catalog_Cat_Weapons">Зброя</sys:String>
+  <sys:String x:Key="Catalog_Cat_Armor">Броня</sys:String>
+  <sys:String x:Key="Catalog_Cat_Other">Інше</sys:String>
+  <sys:String x:Key="Catalog_ClearFilters">Скинути фільтри</sys:String>
+  <sys:String x:Key="Catalog_Empty">Жоден контракт не відповідає фільтрам.</sys:String>
+  <sys:String x:Key="Catalog_LoadError_Title">Не вдалося завантажити контракти</sys:String>
+  <sys:String x:Key="Catalog_LoadError_Message">Перевірте з'єднання з інтернетом і спробуйте ще раз.</sys:String>
+  <sys:String x:Key="Catalog_Offline_Title">Офлайн-дані</sys:String>
+  <sys:String x:Key="Catalog_Offline_Message">Не вдалося оновити каталог — показано раніше кешовані контракти.</sys:String>
+  <sys:String x:Key="Catalog_Loading">Завантаження каталогу контрактів...</sys:String>
+  <sys:String x:Key="Catalog_RateLimited_Title">Забагато запитів</sys:String>
+  <sys:String x:Key="Catalog_RateLimited_Retry">API Star Citizen Wiki обмежує кількість запитів за хвилину. Завантаження продовжиться через {0} с.</sys:String>
+  <sys:String x:Key="Catalog_RateLimited_Resuming">Відновлюємо завантаження...</sys:String>
 
   <sys:String x:Key="Inventory_Title">Мій інвентар</sys:String>
   <sys:String x:Key="Inventory_Placeholder">Тут з'являться зібрані ресурси (Фаза 3).</sys:String>
@@ -21,6 +39,14 @@
   <sys:String x:Key="Settings_Theme_System">Системна</sys:String>
   <sys:String x:Key="Settings_Theme_Light">Світла</sys:String>
   <sys:String x:Key="Settings_Theme_Dark">Темна</sys:String>
+  <sys:String x:Key="Settings_Data">Дані каталогу</sys:String>
+  <sys:String x:Key="Settings_Data_GameVersion">Версія гри:</sys:String>
+  <sys:String x:Key="Settings_Data_LastSync">Остання синхронізація:</sys:String>
+  <sys:String x:Key="Settings_Data_CheckNow">Перевірити оновлення</sys:String>
+  <sys:String x:Key="Settings_Data_UpdateFailed">Не вдалося з'єднатися з API — показано кешовані дані. Спробуйте пізніше.</sys:String>
   <sys:String x:Key="Settings_About">Wikelo Contractor — застосунок-помічник для угод Wikelo у Star Citizen.</sys:String>
+  <sys:String x:Key="Settings_AppVersion">Версія застосунку:</sys:String>
+  <sys:String x:Key="Settings_Attribution">Ігрові дані надає Star Citizen Wiki API:</sys:String>
+  <sys:String x:Key="Settings_Disclaimer">Неофіційний фанатський застосунок, не пов'язаний з Cloud Imperium Games і не схвалений нею. Усі ігрові дані належать Cloud Imperium Games.</sys:String>
 
 </ResourceDictionary>

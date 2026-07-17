@@ -15,6 +15,10 @@
   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
   mc:Ignorable="d">
 
+  <Page.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+  </Page.Resources>
+
   <StackPanel Margin="42,24" MaxWidth="600" HorizontalAlignment="Left">
     <TextBlock
       FontSize="28"
@@ -34,10 +38,87 @@
       <ComboBoxItem Content="{DynamicResource Settings_Theme_Dark}" />
     </ComboBox>
 
-    <TextBlock
+    <!-- Catalog data: game version, last sync, manual update fallback -->
+    <TextBlock Margin="0,24,0,8" Text="{DynamicResource Settings_Data}" />
+    <StackPanel Orientation="Horizontal">
+      <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="{DynamicResource Settings_Data_GameVersion}" />
+      <TextBlock
+        Margin="6,0,0,0"
+        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+        Text="{Binding ViewModel.DataGameVersion}" />
+    </StackPanel>
+    <StackPanel Margin="0,4,0,0" Orientation="Horizontal">
+      <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="{DynamicResource Settings_Data_LastSync}" />
+      <TextBlock
+        Margin="6,0,0,0"
+        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+        Text="{Binding ViewModel.DataLastSync}" />
+    </StackPanel>
+    <StackPanel Margin="0,8,0,0" Orientation="Horizontal">
+      <ui:Button
+        Command="{Binding ViewModel.CheckForUpdatesCommand}"
+        Content="{DynamicResource Settings_Data_CheckNow}"
+        Icon="{ui:SymbolIcon ArrowSync24}" />
+      <ui:ProgressRing
+        Width="20"
+        Height="20"
+        Margin="8,0,0,0"
+        VerticalAlignment="Center"
+        IsIndeterminate="True"
+        Visibility="{Binding ViewModel.IsCheckingUpdates, Converter={StaticResource BoolToVisibility}}" />
+    </StackPanel>
+    <ui:InfoBar
+      Margin="0,8,0,0"
+      IsClosable="False"
+      IsOpen="{Binding ViewModel.UpdateCheckFailed, Mode=OneWay}"
+      Message="{DynamicResource Settings_Data_UpdateFailed}"
+      Severity="Warning" />
+    <ui:InfoBar
+      Margin="0,8,0,0"
+      Title="{DynamicResource Catalog_RateLimited_Title}"
+      IsClosable="False"
+      IsOpen="{Binding ViewModel.RateLimit.IsActive, Mode=OneWay}"
+      Message="{Binding ViewModel.RateLimit.Message, Mode=OneWay}"
+      Severity="Warning" />
+
+    <Image
       Margin="0,32,0,0"
+      HorizontalAlignment="Left"
+      MaxWidth="360"
+      Source="pack://application:,,,/Assets/about-hero.png"
+      Stretch="Uniform">
+      <Image.Clip>
+        <RectangleGeometry RadiusX="8" RadiusY="8" Rect="0,0,360,225" />
+      </Image.Clip>
+    </Image>
+
+    <TextBlock
+      Margin="0,12,0,0"
       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
       Text="{DynamicResource Settings_About}"
+      TextWrapping="Wrap" />
+
+    <StackPanel Margin="0,8,0,0" Orientation="Horizontal">
+      <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="{DynamicResource Settings_AppVersion}" />
+      <TextBlock
+        Margin="6,0,0,0"
+        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+        Text="{Binding ViewModel.AppVersion, Mode=OneWay}" />
+    </StackPanel>
+
+    <!-- Required credit per Star Citizen Wiki API terms of use -->
+    <TextBlock
+      Margin="0,12,0,0"
+      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+      TextWrapping="Wrap">
+      <Run Text="{DynamicResource Settings_Attribution}" />
+      <Hyperlink NavigateUri="https://api.star-citizen.wiki" RequestNavigate="OnAttributionLinkNavigate">api.star-citizen.wiki</Hyperlink>
+    </TextBlock>
+
+    <TextBlock
+      Margin="0,8,0,0"
+      Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+      Text="{DynamicResource Settings_Disclaimer}"
       TextWrapping="Wrap" />
   </StackPanel>
 </Page>

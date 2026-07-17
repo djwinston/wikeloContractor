@@ -9,10 +9,21 @@
     <RootNamespace>WikeloContractor</RootNamespace>
     <AssemblyName>WikeloContractor</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <Version>0.1.0</Version>
     <!-- Allows building the project on Linux CI agents (compilation only, not running) -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="WikeloContractor.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\icon.png" />
+    <Resource Include="Assets\icon-light.png" />
+    <Resource Include="Assets\about-hero.png" />
+  </ItemGroup>
 
   <ItemGroup>
     <!-- Floating versions for the first restore; pin exact versions afterwards (TODO in PLAN.md) -->
@@ -20,6 +31,7 @@
     <PackageReference Include="WPF-UI.DependencyInjection" Version="4.*" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.*" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.*" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.*" />
   </ItemGroup>
 
 </Project>

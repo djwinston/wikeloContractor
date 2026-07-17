@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Wpf.Ui;
 using Wpf.Ui.DependencyInjection;
 using WikeloContractor.Services;
+using WikeloContractor.Services.Api;
 
 namespace WikeloContractor;
 
@@ -21,6 +22,11 @@ public partial class App
             _ = services.AddSingleton<ISettingsService, SettingsService>();
             _ = services.AddSingleton<ILocalizationService, LocalizationService>();
             _ = services.AddSingleton<INavigationService, NavigationService>();
+
+            // Star Citizen Wiki API + contract catalog
+            _ = services.AddHttpClient<IStarCitizenWikiClient, StarCitizenWikiClient>();
+            _ = services.AddSingleton<IContractCatalogService, ContractCatalogService>();
+            _ = services.AddSingleton<ViewModels.RateLimitWatcher>();
 
             // Main window
             _ = services.AddSingleton<INavigationWindow, Views.MainWindow>();

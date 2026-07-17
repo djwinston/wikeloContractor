@@ -24,6 +24,22 @@ TODO after first successful `dotnet restore`: pin exact package versions in the 
 - Repo root: `D:\dev\own_repo\starCitizen\wikeloContractor`
 - Build: `dotnet build src/WikeloContractor.csproj`
 - Run: `dotnet run --project src/WikeloContractor.csproj`
+- Test: `dotnet test tests/WikeloContractor.Tests.csproj` (xUnit)
+
+## Docs map — read before working on an area
+
+- `docs/data-pipeline.md` — before touching `src/Services/` or `src/Models/Api/`
+  (caching, version invalidation, enrichment, rate limiting, service events)
+- `docs/ui-notes.md` — before touching `src/Views/` or `src/ViewModels/`
+  (WPF-UI pitfalls, status InfoBar pattern, adaptive icon, formatted localized strings)
+- `docs/testing.md` — before adding/changing tests in `tests/`
+- `.claude/skills/api-explore/SKILL.md` — before exploring new API endpoints (known facts inside)
+
+## Verification workflow
+
+- After code changes: build and smoke-run the app (launch exe, ~8 s, confirm alive, stop).
+  Do **not** ask the user whether to run tests — tests run via the `/verify` command,
+  which also fixes/updates failing tests and reviews docs (`.claude/commands/verify.md`).
 
 ## Architecture & conventions
 

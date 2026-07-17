@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Windows.Navigation;
 using Wpf.Ui.Abstractions.Controls;
 using WikeloContractor.ViewModels;
 
@@ -13,5 +15,11 @@ public partial class SettingsPage : INavigableView<SettingsViewModel>
         DataContext = this;
 
         InitializeComponent();
+    }
+
+    private void OnAttributionLinkNavigate(object sender, RequestNavigateEventArgs e)
+    {
+        _ = Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+        e.Handled = true;
     }
 }

@@ -10,7 +10,25 @@
   <sys:String x:Key="Nav_Settings">Settings</sys:String>
 
   <sys:String x:Key="Catalog_Title">Wikelo Contracts</sys:String>
-  <sys:String x:Key="Catalog_Placeholder">The contract catalog will appear here (Phase 2).</sys:String>
+  <sys:String x:Key="Catalog_Search">Search contracts...</sys:String>
+  <sys:String x:Key="Catalog_Filter_AllCategories">All categories</sys:String>
+  <sys:String x:Key="Catalog_Filter_AllResources">All resources</sys:String>
+  <sys:String x:Key="Catalog_Cat_Ships">Ships</sys:String>
+  <sys:String x:Key="Catalog_Cat_Vehicles">Ground vehicles</sys:String>
+  <sys:String x:Key="Catalog_Cat_Paints">Paints &amp; liveries</sys:String>
+  <sys:String x:Key="Catalog_Cat_Weapons">Weapons</sys:String>
+  <sys:String x:Key="Catalog_Cat_Armor">Armor</sys:String>
+  <sys:String x:Key="Catalog_Cat_Other">Other</sys:String>
+  <sys:String x:Key="Catalog_ClearFilters">Clear filters</sys:String>
+  <sys:String x:Key="Catalog_Empty">No contracts match the filters.</sys:String>
+  <sys:String x:Key="Catalog_LoadError_Title">Failed to load contracts</sys:String>
+  <sys:String x:Key="Catalog_LoadError_Message">Check your internet connection and try again.</sys:String>
+  <sys:String x:Key="Catalog_Offline_Title">Offline data</sys:String>
+  <sys:String x:Key="Catalog_Offline_Message">Could not refresh the catalog — showing previously cached contracts.</sys:String>
+  <sys:String x:Key="Catalog_Loading">Loading the contract catalog...</sys:String>
+  <sys:String x:Key="Catalog_RateLimited_Title">Too many requests</sys:String>
+  <sys:String x:Key="Catalog_RateLimited_Retry">The Star Citizen Wiki API allows a limited number of requests per minute. Loading resumes in {0} s.</sys:String>
+  <sys:String x:Key="Catalog_RateLimited_Resuming">Resuming loading...</sys:String>
 
   <sys:String x:Key="Inventory_Title">My Inventory</sys:String>
   <sys:String x:Key="Inventory_Placeholder">Your collected resources will appear here (Phase 3).</sys:String>
@@ -21,6 +39,14 @@
   <sys:String x:Key="Settings_Theme_System">System</sys:String>
   <sys:String x:Key="Settings_Theme_Light">Light</sys:String>
   <sys:String x:Key="Settings_Theme_Dark">Dark</sys:String>
+  <sys:String x:Key="Settings_Data">Catalog data</sys:String>
+  <sys:String x:Key="Settings_Data_GameVersion">Game version:</sys:String>
+  <sys:String x:Key="Settings_Data_LastSync">Last synced:</sys:String>
+  <sys:String x:Key="Settings_Data_CheckNow">Check for updates</sys:String>
+  <sys:String x:Key="Settings_Data_UpdateFailed">Could not reach the API — showing cached data. Try again later.</sys:String>
   <sys:String x:Key="Settings_About">Wikelo Contractor — a companion app for Wikelo trades in Star Citizen.</sys:String>
+  <sys:String x:Key="Settings_AppVersion">App version:</sys:String>
+  <sys:String x:Key="Settings_Attribution">Game data is provided by the Star Citizen Wiki API:</sys:String>
+  <sys:String x:Key="Settings_Disclaimer">Unofficial fan-made app, not affiliated with or endorsed by Cloud Imperium Games. All game data belongs to Cloud Imperium Games.</sys:String>
 
 </ResourceDictionary>

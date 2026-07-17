@@ -1,3 +1,4 @@
+using System.Windows.Media.Imaging;
 using Wpf.Ui;
 using Wpf.Ui.Abstractions;
 using Wpf.Ui.Appearance;
@@ -29,6 +30,24 @@ public partial class MainWindow : INavigationWindow
         InitializeComponent();
 
         navigationService.SetNavigationControl(RootNavigation);
+
+        UpdateAppIcon(ApplicationThemeManager.GetAppTheme());
+        ApplicationThemeManager.Changed += OnThemeChanged;
+    }
+
+    private void OnThemeChanged(ApplicationTheme currentApplicationTheme, System.Windows.Media.Color systemAccent) =>
+        UpdateAppIcon(currentApplicationTheme);
+
+    /// <summary>Light icon on the dark theme and vice versa, so it stays visible on the title bar and taskbar.</summary>
+    private void UpdateAppIcon(ApplicationTheme theme)
+    {
+        var iconUri = theme == ApplicationTheme.Dark
+            ? new Uri("pack://application:,,,/Assets/icon-light.png")
+            : new Uri("pack://application:,,,/Assets/icon.png");
+
+        var image = new BitmapImage(iconUri);
+        TitleBarControl.Icon = new ImageIcon { Source = image };
+        Icon = image;
     }
 
     public INavigationView GetNavigation() => RootNavigation;
@@ -49,6 +68,7 @@ public partial class MainWindow : INavigationWindow
 
     protected override void OnClosed(EventArgs e)
     {
+        ApplicationThemeManager.Changed -= OnThemeChanged;
         base.OnClosed(e);
 
         // Closing the main window shuts down the application

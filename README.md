@@ -1,3 +1,5 @@
+![Wikelo Contractor](docs/banner.png)
+
 # Wikelo Contractor
 
 Windows companion app for **Wikelo** trades in Star Citizen.
@@ -26,7 +28,27 @@ minimal extension set, import the bundled profile once: `Ctrl+Shift+P` →
 then switch to it in this workspace (`Ctrl+Shift+P` → **Profiles: Switch Profile**).
 VS Code remembers the chosen profile per workspace.
 
+## Tests
+
+```powershell
+dotnet test tests/WikeloContractor.Tests.csproj
+```
+
 ## Documentation
 
 - [PLAN.md](PLAN.md) — development plan by phases
 - [CLAUDE.md](CLAUDE.md) — project context for Claude Code
+- [docs/data-pipeline.md](docs/data-pipeline.md) — catalog data: caching, enrichment, rate limiting
+- [docs/ui-notes.md](docs/ui-notes.md) — UI patterns and WPF-UI quirks
+- [docs/testing.md](docs/testing.md) — test layout and conventions
+
+## License, attribution & disclaimer
+
+- The application source code is licensed under the [MIT License](LICENSE).
+- Game data is provided by the [Star Citizen Wiki API](https://api.star-citizen.wiki)
+  (community-maintained, unofficial). Per its terms of use, this credit is required for
+  public projects, and commercial use of the data is not permitted.
+- This is an unofficial fan-made application, not affiliated with or endorsed by
+  Cloud Imperium Games or Roberts Space Industries. Star Citizen®, Roberts Space
+  Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC.
+  All game data belongs to Cloud Imperium Games.

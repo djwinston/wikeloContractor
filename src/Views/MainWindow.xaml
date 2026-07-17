@@ -28,7 +28,9 @@
       <RowDefinition Height="*" />
     </Grid.RowDefinitions>
 
+    <!-- Icon is set in code-behind: it adapts to the active theme (light icon on dark theme and vice versa) -->
     <ui:TitleBar
+      x:Name="TitleBarControl"
       Title="{DynamicResource App_Title}"
       Grid.Row="0" />
 

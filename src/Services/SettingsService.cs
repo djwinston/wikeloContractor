@@ -1,29 +1,12 @@
 using System.IO;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using WikeloContractor.Models;
 
 namespace WikeloContractor.Services;
 
 public sealed class SettingsService : ISettingsService
 {
-    private static readonly JsonSerializerOptions _jsonOptions = new()
-    {
-        WriteIndented = true,
-        Converters = { new JsonStringEnumConverter() },
-    };
-
-    private readonly string _filePath;
-
-    public SettingsService()
-    {
-        var directory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "WikeloContractor");
-
-        _ = Directory.CreateDirectory(directory);
-        _filePath = Path.Combine(directory, "settings.json");
-    }
+    private readonly string _filePath = Path.Combine(AppStorage.Root, "settings.json");
 
     public AppSettings Current { get; private set; } = new();
 
@@ -37,7 +20,7 @@ public sealed class SettingsService : ISettingsService
         try
         {
             await using var stream = File.OpenRead(_filePath);
-            Current = await JsonSerializer.DeserializeAsync<AppSettings>(stream, _jsonOptions) ?? new AppSettings();
+            Current = await JsonSerializer.DeserializeAsync<AppSettings>(stream, AppStorage.JsonOptions) ?? new AppSettings();
         }
         catch (JsonException)
         {
@@ -49,6 +32,6 @@ public sealed class SettingsService : ISettingsService
     public async Task SaveAsync()
     {
         await using var stream = File.Create(_filePath);
-        await JsonSerializer.SerializeAsync(stream, Current, _jsonOptions);
+        await JsonSerializer.SerializeAsync(stream, Current, AppStorage.JsonOptions);
     }
 }
