@@ -1,0 +1,17 @@
+{
+  "dotnet.defaultSolution": "WikeloContractor.sln",
+  "files.associations": {
+    "*.xaml": "xml"
+  },
+  "xml.format.maxLineWidth": 0,
+  "editor.formatOnSave": true,
+  "[csharp]": {
+    "editor.defaultFormatter": "ms-dotnettools.csharp",
+    "editor.formatOnSave": true
+  },
+  "files.exclude": {
+    "**/bin": true,
+    "**/obj": true
+  },
+  "dotnet.completion.showCompletionItemsFromUnimportedNamespaces": true
+}

@@ -1,0 +1,11 @@
+{
+  // Extensions needed for this project (C# / WPF / XAML)
+  "recommendations": [
+    "ms-dotnettools.csdevkit",
+    "ms-dotnettools.csharp",
+    "ms-dotnettools.vscode-dotnet-runtime",
+    "editorconfig.editorconfig",
+    "redhat.vscode-xml",
+    "anthropic.claude-code"
+  ]
+}

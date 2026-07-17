@@ -1,0 +1,28 @@
+<Page
+  x:Class="WikeloContractor.Views.Pages.InventoryPage"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:local="clr-namespace:WikeloContractor.Views.Pages"
+  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+  Title="InventoryPage"
+  d:DataContext="{d:DesignInstance local:InventoryPage, IsDesignTimeCreatable=False}"
+  d:DesignHeight="450"
+  d:DesignWidth="800"
+  ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+  ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+  mc:Ignorable="d">
+
+  <StackPanel Margin="42,24">
+    <TextBlock
+      FontSize="28"
+      FontWeight="DemiBold"
+      Text="{DynamicResource Inventory_Title}" />
+    <TextBlock
+      Margin="0,12,0,0"
+      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+      Text="{DynamicResource Inventory_Placeholder}" />
+  </StackPanel>
+</Page>
