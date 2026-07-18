@@ -54,6 +54,7 @@ public class StarCitizenWikiClientTests
         Assert.Equal(2, mission.HaulingSummary.Count);
         Assert.Equal(2, mission.HaulingSummary[0].MinAmount);
         Assert.Null(mission.HaulingSummary[1].MinAmount);
+        Assert.NotNull(mission.ReputationGained);
         Assert.Equal(250, mission.ReputationGained.Single(r => r.Scope == "Wikelo").Amount);
     }
 
