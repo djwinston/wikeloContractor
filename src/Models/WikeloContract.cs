@@ -47,7 +47,21 @@ public sealed record WikeloContract
     /// <summary>Items Wikelo grants on completion (from mission detail, filled by enrichment).</summary>
     public IReadOnlyList<ContractReward> Rewards { get; init; } = [];
 
+    /// <summary>Primary category (card icon, detail badge): the most significant reward, or Other for once-only unlocks.</summary>
     public ContractCategory Category { get; init; } = ContractCategory.Unknown;
+
+    /// <summary>
+    /// All categories present among the rewards (plus <see cref="Category"/>), for the
+    /// catalog filter: a contract rewarding a ship with bonus armor and weapons matches
+    /// Ships, Armor and Weapons alike. Empty until enrichment.
+    /// </summary>
+    public IReadOnlyList<ContractCategory> Categories { get; init; } = [];
+
+    /// <summary>
+    /// <see cref="Categories"/>, falling back to just <see cref="Category"/> before enrichment
+    /// has populated the full set. The catalog filter matches against this, never the raw field.
+    /// </summary>
+    public IReadOnlyList<ContractCategory> EffectiveCategories => Categories.Count > 0 ? Categories : [Category];
 
     /// <summary>Wikelo Emporium reputation gained on completion.</summary>
     public int ReputationAmount { get; init; }
@@ -101,17 +115,22 @@ public sealed class ContractRequirement
 
     public double? MaxScu { get; init; }
 
-    /// <summary>Human-readable amount, e.g. "2", "1–3", "≤2" or "36 SCU".</summary>
+    /// <summary>Human-readable amount, e.g. "2", "1–3" or "36 SCU".</summary>
     public string AmountLabel =>
         MinScu is not null || MaxScu is not null
             ? $"{FormatRange(MinScu, MaxScu)} SCU"
             : FormatRange(MinAmount, MaxAmount);
 
-    /// <summary>Shared min–max display rule, reused wherever a numeric range is shown (e.g. crew).</summary>
+    /// <summary>
+    /// Shared min–max display rule, reused wherever a numeric range is shown (e.g. crew).
+    /// A max without a min is how the API encodes a fixed amount ("bring N"): across the
+    /// live catalog half the requirements come as (null, N) and none as a real range,
+    /// so it renders as a plain number, not "≤N".
+    /// </summary>
     internal static string FormatRange(double? min, double? max) => (min, max) switch
     {
         (null, null) => "?",
-        (null, { } m) => $"≤{Compact(m)}",
+        (null, { } m) => Compact(m),
         ({ } m, null) => $"≥{Compact(m)}",
         ({ } lo, { } hi) when lo == hi => Compact(lo),
         ({ } lo, { } hi) => $"{Compact(lo)}–{Compact(hi)}",

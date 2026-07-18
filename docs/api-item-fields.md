@@ -60,7 +60,8 @@ Live fixtures these tables were derived from: `item-detail.json` (Ana Arms Endro
 | `health` | number | hull HP | ✅ |
 | `shield_hp`, `shield`, `shield_face_type` | number / object | shield pool, regen, resist/absorption maps | ✅ hp |
 | `armor` | object | physical/IR/EM damage modifiers | — |
-| `weaponry`, `weapon_snapshot`, `turrets`, `ports`, `parts`, `components` | objects/arrays | DPS/alpha, hardpoints, installed components | — |
+| `weaponry`, `weapon_snapshot`, `turrets`, `parts`, `components` | objects/arrays | DPS/alpha totals, hardpoint summaries | ✅ fixed guns³, missile count |
+| `ports` | array | every hardpoint with `equipped_item` (`name`, `type`, `size`) | ✅ whitelisted types³ |
 | `speed` | object | `scm`, `max`, boost, acceleration times | ✅ scm, max |
 | `agility`, `afterburner`, `propulsion`, `fuel`, `quantum` | object | maneuvering, fuel, quantum range/speed | — |
 | `emission`, `signature`, `cooling`, `power`, `power_pools` | object | IR/EM signatures, power/cooling budget | — |
@@ -74,6 +75,22 @@ Live fixtures these tables were derived from: `item-detail.json` (Ana Arms Endro
 | `version`, `updated_at` | string | game version of the record | — |
 
 ² used for category derivation (Ship / GroundVehicle), not persisted as-is.
+
+³ ship loadout (`RewardDetails.Weapons` / `.Components` / `.MissileCount`): the port tree is
+**nested** — `ports[]` entries have their own `ports[]` (mount → gun, rack → missiles,
+turret → mount → gun). Each `equipped_item` carries `size`, `grade` ("A".."D"),
+`class` ("Military", ...), and a kind label where applicable: guns have
+`vehicle_weapon.type` ("Laser Repeater"), missiles have `missile.signal_type`
+("CrossSection" / "Infrared" / "Electromagnetic"). The parser walks the tree recursively for
+guns (`WeaponGun`), ordnance (`Missile`, `Torpedo`) and components (`PowerPlant`, `Shield`,
+`Cooler`, `QuantumDrive`, `JumpDrive` — jump drives only appear nested), and takes
+mounts/racks (`Turret`, `TurretBase`, `MissileLauncher`, `WeaponMount`) from the top level
+only (recursion would double-count). Ports with empty names or the `<= PLACEHOLDER =>`
+marker are skipped. Fallback for records without nested gun data: name-only
+`weaponry.fixed_weapons` entries, whose kind label/size/grade enrichment then looks up by
+slug (`api/items/cf-337-panther-repeater`) or an exact-name `filter[name]` search —
+one lookup per distinct gun name. `weaponry.missiles.count` backs the missile-count chip
+when racks expose no loaded ordnance.
 
 ## Notes
 

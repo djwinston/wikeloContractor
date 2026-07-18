@@ -21,7 +21,19 @@ public interface IStarCitizenWikiClient
     /// vehicle records for vehicle UUIDs, so the shape is inspected dynamically.
     /// </summary>
     Task<ItemClassification?> GetItemClassificationAsync(string itemUuid, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Looks up a ship gun by display name (vehicle records list guns by name only) to get
+    /// its kind label ("Laser Repeater"), size and grade. Null when not found.
+    /// </summary>
+    Task<VehicleWeaponInfo?> GetVehicleWeaponInfoAsync(string weaponName, CancellationToken cancellationToken = default);
 }
+
+/// <summary>Extra display data of a ship gun, from the gun's own item record.</summary>
+/// <param name="TypeLabel">Human kind label from <c>vehicle_weapon.type</c>, e.g. "Laser Repeater".</param>
+/// <param name="Size">Weapon size class.</param>
+/// <param name="Grade">Grade "A".."D".</param>
+public sealed record VehicleWeaponInfo(string? TypeLabel, int? Size, string? Grade);
 
 /// <summary>Raw classification signals of a reward item.</summary>
 /// <param name="TypeString">Item type (e.g. "Char_Armor_Arms", "WeaponPersonal"); null for vehicle records.</param>

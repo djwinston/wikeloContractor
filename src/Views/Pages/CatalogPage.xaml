@@ -164,8 +164,7 @@
               Padding="16,12"
               Background="{DynamicResource ControlFillColorDefaultBrush}"
               CornerRadius="8"
-              Cursor="Hand"
-              ToolTip="{DynamicResource Catalog_OpenDetails}">
+              Cursor="Hand">
               <Border.InputBindings>
                 <MouseBinding
                   Command="{Binding ViewModel.OpenDetailsCommand, RelativeSource={RelativeSource AncestorType=Page}}"

@@ -39,6 +39,11 @@ public sealed class ContractCatalogServiceTests : IDisposable
 
         public Task<ItemClassification?> GetItemClassificationAsync(string itemUuid, CancellationToken cancellationToken = default) =>
             Task.FromResult(Classifications.GetValueOrDefault(itemUuid));
+
+        public Dictionary<string, VehicleWeaponInfo?> WeaponInfo { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+        public Task<VehicleWeaponInfo?> GetVehicleWeaponInfoAsync(string weaponName, CancellationToken cancellationToken = default) =>
+            Task.FromResult(WeaponInfo.GetValueOrDefault(weaponName));
     }
 
     private readonly string _cacheDirectory = Path.Combine(
@@ -56,11 +61,12 @@ public sealed class ContractCatalogServiceTests : IDisposable
         }
     }
 
-    private static MissionDto Mission(string uuid, string title, bool released = true) => new()
+    private static MissionDto Mission(string uuid, string title, bool released = true, bool onceOnly = false) => new()
     {
         Uuid = uuid,
         Title = title,
         Released = released,
+        OnceOnly = onceOnly,
         HaulingSummary = [new HaulingSummaryItemDto { Name = "Gold", MinAmount = 1, MaxAmount = 1 }],
         ReputationGained = [new ReputationGainedDto { Faction = "Wikelo Emporium", Scope = "Wikelo", Amount = 250 }],
         GameVersion = "4.2.0",
@@ -223,7 +229,115 @@ public sealed class ContractCatalogServiceTests : IDisposable
         Assert.Equal(2, contract.Requirements.Count);
         Assert.Equal("36 SCU", contract.Requirements[0].AmountLabel);
         Assert.Equal("Wikelo Favor", contract.Requirements[1].Name);
-        Assert.Equal("≤1", contract.Requirements[1].AmountLabel);
+        Assert.Equal("1", contract.Requirements[1].AmountLabel);
+    }
+
+    [Fact]
+    public async Task Mission_without_reputation_maps_to_zero_amount()
+    {
+        var mission = Mission("idris", "Special Idris For Killing");
+        mission.ReputationGained = null;
+        mission.ReputationAmount = null;
+        var client = new FakeApiClient { Missions = [mission] };
+        var service = new ContractCatalogService(client, _cacheDirectory);
+
+        var result = await service.GetContractsAsync();
+
+        var contract = Assert.Single(result.Contracts);
+        Assert.Equal(0, contract.ReputationAmount);
+    }
+
+    [Fact]
+    public async Task Once_only_contract_is_categorized_as_other_regardless_of_rewards()
+    {
+        var client = new FakeApiClient
+        {
+            Missions = [Mission("m1", "Wikelo Arrive to System", onceOnly: true)],
+            MissionDetails = new()
+            {
+                ["m1"] = new MissionDetailDto
+                {
+                    Uuid = "m1",
+                    RewardItems = [new RewardItemDto { Name = "Coda Pistol", Uuid = "item-1", Amount = 1 }],
+                },
+            },
+            Classifications = new()
+            {
+                // A weapon reward would normally drive the category to Weapon.
+                ["item-1"] = new ItemClassification(
+                    "Coda Pistol", "WeaponPersonal", IsSpaceship: false, IsVehicleRecord: false, Images: []),
+            },
+        };
+        var service = new ContractCatalogService(client, _cacheDirectory);
+
+        var enriched = new TaskCompletionSource();
+        service.CatalogUpdated += (_, _) => enriched.TrySetResult();
+
+        _ = await service.GetContractsAsync();
+        await enriched.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        var contract = Assert.Single(service.Current!.Contracts);
+        Assert.True(contract.OnceOnly);
+        Assert.Equal(WikeloContractor.Models.ContractCategory.Other, contract.Category);
+        // The full set still lists every reward category, so the filter can surface the
+        // contract under Weapons too.
+        Assert.Contains(WikeloContractor.Models.ContractCategory.Other, contract.Categories);
+        Assert.Contains(WikeloContractor.Models.ContractCategory.Weapon, contract.Categories);
+    }
+
+    [Fact]
+    public async Task Enrichment_patches_gun_entries_with_looked_up_kind_and_grade()
+    {
+        var client = new FakeApiClient
+        {
+            Missions = [Mission("m1", "Ship trade")],
+            MissionDetails = new()
+            {
+                ["m1"] = new MissionDetailDto
+                {
+                    Uuid = "m1",
+                    RewardItems = [new RewardItemDto { Name = "Some Ship", Uuid = "ship-1", Amount = 1 }],
+                },
+            },
+            Classifications = new()
+            {
+                ["ship-1"] = new ItemClassification(
+                    "Some Ship", null, IsSpaceship: true, IsVehicleRecord: true, Images: [],
+                    Details: new WikeloContractor.Models.RewardDetails
+                    {
+                        Weapons =
+                        [
+                            // A fixed gun (no Type) and a mount (has Type) — only the gun is looked up.
+                            new WikeloContractor.Models.ShipLoadoutEntry { Name = "CF-337 Panther Repeater", Count = 2 },
+                            new WikeloContractor.Models.ShipLoadoutEntry { Name = "MSD-683 Missile Rack", Type = "MissileLauncher", Size = 7 },
+                        ],
+                    }),
+            },
+            WeaponInfo = new(StringComparer.OrdinalIgnoreCase)
+            {
+                ["CF-337 Panther Repeater"] = new VehicleWeaponInfo("Laser Repeater", 3, "A"),
+            },
+        };
+        var service = new ContractCatalogService(client, _cacheDirectory);
+
+        var enriched = new TaskCompletionSource();
+        service.CatalogUpdated += (_, _) => enriched.TrySetResult();
+
+        _ = await service.GetContractsAsync();
+        await enriched.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        var contract = Assert.Single(service.Current!.Contracts);
+        var weapons = Assert.Single(contract.Rewards).Details!.Weapons!;
+        Assert.Collection(
+            weapons,
+            gun =>
+            {
+                Assert.Equal("Laser Repeater", gun.TypeLabel);
+                Assert.Equal(3, gun.Size);
+                Assert.Equal("A", gun.Grade);
+                Assert.Equal(2, gun.Count);
+            },
+            mount => Assert.Null(mount.TypeLabel));
     }
 
     [Fact]

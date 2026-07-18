@@ -218,15 +218,21 @@ public partial class CatalogViewModel : ViewModel
 
         if (!string.IsNullOrWhiteSpace(SearchText)
             && !contract.Title.Contains(SearchText, StringComparison.OrdinalIgnoreCase)
-            && contract.Description?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) != true)
+            && contract.Description?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) != true
+            && !contract.Rewards.Any(r => r.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase)))
         {
             return false;
         }
 
-        if (CategoryIndex > 0 && CategoryIndex <= _categoryOrder.Length
-            && contract.Category != _categoryOrder[CategoryIndex - 1])
+        if (CategoryIndex > 0 && CategoryIndex <= _categoryOrder.Length)
         {
-            return false;
+            var selected = _categoryOrder[CategoryIndex - 1];
+
+            // Any reward category matches (a ship contract with bonus armor shows under both).
+            if (!contract.EffectiveCategories.Contains(selected))
+            {
+                return false;
+            }
         }
 
         if (ResourceIndex > 0 && ResourceIndex < ResourceOptions.Count

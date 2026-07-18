@@ -17,7 +17,10 @@ namespace WikeloContractor.Views.Helpers;
 public static class RewardPreview
 {
     /// <summary>Decode width for list thumbnails (64 px box, leaves headroom for DPI scaling).</summary>
-    private const int _decodePixelWidth = 128;
+    private const int _listDecodePixelWidth = 128;
+
+    /// <summary>Decode width for the detail page image (260 px box + DPI headroom).</summary>
+    private const int _detailDecodePixelWidth = 640;
 
     /// <summary>Session-lifetime memoization of decoded thumbnails (frozen, shareable).</summary>
     private static readonly ConcurrentDictionary<string, ImageSource> _decoded = new();
@@ -52,16 +55,17 @@ public static class RewardPreview
     public static void SetReward(DependencyObject obj, ContractReward? value) => obj.SetValue(RewardProperty, value);
 
     private static void OnContractChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
-        LoadInto(d, ContractProperty, e.NewValue, (e.NewValue as WikeloContract)?.Rewards ?? []);
+        LoadInto(d, ContractProperty, e.NewValue, (e.NewValue as WikeloContract)?.Rewards ?? [], _listDecodePixelWidth);
 
     private static void OnRewardChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
-        LoadInto(d, RewardProperty, e.NewValue, e.NewValue is ContractReward reward ? [reward] : []);
+        LoadInto(d, RewardProperty, e.NewValue, e.NewValue is ContractReward reward ? [reward] : [], _detailDecodePixelWidth);
 
     private static async void LoadInto(
         DependencyObject d,
         DependencyProperty property,
         object? value,
-        IReadOnlyList<ContractReward> rewards)
+        IReadOnlyList<ContractReward> rewards,
+        int decodePixelWidth)
     {
         if (d is not Image image)
         {
@@ -75,7 +79,9 @@ public static class RewardPreview
             return;
         }
 
-        var memoKey = string.Join("\n", candidates);
+        // Decode width is part of both memo keys: the same URL is cached separately
+        // for the 64 px list thumbnail and the large detail image.
+        var memoKey = $"{decodePixelWidth}|" + string.Join("\n", candidates);
         if (_resolved.TryGetValue(memoKey, out var memoized))
         {
             image.Source = memoized;
@@ -87,7 +93,7 @@ public static class RewardPreview
         ImageSource? source;
         try
         {
-            source = await ResolveAsync(candidates);
+            source = await ResolveAsync(candidates, decodePixelWidth);
         }
         catch (Exception)
         {
@@ -105,13 +111,14 @@ public static class RewardPreview
     }
 
     /// <summary>First loadable image across the given candidates.</summary>
-    private static async Task<ImageSource?> ResolveAsync(IReadOnlyList<string> candidates)
+    private static async Task<ImageSource?> ResolveAsync(IReadOnlyList<string> candidates, int decodePixelWidth)
     {
         var imageCache = App.Services.GetRequiredService<IImageCacheService>();
 
         foreach (var candidate in candidates)
         {
-            if (_decoded.TryGetValue(candidate, out var cached))
+            var decodedKey = $"{decodePixelWidth}|{candidate}";
+            if (_decoded.TryGetValue(decodedKey, out var cached))
             {
                 return cached;
             }
@@ -124,10 +131,10 @@ public static class RewardPreview
 
             // Decode failures fall through to the next candidate — e.g. a .webp
             // thumbnail on a machine without the WebP codec falls back to the original PNG.
-            var decoded = await Task.Run(() => TryDecode(localPath));
+            var decoded = await Task.Run(() => TryDecode(localPath, decodePixelWidth));
             if (decoded is not null)
             {
-                _decoded[candidate] = decoded;
+                _decoded[decodedKey] = decoded;
                 return decoded;
             }
         }
@@ -164,14 +171,14 @@ public static class RewardPreview
         }
     }
 
-    private static BitmapImage? TryDecode(string path)
+    private static BitmapImage? TryDecode(string path, int decodePixelWidth)
     {
         try
         {
             var bitmap = new BitmapImage();
             bitmap.BeginInit();
             bitmap.CacheOption = BitmapCacheOption.OnLoad;
-            bitmap.DecodePixelWidth = _decodePixelWidth;
+            bitmap.DecodePixelWidth = decodePixelWidth;
             bitmap.UriSource = new Uri(path);
             bitmap.EndInit();
             bitmap.Freeze();

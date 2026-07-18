@@ -8,7 +8,9 @@ public class ContractRequirementTests
     [Theory]
     [InlineData(2, 2, "2")]
     [InlineData(1, 3, "1–3")]
-    [InlineData(null, 1, "≤1")]
+    // Max without min is the API's fixed amount ("bring N"), not an upper bound.
+    [InlineData(null, 1, "1")]
+    [InlineData(null, 50, "50")]
     [InlineData(1, null, "≥1")]
     [InlineData(null, null, "?")]
     public void AmountLabel_covers_all_range_shapes(int? min, int? max, string expected)
@@ -19,9 +21,9 @@ public class ContractRequirementTests
     }
 
     [Theory]
-    [InlineData(36, 36, "36 SCU")]
-    [InlineData(1.5, 3, "1.5–3 SCU")]
-    [InlineData(null, 8, "≤8 SCU")]
+    [InlineData(36d, 36d, "36 SCU")]
+    [InlineData(1.5, 3d, "1.5–3 SCU")]
+    [InlineData(null, 8d, "8 SCU")]
     public void AmountLabel_prefers_scu_amounts_when_present(double? minScu, double? maxScu, string expected)
     {
         var requirement = new ContractRequirement { Name = "Quantainium", MinScu = minScu, MaxScu = maxScu };

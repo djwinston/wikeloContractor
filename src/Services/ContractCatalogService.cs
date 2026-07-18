@@ -13,9 +13,14 @@ public sealed partial class ContractCatalogService : IContractCatalogService
     /// <summary>
     /// Shape version of the cache envelope. Bump when enrichment output changes so older
     /// caches are discarded and rebuilt (v2: reward images; v3: reward details;
-    /// v4: requirements from hauling_orders with SCU amounts).
+    /// v4: requirements from hauling_orders with SCU amounts; v5: category rules —
+    /// once-only contracts and vehicle-variant base lookup; v6: missions filtered by
+    /// mission_giver instead of reputation_scope; v7: ship loadout — weapons,
+    /// missiles, components; v8: gun kind labels and component grades; v9: nested
+    /// port scan — guns/ordnance with signal types, jump drives; v10: multi-category
+    /// set per contract for the filter).
     /// </summary>
-    private const int _cacheSchemaVersion = 4;
+    private const int _cacheSchemaVersion = 10;
 
     /// <summary>How often the current game version is re-checked against the API.</summary>
     private static readonly TimeSpan _versionCheckInterval = TimeSpan.FromHours(12);
@@ -233,25 +238,47 @@ public sealed partial class ContractCatalogService : IContractCatalogService
         }
 
         // 2. Distinct reward items → classification signals.
-        var classifications = new Dictionary<string, ItemClassification?>();
         var distinctItemUuids = rewardsByMission.Values
             .SelectMany(r => r)
             .Select(r => r.ItemUuid)
             .Where(uuid => !string.IsNullOrEmpty(uuid))
+            .Select(uuid => uuid!)
             .Distinct();
 
-        foreach (var uuid in distinctItemUuids)
-        {
-            try
-            {
-                classifications[uuid!] = await WithRateLimitRetryAsync(() => _apiClient.GetItemClassificationAsync(uuid!));
-            }
-            catch (Exception ex) when (ex is HttpRequestException or JsonException)
-            {
-                classifications[uuid!] = null;
-            }
+        var classifications = await LookupEachAsync<string, ItemClassification>(distinctItemUuids, uuid => _apiClient.GetItemClassificationAsync(uuid));
 
-            await Task.Delay(_enrichmentDelay);
+        // 2.5. Fixed guns are listed by name only in vehicle records — look up each distinct
+        // gun once for its kind label ("Laser Repeater"), size and grade, then patch the
+        // classifications so every reward sharing the gun benefits.
+        var gunNames = classifications.Values
+            .Where(c => c?.Details?.Weapons is { Count: > 0 })
+            .SelectMany(c => c!.Details!.Weapons!)
+            .Where(w => w.Type is null && w.TypeLabel is null)
+            .Select(w => w.Name)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var gunInfo = await LookupEachAsync<string, VehicleWeaponInfo>(gunNames, name => _apiClient.GetVehicleWeaponInfoAsync(name), StringComparer.OrdinalIgnoreCase);
+
+        // Only classifications with an unresolved gun name need patching.
+        var uuidsWithUnresolvedGuns = classifications
+            .Where(kv => kv.Value?.Details?.Weapons?.Any(w => w.Type is null && w.TypeLabel is null) == true)
+            .Select(kv => kv.Key)
+            .ToList();
+
+        foreach (var uuid in uuidsWithUnresolvedGuns)
+        {
+            var classification = classifications[uuid]!;
+            classifications[uuid] = classification with
+            {
+                Details = classification.Details! with
+                {
+                    Weapons = classification.Details!.Weapons!.Select(w =>
+                        w.Type is null && w.TypeLabel is null && gunInfo.GetValueOrDefault(w.Name) is { } info
+                            ? w with { TypeLabel = info.TypeLabel, Size = w.Size ?? info.Size, Grade = info.Grade }
+                            : w).ToList(),
+                },
+            };
         }
 
         // 3. Rebuild contracts with rewards (incl. item images and details) and derived category.
@@ -273,10 +300,18 @@ public sealed partial class ContractCatalogService : IContractCatalogService
 
                 var requirements = requirementsByMission.GetValueOrDefault(c.Uuid);
 
+                var rewardCategories = ClassifyRewards(rewards, classifications);
+                // One-time unlock contracts (e.g. "Arrive to System") gate the rest of the
+                // catalog; their grab-bag reward mix must not drive the primary category.
+                var primary = c.OnceOnly ? ContractCategory.Other : DeriveCategory(rewardCategories);
+
                 return c with
                 {
                     Rewards = rewards,
-                    Category = DeriveCategory(rewards, classifications),
+                    Category = primary,
+                    // The filter matches any of these, so a ship contract with bonus armor
+                    // and weapons is discoverable under all three categories.
+                    Categories = rewardCategories.Append(primary).Distinct().ToList(),
                     // Keep the summary-based requirements when the detail had no orders.
                     Requirements = requirements is { Count: > 0 } ? requirements : c.Requirements,
                 };
@@ -288,6 +323,32 @@ public sealed partial class ContractCatalogService : IContractCatalogService
 
         Current = FromEnvelope(_envelope, CatalogStatus.Online);
         CatalogUpdated?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Looks up one value per key through the rate-limit gate, politeness delay between
+    /// calls; a failed lookup maps to null rather than aborting the rest of the batch.
+    /// </summary>
+    private async Task<Dictionary<TKey, TValue?>> LookupEachAsync<TKey, TValue>(
+        IEnumerable<TKey> keys, Func<TKey, Task<TValue?>> fetch, IEqualityComparer<TKey>? comparer = null)
+        where TKey : notnull
+    {
+        var result = new Dictionary<TKey, TValue?>(comparer);
+        foreach (var key in keys)
+        {
+            try
+            {
+                result[key] = await WithRateLimitRetryAsync(() => fetch(key));
+            }
+            catch (Exception ex) when (ex is HttpRequestException or JsonException)
+            {
+                result[key] = default;
+            }
+
+            await Task.Delay(_enrichmentDelay);
+        }
+
+        return result;
     }
 
     /// <summary>
@@ -329,22 +390,18 @@ public sealed partial class ContractCatalogService : IContractCatalogService
         }
     }
 
-    private static ContractCategory DeriveCategory(
+    /// <summary>Distinct categories across the rewards, in reward order.</summary>
+    private static List<ContractCategory> ClassifyRewards(
         IReadOnlyList<ContractReward> rewards,
-        IReadOnlyDictionary<string, ItemClassification?> classifications)
-    {
-        if (rewards.Count == 0)
-        {
-            return ContractCategory.Other;
-        }
-
-        var categories = rewards
+        IReadOnlyDictionary<string, ItemClassification?> classifications) =>
+        rewards
             .Select(r => ClassifyReward(r, r.ItemUuid is null ? null : classifications.GetValueOrDefault(r.ItemUuid)))
+            .Distinct()
             .ToList();
 
-        // The most "significant" reward defines the contract category.
-        return _categoryPriority.FirstOrDefault(categories.Contains, ContractCategory.Other);
-    }
+    private static ContractCategory DeriveCategory(IReadOnlyList<ContractCategory> categories) =>
+        // The most "significant" reward defines the primary category.
+        _categoryPriority.FirstOrDefault(categories.Contains, ContractCategory.Other);
 
     private static ContractCategory ClassifyReward(ContractReward reward, ItemClassification? classification)
     {
@@ -404,7 +461,7 @@ public sealed partial class ContractCatalogService : IContractCatalogService
         Requirements = mission.HaulingSummary
             .Select(h => new ContractRequirement { Name = h.Name, MinAmount = h.MinAmount, MaxAmount = h.MaxAmount })
             .ToList(),
-        ReputationAmount = mission.ReputationGained.FirstOrDefault(r => r.Scope == "Wikelo")?.Amount
+        ReputationAmount = mission.ReputationGained?.FirstOrDefault(r => r.Scope == "Wikelo")?.Amount
             ?? mission.ReputationAmount
             ?? 0,
         GameVersion = mission.GameVersion,

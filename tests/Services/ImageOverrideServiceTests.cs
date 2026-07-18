@@ -73,6 +73,37 @@ public sealed class ImageOverrideServiceTests : IDisposable
     }
 
     [Fact]
+    public void Bundled_defaults_apply_and_user_entries_win_per_key()
+    {
+        var bundledPath = Path.Combine(_directory, "bundled-overrides.json");
+        File.WriteAllText(bundledPath, """
+            {
+              "overrides": {
+                "uuid-1": "https://example.test/bundled-1.png",
+                "uuid-2": "https://example.test/bundled-2.png"
+              }
+            }
+            """);
+        File.WriteAllText(_filePath, """{ "overrides": { "uuid-1": "https://example.test/user-1.png" } }""");
+        var service = new ImageOverrideService(_filePath, bundledPath);
+
+        // The user's file wins for uuid-1; the bundled default still serves uuid-2.
+        Assert.Equal("https://example.test/user-1.png", service.GetOverride("uuid-1", "Item"));
+        Assert.Equal("https://example.test/bundled-2.png", service.GetOverride("uuid-2", "Item"));
+        Assert.Null(service.GetOverride("uuid-3", "Item"));
+    }
+
+    [Fact]
+    public void Missing_bundled_file_is_not_created_and_yields_no_defaults()
+    {
+        var bundledPath = Path.Combine(_directory, "bundled-overrides.json");
+        var service = new ImageOverrideService(_filePath, bundledPath);
+
+        Assert.Null(service.GetOverride("uuid-1", "Item"));
+        Assert.False(File.Exists(bundledPath));
+    }
+
+    [Fact]
     public void Malformed_file_keeps_previously_loaded_overrides()
     {
         File.WriteAllText(_filePath, """{ "overrides": { "uuid-1": "https://example.test/ok.png" } }""");

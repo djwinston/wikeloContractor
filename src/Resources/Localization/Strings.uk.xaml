@@ -29,7 +29,6 @@
   <sys:String x:Key="Catalog_RateLimited_Title">Забагато запитів</sys:String>
   <sys:String x:Key="Catalog_RateLimited_Retry">API Star Citizen Wiki обмежує кількість запитів за хвилину. Завантаження продовжиться через {0} с.</sys:String>
   <sys:String x:Key="Catalog_RateLimited_Resuming">Відновлюємо завантаження...</sys:String>
-  <sys:String x:Key="Catalog_OpenDetails">Відкрити деталі контракту</sys:String>
 
   <sys:String x:Key="Details_Back">Назад до каталогу</sys:String>
   <sys:String x:Key="Details_OnceOnly">Одноразовий контракт</sys:String>
@@ -46,7 +45,16 @@
   <sys:String x:Key="Details_Stat_Speed">Швидкість (SCM/макс): {0} / {1} м/с</sys:String>
   <sys:String x:Key="Details_Stat_Msrp">MSRP: ${0}</sys:String>
   <sys:String x:Key="Details_Stat_Temperature">Температура: {0}…{1} °C</sys:String>
-  <sys:String x:Key="Details_Stat_Radiation">Радіаційна ємність: {0}</sys:String>
+  <sys:String x:Key="Details_Stat_Radiation">Радіаційний захист: {0}</sys:String>
+  <sys:String x:Key="Details_Stat_RadiationScrub">Швидкість виведення радіації: {0}</sys:String>
+  <sys:String x:Key="Details_Stat_Missiles">Ракети × {0}</sys:String>
+  <sys:String x:Key="Details_Loadout_Weapons">Озброєння</sys:String>
+  <sys:String x:Key="Details_Loadout_Components">Модулі</sys:String>
+  <sys:String x:Key="Details_Comp_PowerPlant">Енергоустановка</sys:String>
+  <sys:String x:Key="Details_Comp_Shield">Щит</sys:String>
+  <sys:String x:Key="Details_Comp_Cooler">Охолоджувач</sys:String>
+  <sys:String x:Key="Details_Comp_QuantumDrive">Квантовий двигун</sys:String>
+  <sys:String x:Key="Details_Comp_JumpDrive">Стрибковий двигун</sys:String>
 
   <sys:String x:Key="Inventory_Title">Мій інвентар</sys:String>
   <sys:String x:Key="Inventory_Placeholder">Тут з'являться зібрані ресурси (Фаза 3).</sys:String>

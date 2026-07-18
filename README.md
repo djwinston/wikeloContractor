@@ -41,6 +41,8 @@ dotnet test tests/WikeloContractor.Tests.csproj
 - [docs/data-pipeline.md](docs/data-pipeline.md) — catalog data: caching, enrichment, rate limiting
 - [docs/ui-notes.md](docs/ui-notes.md) — UI patterns and WPF-UI quirks
 - [docs/testing.md](docs/testing.md) — test layout and conventions
+- [docs/api-item-fields.md](docs/api-item-fields.md) — field inventory of the item/vehicle API responses
+- [docs/reward-images.md](docs/reward-images.md) — which reward items still need a manual image URL
 
 ## License, attribution & disclaimer
 

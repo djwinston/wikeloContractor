@@ -66,12 +66,26 @@ TODO after first successful `dotnet restore`: pin exact package versions in the 
   - `Services/AppHttp` — the User-Agent constant for every outgoing HttpClient
   - `ViewModels/Localized` — code-side localized strings: `Localized.String(key)` /
     `Localized.Format(key, args)` (XAML uses `{DynamicResource}` directly)
-  - `Models/ContractRequirement.FormatRange` — min–max display rule ("2", "1–3", "≤2"),
-    invariant culture
-  - `Models/ContractCategoryDisplay.LabelKey` — category → localization resource key
+  - `Models/ContractRequirement.FormatRange` — min–max display rule ("2", "1–3";
+    max-only is the API's fixed amount and renders plain "N"), invariant culture
+  - `Models/ContractCategoryDisplay.LabelKey`, `Models/ComponentTypeDisplay.LabelKey` — the
+    `XDisplay.LabelKey(value)` pattern: an enum/API-string → localization-key mapping lives as
+    a static class next to the type it maps, one per type needing this, not inline switches
+    or string interpolation into a resource key (`$"Prefix_{apiValue}"` breaks silently on an
+    unmapped value with no compile-time check)
+  - `ViewModels/ContractDetailViewModel.RewardDisplay` — reward stat/loadout chip composition
+    (`ComposeStats`/`ComposeWeapons`/`ComposeComponents`/`FormatEntry`/`JoinNonEmpty`). Lives in
+    the VM layer, not `Models/`, because it needs `Localized` (actual localized strings, not
+    just a key) — see `docs/ui-notes.md` "Contract detail page"
   - `Views/Converters/` — one parameterized converter per concern
     (e.g. `PresenceToVisibilityConverter` with `Invert`), not inverse-twin classes
+  - `Views/Pages/ContractDetailPage.xaml` `ChipListStyle` resource — the WrapPanel/Border/
+    TextBlock chip look shared by every reward chip list (Stats/Weapons/Components); a new
+    chip list applies this `Style`, it doesn't redefine the template
   - `tests/Services/StubHandler` — shared HTTP stub for client tests
+- **Don't repeat a condition across sibling properties/branches** — hoist it to one local
+  or computed value first (e.g. a `showX` bool, an `EffectiveX` property on the model) and
+  reference that everywhere, instead of writing the same ternary/guard two or three times.
 - **Language policy**: all code comments, XML docs, and repo documentation are in **English**.
   Ukrainian is used only in conversation with the user. Localization resources
   (`Strings.uk.xaml`) and displayed UI values are data, not comments — keep them as is.

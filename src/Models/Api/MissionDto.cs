@@ -42,8 +42,10 @@ public sealed class MissionDto
     [JsonPropertyName("hauling_summary")]
     public List<HaulingSummaryItemDto> HaulingSummary { get; set; } = [];
 
+    // Nullable: top-rank trades that grant no reputation carry an explicit JSON null,
+    // which would overwrite a non-nullable initializer anyway.
     [JsonPropertyName("reputation_gained")]
-    public List<ReputationGainedDto> ReputationGained { get; set; } = [];
+    public List<ReputationGainedDto>? ReputationGained { get; set; }
 
     [JsonPropertyName("reputation_amount")]
     public int? ReputationAmount { get; set; }

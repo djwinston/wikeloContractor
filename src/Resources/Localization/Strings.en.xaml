@@ -29,7 +29,6 @@
   <sys:String x:Key="Catalog_RateLimited_Title">Too many requests</sys:String>
   <sys:String x:Key="Catalog_RateLimited_Retry">The Star Citizen Wiki API allows a limited number of requests per minute. Loading resumes in {0} s.</sys:String>
   <sys:String x:Key="Catalog_RateLimited_Resuming">Resuming loading...</sys:String>
-  <sys:String x:Key="Catalog_OpenDetails">Open contract details</sys:String>
 
   <sys:String x:Key="Details_Back">Back to the catalog</sys:String>
   <sys:String x:Key="Details_OnceOnly">One-time contract</sys:String>
@@ -46,7 +45,16 @@
   <sys:String x:Key="Details_Stat_Speed">Speed (SCM/max): {0} / {1} m/s</sys:String>
   <sys:String x:Key="Details_Stat_Msrp">MSRP: ${0}</sys:String>
   <sys:String x:Key="Details_Stat_Temperature">Temperature: {0}…{1} °C</sys:String>
-  <sys:String x:Key="Details_Stat_Radiation">Radiation capacity: {0}</sys:String>
+  <sys:String x:Key="Details_Stat_Radiation">Radiation protection: {0}</sys:String>
+  <sys:String x:Key="Details_Stat_RadiationScrub">Radiation scrub rate: {0}</sys:String>
+  <sys:String x:Key="Details_Stat_Missiles">Missiles × {0}</sys:String>
+  <sys:String x:Key="Details_Loadout_Weapons">Weapons</sys:String>
+  <sys:String x:Key="Details_Loadout_Components">Components</sys:String>
+  <sys:String x:Key="Details_Comp_PowerPlant">Power plant</sys:String>
+  <sys:String x:Key="Details_Comp_Shield">Shield</sys:String>
+  <sys:String x:Key="Details_Comp_Cooler">Cooler</sys:String>
+  <sys:String x:Key="Details_Comp_QuantumDrive">Quantum drive</sys:String>
+  <sys:String x:Key="Details_Comp_JumpDrive">Jump drive</sys:String>
 
   <sys:String x:Key="Inventory_Title">My Inventory</sys:String>
   <sys:String x:Key="Inventory_Placeholder">Your collected resources will appear here (Phase 3).</sys:String>

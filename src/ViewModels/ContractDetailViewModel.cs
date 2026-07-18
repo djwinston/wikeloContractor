@@ -1,3 +1,4 @@
+using System.Globalization;
 using WikeloContractor.Models;
 using WikeloContractor.Services;
 using Wpf.Ui;
@@ -43,7 +44,7 @@ public partial class ContractDetailViewModel : ViewModel
 
     partial void OnContractChanged(WikeloContract? value)
     {
-        Rewards = value?.Rewards.Select(RewardDisplay.From).ToList() ?? [];
+        Rewards = value?.Rewards.Select(r => RewardDisplay.From(r, value.Category)).ToList() ?? [];
         IsRewardsPending = value is not null && value.Rewards.Count == 0;
     }
 
@@ -83,11 +84,26 @@ public sealed class RewardDisplay
     /// <summary>Localized stat chips, e.g. "Cargo: 180 SCU", "physical ×0.6".</summary>
     public IReadOnlyList<string> Stats { get; init; } = [];
 
+    /// <summary>Installed weapon chips, e.g. "4 × Attrition-3 Repeater" (ships only).</summary>
+    public IReadOnlyList<string> Weapons { get; init; } = [];
+
+    /// <summary>Installed component chips, e.g. "Shield: 4 × CoverAll (S2)" (ships only).</summary>
+    public IReadOnlyList<string> Components { get; init; } = [];
+
+    public bool HasWeapons => Weapons.Count > 0;
+
+    public bool HasComponents => Components.Count > 0;
+
     public string? PledgeUrl { get; init; }
 
-    public static RewardDisplay From(ContractReward reward)
+    public static RewardDisplay From(ContractReward reward, ContractCategory category)
     {
         var details = reward.Details;
+
+        // Paint rewards are full vehicle variant records in the API, but the stats belong
+        // to the underlying vehicle — a paint changes nothing, so the chips are noise.
+        var isPaint = category == ContractCategory.Paint;
+        var showDetails = details is not null && !isPaint;
 
         return new RewardDisplay
         {
@@ -95,25 +111,21 @@ public sealed class RewardDisplay
             Header = reward.Amount > 1 ? $"{reward.Name} × {reward.Amount}" : reward.Name,
             SubHeader = details is null ? null : ComposeSubHeader(details),
             Description = details?.Description,
-            Stats = details is null ? [] : ComposeStats(details),
+            Stats = showDetails ? ComposeStats(details!) : [],
+            Weapons = showDetails ? ComposeWeapons(details!) : [],
+            Components = showDetails ? ComposeComponents(details!) : [],
             PledgeUrl = details?.PledgeUrl,
         };
     }
 
-    private static string? ComposeSubHeader(RewardDetails details)
-    {
-        string?[] parts =
-        [
-            details.Manufacturer,
-            details.Career,
-            details.Role,
-            details.SubTypeLabel,
-            details.TypeLabel,
-            details.Rarity,
-        ];
+    private static string? ComposeSubHeader(RewardDetails details) =>
+        JoinNonEmpty(" • ", details.Manufacturer, details.Career, details.Role, details.SubTypeLabel, details.TypeLabel, details.Rarity);
 
-        var line = string.Join(" • ", parts.Where(p => !string.IsNullOrWhiteSpace(p)));
-        return line.Length > 0 ? line : null;
+    /// <summary>Joins the non-blank values with <paramref name="separator"/>, or null if none are present.</summary>
+    private static string? JoinNonEmpty(string separator, params string?[] values)
+    {
+        var joined = string.Join(separator, values.Where(v => !string.IsNullOrWhiteSpace(v)));
+        return joined.Length > 0 ? joined : null;
     }
 
     private static List<string> ComposeStats(RewardDetails details)
@@ -143,13 +155,23 @@ public sealed class RewardDisplay
         }
 
         Add("Details_Stat_Radiation", details.RadiationCapacity, v => v.ToString("N0"));
+        Add("Details_Stat_RadiationScrub", details.RadiationDissipationRate, v => v.ToString("0.#"));
 
         // Damage type names come from game files and stay English (API data policy).
+        // Stored values are incoming-damage multipliers (0.7 = takes 70% damage); shown
+        // as the reduction percentage, which is what players reason in.
         if (details.DamageResistances is { } resistances)
         {
             foreach (var (type, multiplier) in resistances)
             {
-                stats.Add($"{type} ×{multiplier:0.##}");
+                var percent = Math.Round((1 - multiplier) * 100);
+                if (percent == 0)
+                {
+                    continue;
+                }
+
+                var sign = percent > 0 ? '−' : '+';
+                stats.Add($"{type} {sign}{Math.Abs(percent).ToString("0", CultureInfo.InvariantCulture)}%");
             }
         }
 
@@ -162,5 +184,51 @@ public sealed class RewardDisplay
                 stats.Add(Localized.Format(key, format(value.Value)));
             }
         }
+    }
+
+    private static List<string> ComposeWeapons(RewardDetails details)
+    {
+        var chips = new List<string>();
+
+        foreach (var entry in details.Weapons ?? [])
+        {
+            chips.Add(FormatEntry(entry));
+        }
+
+        // The plain count is a fallback for records whose racks expose no loaded ordnance.
+        var hasDetailedOrdnance = details.Weapons?.Any(w => w.Type is "Missile" or "Torpedo") == true;
+        if (details.MissileCount is > 0 && !hasDetailedOrdnance)
+        {
+            chips.Add(Localized.Format("Details_Stat_Missiles", details.MissileCount.Value));
+        }
+
+        return chips;
+    }
+
+    private static List<string> ComposeComponents(RewardDetails details)
+    {
+        var chips = new List<string>();
+
+        foreach (var entry in details.Components ?? [])
+        {
+            var label = ComponentTypeDisplay.LabelKey(entry.Type) is { } key
+                ? $"{Localized.String(key)}: {FormatEntry(entry)}"
+                : FormatEntry(entry);
+            chips.Add(label);
+        }
+
+        return chips;
+    }
+
+    /// <summary>
+    /// "4 × CoverAll (S2, Military B)", "2 × Attrition-3 Repeater (S3, Laser Repeater, A)" —
+    /// only the parts that are present. Names/labels are game data (English).
+    /// </summary>
+    private static string FormatEntry(ShipLoadoutEntry entry)
+    {
+        var name = entry.Count > 1 ? $"{entry.Count} × {entry.Name}" : entry.Name;
+
+        var suffix = JoinNonEmpty(", ", entry.Size is { } size ? $"S{size}" : null, entry.TypeLabel, JoinNonEmpty(" ", entry.Class, entry.Grade));
+        return suffix is null ? name : $"{name} ({suffix})";
     }
 }

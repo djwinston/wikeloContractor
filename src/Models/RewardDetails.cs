@@ -69,4 +69,62 @@ public sealed record RewardDetails
     public double? Msrp { get; init; }
 
     public string? PledgeUrl { get; init; }
+
+    /// <summary>
+    /// Installed weapons: fixed guns (from <c>weaponry</c>) plus turret mounts and missile
+    /// racks (from <c>ports</c>). Null for non-vehicle rewards, empty when unarmed.
+    /// </summary>
+    public IReadOnlyList<ShipLoadoutEntry>? Weapons { get; init; }
+
+    /// <summary>Total missiles carried (from <c>weaponry.missiles</c>).</summary>
+    public int? MissileCount { get; init; }
+
+    /// <summary>
+    /// Installed core components (power plants, shields, coolers, quantum drive) from
+    /// <c>ports</c>. Null for non-vehicle rewards.
+    /// </summary>
+    public IReadOnlyList<ShipLoadoutEntry>? Components { get; init; }
+}
+
+/// <summary>
+/// Maps a core component's API <c>type</c> (see <see cref="ShipLoadoutEntry.Type"/>) to its
+/// localization resource key — the single home for this decision, mirroring
+/// <see cref="ContractCategoryDisplay"/>. Types outside this list are not core components
+/// (e.g. guns) and render with no group label.
+/// </summary>
+public static class ComponentTypeDisplay
+{
+    public static string? LabelKey(string? type) => type switch
+    {
+        "PowerPlant" => "Details_Comp_PowerPlant",
+        "Shield" => "Details_Comp_Shield",
+        "Cooler" => "Details_Comp_Cooler",
+        "QuantumDrive" => "Details_Comp_QuantumDrive",
+        "JumpDrive" => "Details_Comp_JumpDrive",
+        _ => null,
+    };
+}
+
+/// <summary>One installed component or weapon of a vehicle, grouped ("4 × CoverAll (S2, Military B)").</summary>
+public sealed record ShipLoadoutEntry
+{
+    /// <summary>Item display name, e.g. "Attrition-3 Repeater", "CoverAll".</summary>
+    public required string Name { get; init; }
+
+    /// <summary>API type of the equipped item, e.g. "PowerPlant", "Shield", "MissileLauncher".</summary>
+    public string? Type { get; init; }
+
+    /// <summary>Human kind label for guns, e.g. "Laser Repeater" (from the gun's own item record).</summary>
+    public string? TypeLabel { get; init; }
+
+    /// <summary>Component size class (S1..), when the API reports one.</summary>
+    public int? Size { get; init; }
+
+    /// <summary>Component grade, "A".."D".</summary>
+    public string? Grade { get; init; }
+
+    /// <summary>Component class, e.g. "Military", "Industrial", "Civilian".</summary>
+    public string? Class { get; init; }
+
+    public int Count { get; init; } = 1;
 }

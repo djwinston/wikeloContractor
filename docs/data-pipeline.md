@@ -41,14 +41,25 @@ value to badges/InfoBars, so offline and rate-limited can never be reported toge
 
 ## Background enrichment
 
-The missions list has no rewards; those need per-mission detail calls (~55) plus item
-classification calls. This runs fire-and-forget after the list is served:
+The missions list has no rewards; those need per-mission detail calls (~88) plus item
+classification calls, plus one lookup per distinct ship gun name (kind label/grade —
+see docs/api-item-fields.md note ³). This runs fire-and-forget after the list is served:
 
 - Guarded by `Interlocked.Exchange` (single run), 150 ms politeness delay between calls.
-- Derives `ContractCategory` per contract: paint by name regex (`color|paint|livery`),
-  then vehicle-record flags (`is_spaceship` → Ship, other vehicle flags → GroundVehicle),
-  then item type string (`Char_Armor_*` → Armor, `Weapon*` → Weapon), else Other.
-  Priority when a contract has several rewards: Ship > GroundVehicle > Paint > Weapon > Armor.
+- Derives categories per contract from per-reward classification: paint by name regex
+  (`color|paint|livery`), then vehicle-record flags (`is_spaceship` → Ship, other vehicle
+  flags → GroundVehicle), then item type string (`Char_Armor_*` → Armor, `Weapon*` → Weapon),
+  else Other. Two fields result: the primary `Category` (card icon / detail badge — the
+  highest-priority reward, Ship > GroundVehicle > Paint > Weapon > Armor; always **Other**
+  for `once_only` unlocks like "Arrive to System", whose grab-bag mix must not drive it)
+  and the full `Categories` set (all reward categories + primary), which the catalog
+  category filter matches against — a ship contract with bonus armor and weapons is
+  discoverable under Ships, Armor and Weapons alike.
+- Shop-exclusive vehicle variants (e.g. "Mirai Pulse Wikelo Special") come back from
+  `api/items/{uuid}` as plain **item** records (`type: "Vehicle"`, no vehicle flags, and a
+  misleading `sub_type: Vehicle_Spaceship` even for gravlevs). The client follows
+  `base_variant.uuid` (one extra call) and, when that resolves to a vehicle record, borrows
+  its flags and stats — the variant keeps its own name, images, and description.
 - On success: envelope is rewritten with `Enriched = true` and **`CatalogUpdated` is raised
   on a background thread** — subscribers must marshal to the dispatcher.
 - On failure: silently aborted; retried on the next catalog load (envelope stays `Enriched = false`).
@@ -88,10 +99,14 @@ uses the first loadable one, keeping the rest available for manual selection lat
   downloads and in-flight deduplication; failures are not cached and retry on next use.
 - Wikelo-exclusive variants (e.g. "Asgard Wikelo War Special") have **no** wiki images —
   the UI falls back to a category placeholder icon.
-- `ImageOverrideService` reads `%AppData%\WikeloContractor\image-overrides.json`
-  (template auto-created): keys are item UUID **or** item name (case-insensitive), values
-  are an image URL or an absolute local file path. Overrides win over API images and are
-  re-read when the file changes on disk.
+- `ImageOverrideService` merges **two** override files: the bundled
+  `src/Resources/image-overrides.json` (maintained in the repo, copied to the build output —
+  shared defaults for every user; pre-seeded with placeholder entries for items without API
+  images, inventory in `docs/reward-images.md`) and the user's
+  `%AppData%\WikeloContractor\image-overrides.json` (template auto-created), which wins per
+  key. Keys are item UUID **or** item name (case-insensitive); values are an image URL (or,
+  in the user file, an absolute local path); empty values are ignored placeholders.
+  Overrides win over API images and both files are re-read when they change on disk.
 
 ## Rate limiting (HTTP 429)
 

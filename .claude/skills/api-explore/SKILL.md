@@ -62,8 +62,10 @@ $d.data[0].PSObject.Properties.Name                            # field inventory
 
 ## Known project facts (update as they are discovered)
 
-- Wikelo contracts: `GET /api/missions?filter[reputation_scope]=Wikelo&page[size]=200`
-  (60 records; default page size is only 30, so `page[size]` is required).
+- Wikelo contracts: `GET /api/missions?filter[mission_giver]=Wikelo&page[size]=200`
+  (~88 records; default page size is only 30, so `page[size]` is required).
+  `filter[reputation_scope]=Wikelo` returns only ~60 — it misses top-rank trades that grant
+  no reputation (`reputation_gained: null`), e.g. the Idris contract ("Special Idris For Killing").
 - Requirements are in list field `hauling_summary`; rewards only in detail (`reward_items`).
 - Category lives in detail field `mission_type`: "Wikelo - Vehicles" / "Wikelo - Other Items" / "Collection".
 - Current LIVE version: `GET /api/game-versions` → entry with `is_default: true`; doubles as a health check.

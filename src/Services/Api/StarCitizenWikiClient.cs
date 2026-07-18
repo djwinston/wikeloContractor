@@ -12,8 +12,10 @@ public sealed class StarCitizenWikiClient : IStarCitizenWikiClient
 {
     public const string BaseUrl = "https://api.star-citizen.wiki/";
 
-    // 60 Wikelo missions currently exist; page[size] caps at 200, so one request is enough.
-    private const string WikeloMissionsPath = "api/missions?filter[reputation_scope]=Wikelo&page[size]=200";
+    // mission_giver (~88 missions) is a strict superset of reputation_scope (~60): it also
+    // includes top-rank trades that grant no reputation (e.g. the Idris contract, where
+    // reputation_gained is null). page[size] caps at 200, so one request is enough.
+    private const string WikeloMissionsPath = "api/missions?filter[mission_giver]=Wikelo&page[size]=200";
 
     private static readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -43,6 +45,45 @@ public sealed class StarCitizenWikiClient : IStarCitizenWikiClient
 
     public async Task<ItemClassification?> GetItemClassificationAsync(string itemUuid, CancellationToken cancellationToken = default)
     {
+        var (classification, baseVariantUuid) = await FetchClassificationAsync(itemUuid, cancellationToken);
+
+        // Shop-exclusive vehicle variants (e.g. "Mirai Pulse Wikelo Special") come back as plain
+        // item records ('type': "Vehicle") without the vehicle flags or stats; their base variant
+        // resolves to a full vehicle record. Classify and describe via the base, keep the
+        // variant's own name and images.
+        if (classification is { IsVehicleRecord: false, TypeString: "Vehicle" }
+            && baseVariantUuid is not null
+            && !string.Equals(baseVariantUuid, itemUuid, StringComparison.OrdinalIgnoreCase))
+        {
+            ItemClassification? baseRecord = null;
+            try
+            {
+                (baseRecord, _) = await FetchClassificationAsync(baseVariantUuid, cancellationToken);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or JsonException)
+            {
+                // Best effort: an unreachable base variant must not discard the variant itself.
+            }
+
+            if (baseRecord is { IsVehicleRecord: true })
+            {
+                classification = baseRecord with
+                {
+                    Name = classification.Name,
+                    Images = classification.Images.Count > 0 ? classification.Images : baseRecord.Images,
+                    Details = baseRecord.Details is { } baseDetails
+                        ? baseDetails with { Description = classification.Details?.Description ?? baseDetails.Description }
+                        : classification.Details,
+                };
+            }
+        }
+
+        return classification;
+    }
+
+    private async Task<(ItemClassification? Classification, string? BaseVariantUuid)> FetchClassificationAsync(
+        string itemUuid, CancellationToken cancellationToken)
+    {
         using var response = await _httpClient.GetAsync($"api/items/{itemUuid}", HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         ThrowIfRateLimited(response);
         response.EnsureSuccessStatusCode();
@@ -55,7 +96,7 @@ public sealed class StarCitizenWikiClient : IStarCitizenWikiClient
 
         if (!document.RootElement.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Object)
         {
-            return null;
+            return (null, null);
         }
 
         var name = data.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String
@@ -69,13 +110,15 @@ public sealed class StarCitizenWikiClient : IStarCitizenWikiClient
         var isSpaceship = GetBool(data, "is_spaceship");
         var isVehicleRecord = isSpaceship || GetBool(data, "is_vehicle") || GetBool(data, "is_gravlev") || GetBool(data, "is_power_suit");
 
-        return new ItemClassification(
+        var classification = new ItemClassification(
             name,
             typeString,
             isSpaceship,
             isVehicleRecord,
             ParseImages(data),
             ParseDetails(data, isVehicleRecord));
+
+        return (classification, GetString(GetObject(data, "base_variant"), "uuid"));
 
         static bool GetBool(JsonElement element, string property) =>
             element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.True;
@@ -97,6 +140,7 @@ public sealed class StarCitizenWikiClient : IStarCitizenWikiClient
         {
             var crew = GetObject(data, "crew");
             var speed = GetObject(data, "speed");
+            var weaponry = GetObject(data, "weaponry");
 
             return details with
             {
@@ -111,6 +155,9 @@ public sealed class StarCitizenWikiClient : IStarCitizenWikiClient
                 SpeedMax = GetNumber(speed, "max"),
                 Msrp = GetNumber(data, "msrp"),
                 PledgeUrl = GetString(data, "pledge_url"),
+                Weapons = ParseWeapons(weaponry, data),
+                MissileCount = (int?)GetNumber(GetObject(weaponry, "missiles"), "count"),
+                Components = ParsePorts(data, _componentTypes, recursive: true),
             };
         }
 
@@ -130,6 +177,181 @@ public sealed class StarCitizenWikiClient : IStarCitizenWikiClient
             RadiationDissipationRate = GetNumber(radiation, "radiation_dissipation_rate"),
         };
     }
+
+    /// <summary>Port types shown as core components on the detail page (searched recursively — jump drives sit in nested ports).</summary>
+    private static readonly string[] _componentTypes = ["PowerPlant", "Shield", "Cooler", "QuantumDrive", "JumpDrive"];
+
+    /// <summary>Port types shown alongside guns in the weapons group (mounts, racks, turrets; top level only — nesting would double-count).</summary>
+    private static readonly string[] _weaponMountTypes = ["Turret", "TurretBase", "MissileLauncher", "WeaponMount"];
+
+    /// <summary>Actual guns, found recursively: fixed guns sit on mounts, turret guns one level deeper.</summary>
+    private static readonly string[] _gunTypes = ["WeaponGun"];
+
+    /// <summary>Loaded ordnance, found recursively inside racks.</summary>
+    private static readonly string[] _ordnanceTypes = ["Missile", "Torpedo"];
+
+    /// <summary>Ignore unfilled ports: empty names and the API's explicit placeholder marker.</summary>
+    private static bool IsRealItemName(string? name) =>
+        !string.IsNullOrWhiteSpace(name) && !name.Contains("PLACEHOLDER", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Guns and ordnance from the (nested) port tree, mounts/racks from the top level.
+    /// Older/partial records without nested gun data fall back to the name-only
+    /// <c>weaponry.fixed_weapons</c> list (enrichment then looks the names up).
+    /// </summary>
+    private static List<ShipLoadoutEntry> ParseWeapons(JsonElement? weaponry, JsonElement data)
+    {
+        var entries = ParsePorts(data, _gunTypes, recursive: true);
+
+        if (entries.Count == 0
+            && weaponry is { } w
+            && GetObject(w, "fixed_weapons") is { } fixedWeapons
+            && fixedWeapons.TryGetProperty("weapons", out var weapons)
+            && weapons.ValueKind == JsonValueKind.Array)
+        {
+            entries.AddRange(weapons.EnumerateArray()
+                .Where(e => e.ValueKind == JsonValueKind.Object)
+                .Select(e => GetString(e, "name"))
+                .Where(IsRealItemName)
+                .GroupBy(n => n!, StringComparer.OrdinalIgnoreCase)
+                .Select(g => new ShipLoadoutEntry { Name = g.Key, Count = g.Count() }));
+        }
+
+        entries.AddRange(ParsePorts(data, _ordnanceTypes, recursive: true));
+        entries.AddRange(ParsePorts(data, _weaponMountTypes, recursive: false));
+        return entries;
+    }
+
+    /// <summary>Equipped items of the given types from <c>ports</c>, grouped into counted entries.</summary>
+    private static List<ShipLoadoutEntry> ParsePorts(JsonElement data, string[] allowedTypes, bool recursive)
+    {
+        var items = new List<JsonElement>();
+        CollectEquippedItems(data, recursive, items);
+
+        return items
+            .Select(item => (
+                Name: GetString(item, "name"),
+                Type: GetString(item, "type"),
+                // Kind labels ride along on the equipped item: guns carry
+                // vehicle_weapon.type ("Laser Repeater"), ordnance missile.signal_type ("CrossSection").
+                TypeLabel: NonEmpty(GetString(GetObject(item, "vehicle_weapon"), "type"))
+                    ?? NonEmpty(GetString(GetObject(item, "missile"), "signal_type")),
+                Size: (int?)GetNumber(item, "size"),
+                Grade: NonEmpty(GetString(item, "grade")),
+                Class: NonEmpty(GetString(item, "class"))))
+            .Where(x => IsRealItemName(x.Name) && x.Type is not null
+                && allowedTypes.Contains(x.Type, StringComparer.OrdinalIgnoreCase))
+            .GroupBy(x => (x.Name, x.Type, x.TypeLabel, x.Size, x.Grade, x.Class))
+            .Select(g => new ShipLoadoutEntry
+            {
+                Name = g.Key.Name!,
+                Type = g.Key.Type,
+                TypeLabel = g.Key.TypeLabel,
+                Size = g.Key.Size,
+                Grade = g.Key.Grade,
+                Class = g.Key.Class,
+                Count = g.Count(),
+            })
+            .ToList();
+    }
+
+    /// <summary>Walks <c>ports</c> of the given node (and, when recursive, of each port) collecting equipped items.</summary>
+    private static void CollectEquippedItems(JsonElement node, bool recursive, List<JsonElement> items)
+    {
+        if (!node.TryGetProperty("ports", out var ports) || ports.ValueKind != JsonValueKind.Array)
+        {
+            return;
+        }
+
+        foreach (var port in ports.EnumerateArray())
+        {
+            if (port.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            if (GetObject(port, "equipped_item") is { } item)
+            {
+                items.Add(item);
+            }
+
+            if (recursive)
+            {
+                CollectEquippedItems(port, recursive, items);
+            }
+        }
+    }
+
+    private static string? NonEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
+
+    /// <summary>
+    /// Looks up a ship gun by display name to get what the vehicle record does not carry:
+    /// the human kind label ("Laser Repeater"), size and grade. Slug lookup first (one
+    /// request); a name-filter search as fallback. Null when the item cannot be found.
+    /// </summary>
+    public async Task<VehicleWeaponInfo?> GetVehicleWeaponInfoAsync(string weaponName, CancellationToken cancellationToken = default)
+    {
+        var slug = Slugify(weaponName);
+        if (await TryGetWeaponInfoAsync($"api/items/{slug}", cancellationToken) is { } info)
+        {
+            return info;
+        }
+
+        // Slug misses (special characters, renamed records) fall back to an exact-name filter.
+        var uuid = await TryFindUuidByNameAsync(weaponName, cancellationToken);
+        return uuid is null ? null : await TryGetWeaponInfoAsync($"api/items/{uuid}", cancellationToken);
+    }
+
+    /// <summary>Exact-name item search, used as a fallback when the slug guess misses.</summary>
+    private async Task<string?> TryFindUuidByNameAsync(string name, CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.GetAsync(
+            $"api/items?filter[name]={Uri.EscapeDataString(name)}&page[size]=1",
+            HttpCompletionOption.ResponseHeadersRead,
+            cancellationToken);
+        ThrowIfRateLimited(response);
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        using var document = await JsonDocument.ParseAsync(
+            await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
+        return document.RootElement.TryGetProperty("data", out var data)
+            && data.ValueKind == JsonValueKind.Array
+            && data.GetArrayLength() > 0
+            ? GetString(data[0], "uuid")
+            : null;
+    }
+
+    private async Task<VehicleWeaponInfo?> TryGetWeaponInfoAsync(string path, CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.GetAsync(path, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        ThrowIfRateLimited(response);
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        using var document = await JsonDocument.ParseAsync(
+            await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
+        if (!document.RootElement.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        return new VehicleWeaponInfo(
+            NonEmpty(GetString(GetObject(data, "vehicle_weapon"), "type")),
+            (int?)GetNumber(data, "size"),
+            NonEmpty(GetString(data, "grade")));
+    }
+
+    /// <summary>"CF-337 Panther Repeater" → "cf-337-panther-repeater" (the API's item slug scheme).</summary>
+    private static string Slugify(string name) =>
+        string.Join("-", name.ToLowerInvariant()
+            .Split([' ', '/', '\\'], StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => new string(part.Where(c => char.IsLetterOrDigit(c) || c == '-').ToArray()))
+            .Where(part => part.Length > 0));
 
     /// <summary>Multipliers from <c>damage_resistance_map</c>; the <c>*_change</c> delta entries are skipped.</summary>
     private static Dictionary<string, double>? ParseDamageResistances(JsonElement armor)
@@ -190,6 +412,10 @@ public sealed class StarCitizenWikiClient : IStarCitizenWikiClient
         obj.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.Object
             ? value
             : null;
+
+    /// <summary>Overload for optional sub-objects: null element → null value.</summary>
+    private static JsonElement? GetObject(JsonElement? obj, string property) =>
+        obj is { } element ? GetObject(element, property) : null;
 
     /// <summary>Reads the <c>images</c> array (external CDN URLs); empty for uncovered items.</summary>
     private static List<RewardImage> ParseImages(JsonElement data)

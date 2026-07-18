@@ -33,7 +33,8 @@ Reference (what already exists): https://wikelotrades.com , community Excel spre
 ## Phase 1 — API client
 
 - [x] Explore swagger at `docs.star-citizen.wiki`: Wikelo missions come from
-      `GET /api/missions?filter[reputation_scope]=Wikelo&page[size]=200` (60 entries, one page);
+      `GET /api/missions?filter[mission_giver]=Wikelo&page[size]=200` (~88 entries, one page;
+      the earlier `reputation_scope` filter missed no-reputation top-rank trades like the Idris);
       requirements are in `hauling_summary`, rewards only in `GET /api/missions/{uuid}` (`reward_items`)
 - [x] `Services/Api/StarCitizenWikiClient` via `IHttpClientFactory` + `System.Text.Json`
 - [x] Models: `WikeloContract` (title, requirements: item+quantity, reputation, game version);
@@ -55,11 +56,19 @@ Reference (what already exists): https://wikelotrades.com , community Excel spre
 - [x] Reward preview images in the list: URLs come free with enrichment (`images` in item
       detail), files cached once in `cache/images/` from external CDNs (no API rate-limit
       impact), category icon fallback, custom overrides via `image-overrides.json`
+      (two layers: bundled repo file with shared URLs — missing-image inventory in
+      `docs/reward-images.md` — plus a personal `%AppData%` file that wins per key)
 - [x] Contract details page: click a card → full requirements (incl. SCU amounts and extra
       entries from `hauling_orders`, e.g. Wikelo Favor) + reward cards with image, description,
       manufacturer, item stats (rarity/resistances/temperature) or vehicle stats
       (cargo/crew/HP/shields/speeds/MSRP + pledge link); back navigation via
       `NavigateWithHierarchy`. See `docs/api-item-fields.md` for what else the API offers
+- [x] Detail page refinements: large reward image (own decode resolution); ship loadout —
+      weapons with kind labels ("Laser Repeater") and grades, loaded ordnance with signal
+      types (CrossSection/IR/EM), core components incl. jump drive with grade/class; armor
+      resistances as reduction percentages + radiation protection/scrub rate; paint rewards
+      show no vehicle stats; search also matches reward names; per-contract multi-category
+      set so mixed-reward contracts appear under every matching category filter
 - [ ] "Tracked" flag on a contract (persisted)
 - [ ] Aggregation: combined resource list across all tracked contracts
 

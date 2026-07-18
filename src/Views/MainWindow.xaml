@@ -39,6 +39,7 @@
       Grid.Row="1"
       IsBackButtonVisible="Collapsed"
       IsPaneToggleVisible="True"
+      OpenPaneLength="160"
       PaneDisplayMode="Left">
 
       <ui:NavigationView.MenuItems>
