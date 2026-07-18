@@ -1,0 +1,3 @@
+# Default owner for everything in the repo. Auto-requests review on PRs and lets the
+# "Require review from Code Owners" ruleset enforce approval on the main branch.
+* @djwinston

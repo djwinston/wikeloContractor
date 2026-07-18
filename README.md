@@ -34,6 +34,24 @@ VS Code remembers the chosen profile per workspace.
 dotnet test tests/WikeloContractor.Tests.csproj
 ```
 
+## Releases & updates
+
+Distributed as a **Velopack** installer with in-app auto-update. The build is
+framework-dependent; the installer downloads the .NET 10 Desktop Runtime on first install if it's
+missing. Once installed, **Settings → Check for app updates** pulls new versions from GitHub
+Releases (and the app checks in the background on launch).
+
+CI runs on every PR to `dev`/`main` (`.github/workflows/ci.yml`). To cut a release, merge into
+`main`, then push a SemVer tag — `.github/workflows/release.yml` builds and publishes the Release:
+
+```powershell
+git tag v1.2.3
+git push origin v1.2.3
+```
+
+For a release PR into `main`, open it with the release template
+(`?template=release.md` on the "compare" URL) to capture the intended version and post-merge steps.
+
 ## Documentation
 
 - [PLAN.md](PLAN.md) — development plan by phases

@@ -97,6 +97,21 @@ TODO after first successful `dotnet restore`: pin exact package versions in the 
 - Overlays render above Star Citizen even in its "Fullscreen" mode on Windows 11
   (DWM fullscreen optimizations); confirmed by the SCLOC-Verse community app.
 
+## Distribution & updates (Phase 5)
+
+- Packaged with **Velopack** (installer + auto-update); GitHub Releases is the update feed.
+  `VelopackApp.Build().Run()` is the **first line** of `App.OnStartup` (handles install/update
+  hooks) — do not move it after the host build. `Services/AppUpdateService` wraps `UpdateManager`
+  and is a no-op when `UpdateManager.IsInstalled` is false (dev runs), driving the Settings
+  "Check for updates" row. Release build is **framework-dependent**; the installer bootstraps the
+  .NET Desktop Runtime via `vpk pack --framework net10.0-x64-desktop`.
+- Keep `Resources/image-overrides.json` as loose `<Content>` (do **not** embed it): it ships in the
+  install dir as the editable bundled-defaults layer. It is replaced on each Velopack update, so
+  persistent personal edits belong in the `%AppData%` override file, which updates never touch.
+- CI/release live in `.github/workflows/`; merge gating (tests must pass, approvals) is configured
+  in GitHub **Rulesets**, not in the YAML. The CI job is named `build-and-test` — keep that name
+  stable, the rulesets reference it.
+
 ## API notes (Phase 1)
 
 - Explore swagger first; mission pages exist like `api.star-citizen.wiki/missions/wikelo-arrive-to-system`,

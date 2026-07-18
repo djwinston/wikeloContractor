@@ -72,6 +72,14 @@
   <sys:String x:Key="Settings_Data_UpdateFailed">Не вдалося з'єднатися з API — показано кешовані дані. Спробуйте пізніше.</sys:String>
   <sys:String x:Key="Settings_About">Wikelo Contractor — застосунок-помічник для угод Wikelo у Star Citizen.</sys:String>
   <sys:String x:Key="Settings_AppVersion">Версія застосунку:</sys:String>
+  <sys:String x:Key="Settings_AppUpdate">Оновлення застосунку</sys:String>
+  <sys:String x:Key="Settings_AppUpdate_Check">Перевірити оновлення застосунку</sys:String>
+  <sys:String x:Key="Settings_AppUpdate_Checking">Перевірка оновлень…</sys:String>
+  <sys:String x:Key="Settings_AppUpdate_UpToDate">У вас найновіша версія.</sys:String>
+  <sys:String x:Key="Settings_AppUpdate_Downloading">Завантаження оновлення…</sys:String>
+  <sys:String x:Key="Settings_AppUpdate_Ready">Оновлення {0} готове. Перезапустіть, щоб застосувати.</sys:String>
+  <sys:String x:Key="Settings_AppUpdate_Restart">Перезапустити для оновлення</sys:String>
+  <sys:String x:Key="Settings_AppUpdate_Failed">Не вдалося перевірити оновлення. Спробуйте пізніше.</sys:String>
   <sys:String x:Key="Settings_Attribution">Ігрові дані надає Star Citizen Wiki API:</sys:String>
   <sys:String x:Key="Settings_Disclaimer">Неофіційний фанатський застосунок, не пов'язаний з Cloud Imperium Games і не схвалений нею. Усі ігрові дані належать Cloud Imperium Games.</sys:String>
 

@@ -106,6 +106,33 @@
         Text="{Binding ViewModel.AppVersion, Mode=OneWay}" />
     </StackPanel>
 
+    <!-- Self-update (Velopack): manual check + restart-to-apply -->
+    <StackPanel Margin="0,12,0,0" Orientation="Horizontal">
+      <ui:Button
+        Command="{Binding ViewModel.CheckAppUpdateCommand}"
+        Content="{DynamicResource Settings_AppUpdate_Check}"
+        Icon="{ui:SymbolIcon ArrowDownload24}" />
+      <ui:ProgressRing
+        Width="20"
+        Height="20"
+        Margin="8,0,0,0"
+        VerticalAlignment="Center"
+        IsIndeterminate="True"
+        Visibility="{Binding ViewModel.IsAppUpdateBusy, Converter={StaticResource BoolToVisibility}}" />
+    </StackPanel>
+    <ui:InfoBar
+      Margin="0,8,0,0"
+      IsClosable="False"
+      IsOpen="{Binding ViewModel.HasAppUpdateMessage, Mode=OneWay}"
+      Message="{Binding ViewModel.AppUpdateMessage, Mode=OneWay}"
+      Severity="Informational" />
+    <ui:Button
+      Margin="0,8,0,0"
+      Command="{Binding ViewModel.RestartForAppUpdateCommand}"
+      Content="{DynamicResource Settings_AppUpdate_Restart}"
+      Icon="{ui:SymbolIcon ArrowClockwise24}"
+      Visibility="{Binding ViewModel.IsAppUpdateReady, Converter={StaticResource BoolToVisibility}}" />
+
     <!-- Required credit per Star Citizen Wiki API terms of use -->
     <TextBlock
       Margin="0,12,0,0"

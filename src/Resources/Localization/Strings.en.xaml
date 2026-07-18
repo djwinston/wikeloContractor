@@ -72,6 +72,14 @@
   <sys:String x:Key="Settings_Data_UpdateFailed">Could not reach the API — showing cached data. Try again later.</sys:String>
   <sys:String x:Key="Settings_About">Wikelo Contractor — a companion app for Wikelo trades in Star Citizen.</sys:String>
   <sys:String x:Key="Settings_AppVersion">App version:</sys:String>
+  <sys:String x:Key="Settings_AppUpdate">Application updates</sys:String>
+  <sys:String x:Key="Settings_AppUpdate_Check">Check for app updates</sys:String>
+  <sys:String x:Key="Settings_AppUpdate_Checking">Checking for updates…</sys:String>
+  <sys:String x:Key="Settings_AppUpdate_UpToDate">You have the latest version.</sys:String>
+  <sys:String x:Key="Settings_AppUpdate_Downloading">Downloading update…</sys:String>
+  <sys:String x:Key="Settings_AppUpdate_Ready">Update {0} is ready. Restart to apply it.</sys:String>
+  <sys:String x:Key="Settings_AppUpdate_Restart">Restart to update</sys:String>
+  <sys:String x:Key="Settings_AppUpdate_Failed">Could not check for updates. Try again later.</sys:String>
   <sys:String x:Key="Settings_Attribution">Game data is provided by the Star Citizen Wiki API:</sys:String>
   <sys:String x:Key="Settings_Disclaimer">Unofficial fan-made app, not affiliated with or endorsed by Cloud Imperium Games. All game data belongs to Cloud Imperium Games.</sys:String>
 

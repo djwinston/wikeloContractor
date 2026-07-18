@@ -1,0 +1,86 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      REPO_URL: https://github.com/djwinston/wikeloContractor
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Velopack needs prior releases' history to build delta packages.
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Derive version from tag
+        shell: pwsh
+        run: |
+          $tag = $env:GITHUB_REF_NAME          # e.g. v1.2.3
+          $version = $tag.TrimStart('v')       # e.g. 1.2.3
+          "TAG=$tag"         | Out-File -FilePath $env:GITHUB_ENV -Append
+          "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+          if ($tag -match '-') { "PRERELEASE=true" | Out-File -FilePath $env:GITHUB_ENV -Append }
+
+      - name: Test
+        run: dotnet test tests/WikeloContractor.Tests.csproj -c Release
+
+      - name: Publish (framework-dependent)
+        run: dotnet publish src/WikeloContractor.csproj -c Release -r win-x64 --self-contained false -p:Version=$env:VERSION -o publish
+
+      - name: Install Velopack CLI
+        run: dotnet tool install -g vpk
+
+      - name: Download prior releases (for deltas)
+        continue-on-error: true
+        shell: pwsh
+        run: vpk download github --repoUrl $env:REPO_URL
+
+      - name: Pack installer
+        shell: pwsh
+        env:
+          # Optional signing — dormant until these repository secrets are added.
+          SIGN_PFX_BASE64: ${{ secrets.SIGN_PFX_BASE64 }}
+          SIGN_PFX_PASSWORD: ${{ secrets.SIGN_PFX_PASSWORD }}
+        run: |
+          $vpkArgs = @(
+            'pack',
+            '--packId', 'WikeloContractor',
+            '--packTitle', 'Wikelo Contractor',
+            '--packVersion', $env:VERSION,
+            '--packDir', 'publish',
+            '--mainExe', 'WikeloContractor.exe',
+            '--icon', 'src/Assets/app.ico',
+            # Makes the installer bootstrap the .NET 10 Desktop Runtime if it is missing.
+            '--framework', 'net10.0-x64-desktop'
+          )
+          if ($env:SIGN_PFX_BASE64) {
+            [System.IO.File]::WriteAllBytes('cert.pfx', [System.Convert]::FromBase64String($env:SIGN_PFX_BASE64))
+            $vpkArgs += @('--signParams', "/f cert.pfx /p $env:SIGN_PFX_PASSWORD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256")
+          }
+          vpk @vpkArgs
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $uploadArgs = @(
+            'upload', 'github',
+            '--repoUrl', $env:REPO_URL,
+            '--publish',
+            '--releaseName', $env:TAG,
+            '--tag', $env:TAG,
+            '--token', $env:GITHUB_TOKEN
+          )
+          if ($env:PRERELEASE -eq 'true') { $uploadArgs += '--pre' }
+          vpk @uploadArgs

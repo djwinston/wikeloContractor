@@ -1,5 +1,6 @@
 using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
+using Velopack;
 using Wpf.Ui;
 using Wpf.Ui.DependencyInjection;
 using WikeloContractor.Services;
@@ -35,6 +36,9 @@ public partial class App
             _ = services.AddSingleton<IImageCacheService>(_ => new ImageCacheService(new System.Net.Http.HttpClient()));
             _ = services.AddSingleton<IImageOverrideService, ImageOverrideService>();
 
+            // Self-update (Velopack). No-op in a dev run; drives Settings' "Check for updates".
+            _ = services.AddSingleton<IAppUpdateService, AppUpdateService>();
+
             // Main window
             _ = services.AddSingleton<INavigationWindow, Views.MainWindow>();
             _ = services.AddSingleton<ViewModels.MainWindowViewModel>();
@@ -55,6 +59,11 @@ public partial class App
 
     private async void OnStartup(object sender, StartupEventArgs e)
     {
+        // Must run before any UI: handles Velopack install/update/uninstall hooks (the installer
+        // relaunches the exe with special args) and exits the process for those, so a normal
+        // launch falls straight through to starting the host.
+        VelopackApp.Build().Run();
+
         await _host.StartAsync();
     }
 

@@ -92,13 +92,24 @@ Reference (what already exists): https://wikelotrades.com , community Excel spre
 - [ ] Tray (WPF-UI.Tray): minimize to tray, quick overlay toggle from the menu
 - [ ] Start with Windows (optional)
 - [ ] File logging (`Microsoft.Extensions.Logging` + a simple file provider)
-- [ ] Velopack: auto-update + installer
-- [ ] Versioning: SemVer with git tags (`vX.Y.Z`) on GitHub as the single source of truth;
-      the tag version is injected into the build (`dotnet build -p:Version=X.Y.Z`),
-      the app shows its version in Settings (already reads it from the assembly)
-- [ ] GitHub Actions — CI: run unit tests + build on every PR to `dev`/`main`
-- [ ] GitHub Actions — release: on pushing a `vX.Y.Z` tag, build with the tag version,
-      package (installer/zip) and publish a GitHub Release with the artifacts
+- [x] Velopack: installer + auto-update. Framework-dependent build; the installer bootstraps the
+      .NET 10 Desktop Runtime (`--framework net10.0-x64-desktop`) if missing. `VelopackApp.Run()`
+      runs first in `App.OnStartup`; `Services/AppUpdateService` wraps `UpdateManager` (GitHub
+      Releases feed) and drives a "Check for updates" row in Settings (no-op in a dev run).
+      GitHub Releases doubles as the update feed. Note: the shipped `image-overrides.json` lives in
+      the install dir (replaced on update); persistent user edits go to the `%AppData%` layer.
+- [x] Versioning: SemVer with git tags (`vX.Y.Z`) on GitHub as the single source of truth;
+      the tag version is injected into the build (`-p:Version=X.Y.Z`),
+      the app shows its version in Settings (reads it from the assembly)
+- [x] GitHub Actions — CI (`.github/workflows/ci.yml`): restore + build + run unit tests on
+      `windows-latest` for every PR to `dev`/`main` (job `build-and-test`) and pushes to `dev`.
+      Merge blocking + required approvals are enforced via GitHub **Rulesets** (main: PR +
+      1 approval + Code Owner review + required `build-and-test`; dev: required `build-and-test`,
+      owner in the bypass list so direct pushes still work).
+- [x] GitHub Actions — release (`.github/workflows/release.yml`): on pushing a `vX.Y.Z` tag,
+      publish framework-dependent → `vpk pack` → `vpk upload github`, producing a `Setup.exe` and
+      the delta feed on a GitHub Release. Optional code signing is a secret-gated step (dormant
+      until an OV/EV cert is provided).
 
 ## Phase 6 (optional) — Cloud sync
 
