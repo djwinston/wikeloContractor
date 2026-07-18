@@ -28,24 +28,47 @@ Reference (what already exists): https://wikelotrades.com , community Excel spre
 - [x] Settings: language (en/uk, runtime switching via ResourceDictionary) and theme (System/Light/Dark), persisted to `settings.json`
 - [x] VS Code: tasks, launch, extensions, settings
 - [ ] **After the first `dotnet restore`: pin exact package versions in the csproj** (currently floating `4.*` / `8.*` / `10.*`)
-- [ ] App icon (`.ico`) — add `<ApplicationIcon>` to the csproj + `ui:TitleBar Icon`
+- [x] App icon (`.ico`) — `<ApplicationIcon>` in the csproj + `ui:TitleBar` icon (`src/Assets/`)
 
 ## Phase 1 — API client
 
-- [ ] Explore swagger at `docs.star-citizen.wiki`: find Wikelo mission endpoints
-      (cross-check with pages like `api.star-citizen.wiki/missions/...`, `?filter[...]` filters)
-- [ ] `Services/Api/StarCitizenWikiClient` via `IHttpClientFactory` + `System.Text.Json`
-- [ ] Models: `WikeloContract` (name, Emporium location, requirements: item+quantity, rewards, game version)
-- [ ] Disk cache of the response (`%AppData%\WikeloContractor\cache\contracts.json` + timestamp),
-      TTL + manual refresh; the app works offline from the cache
-- [ ] Network error handling (InfoBar in the UI)
-- [ ] Unit tests for model parsing (`tests/` project)
+- [x] Explore swagger at `docs.star-citizen.wiki`: Wikelo missions come from
+      `GET /api/missions?filter[mission_giver]=Wikelo&page[size]=200` (~88 entries, one page;
+      the earlier `reputation_scope` filter missed no-reputation top-rank trades like the Idris);
+      requirements are in `hauling_summary`, rewards only in `GET /api/missions/{uuid}` (`reward_items`)
+- [x] `Services/Api/StarCitizenWikiClient` via `IHttpClientFactory` + `System.Text.Json`
+- [x] Models: `WikeloContract` (title, requirements: item+quantity, reputation, game version);
+      rewards will be added with the contract detail view (Phase 2) from the mission detail endpoint
+- [x] Disk cache of the response (`%AppData%\WikeloContractor\cache\contracts.json`):
+      invalidated only when a new LIVE game version appears (`GET /api/game-versions`);
+      the version is re-checked at most every 12h + manual "Check for updates" in Settings;
+      the app works offline from the cache (stale fallback, offline badge)
+- [x] Network error handling (InfoBar in the UI: load error / offline warning)
+- [x] Unit tests (`tests/` project, xUnit): DTO/model parsing, API client (429 + Retry-After,
+      version selection, item classification), catalog service (cache, rate-limit gate,
+      version-based invalidation), localization key parity (en/uk)
 
 ## Phase 2 — Catalog
 
-- [ ] Contract list: cards or table (`ui:Card` / `ListView`), search (`AutoSuggestBox`)
-- [ ] Filters: by reward type (Ship / Weapon / Armor / Other), by Emporium location
-- [ ] Contract details: full list of requirements and rewards
+- [x] Contract list: cards with requirements, rewards, reputation; local search box
+- [x] Filters: by reward category (Ships / Ground vehicles / Paints / Weapons / Armor / Other,
+      derived from reward item data via background enrichment) and by required resource
+- [x] Reward preview images in the list: URLs come free with enrichment (`images` in item
+      detail), files cached once in `cache/images/` from external CDNs (no API rate-limit
+      impact), category icon fallback, custom overrides via `image-overrides.json`
+      (two layers: bundled repo file with shared URLs — missing-image inventory in
+      `docs/reward-images.md` — plus a personal `%AppData%` file that wins per key)
+- [x] Contract details page: click a card → full requirements (incl. SCU amounts and extra
+      entries from `hauling_orders`, e.g. Wikelo Favor) + reward cards with image, description,
+      manufacturer, item stats (rarity/resistances/temperature) or vehicle stats
+      (cargo/crew/HP/shields/speeds/MSRP + pledge link); back navigation via
+      `NavigateWithHierarchy`. See `docs/api-item-fields.md` for what else the API offers
+- [x] Detail page refinements: large reward image (own decode resolution); ship loadout —
+      weapons with kind labels ("Laser Repeater") and grades, loaded ordnance with signal
+      types (CrossSection/IR/EM), core components incl. jump drive with grade/class; armor
+      resistances as reduction percentages + radiation protection/scrub rate; paint rewards
+      show no vehicle stats; search also matches reward names; per-contract multi-category
+      set so mixed-reward contracts appear under every matching category filter
 - [ ] "Tracked" flag on a contract (persisted)
 - [ ] Aggregation: combined resource list across all tracked contracts
 
@@ -69,8 +92,24 @@ Reference (what already exists): https://wikelotrades.com , community Excel spre
 - [ ] Tray (WPF-UI.Tray): minimize to tray, quick overlay toggle from the menu
 - [ ] Start with Windows (optional)
 - [ ] File logging (`Microsoft.Extensions.Logging` + a simple file provider)
-- [ ] Velopack: auto-update + installer
-- [ ] GitHub Actions: build + release
+- [x] Velopack: installer + auto-update. Framework-dependent build; the installer bootstraps the
+      .NET 10 Desktop Runtime (`--framework net10.0-x64-desktop`) if missing. `VelopackApp.Run()`
+      runs first in `App.OnStartup`; `Services/AppUpdateService` wraps `UpdateManager` (GitHub
+      Releases feed) and drives a "Check for updates" row in Settings (no-op in a dev run).
+      GitHub Releases doubles as the update feed. Note: the shipped `image-overrides.json` lives in
+      the install dir (replaced on update); persistent user edits go to the `%AppData%` layer.
+- [x] Versioning: SemVer with git tags (`vX.Y.Z`) on GitHub as the single source of truth;
+      the tag version is injected into the build (`-p:Version=X.Y.Z`),
+      the app shows its version in Settings (reads it from the assembly)
+- [x] GitHub Actions — CI (`.github/workflows/ci.yml`): restore + build + run unit tests on
+      `windows-latest` for every PR to `dev`/`main` (job `build-and-test`) and pushes to `dev`.
+      Merge blocking + required approvals are enforced via GitHub **Rulesets** (main: PR +
+      1 approval + Code Owner review + required `build-and-test`; dev: required `build-and-test`,
+      owner in the bypass list so direct pushes still work).
+- [x] GitHub Actions — release (`.github/workflows/release.yml`): on pushing a `vX.Y.Z` tag,
+      publish framework-dependent → `vpk pack` → `vpk upload github`, producing a `Setup.exe` and
+      the delta feed on a GitHub Release. Optional code signing is a secret-gated step (dormant
+      until an OV/EV cert is provided).
 
 ## Phase 6 (optional) — Cloud sync
 

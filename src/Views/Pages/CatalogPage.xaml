@@ -5,6 +5,8 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:local="clr-namespace:WikeloContractor.Views.Pages"
+  xmlns:converters="clr-namespace:WikeloContractor.Views.Converters"
+  xmlns:helpers="clr-namespace:WikeloContractor.Views.Helpers"
   xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
   Title="CatalogPage"
   d:DataContext="{d:DesignInstance local:CatalogPage, IsDesignTimeCreatable=False}"
@@ -13,16 +15,278 @@
   ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
   ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+  ScrollViewer.CanContentScroll="False"
   mc:Ignorable="d">
 
-  <StackPanel Margin="42,24">
-    <TextBlock
-      FontSize="28"
-      FontWeight="DemiBold"
-      Text="{DynamicResource Catalog_Title}" />
-    <TextBlock
+  <Page.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+    <converters:CategoryToSymbolConverter x:Key="CategoryToSymbol" />
+    <converters:PresenceToVisibilityConverter x:Key="NullToVisibility" Invert="True" />
+  </Page.Resources>
+
+  <Grid Margin="42,24,42,0">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <!-- Header: title + refresh -->
+    <Grid Grid.Row="0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+
+      <TextBlock
+        Grid.Column="0"
+        FontSize="28"
+        FontWeight="DemiBold"
+        Text="{DynamicResource Catalog_Title}" />
+
+      <!-- Sync status badge: green check when data matches the current LIVE version -->
+      <StackPanel
+        Grid.Column="1"
+        VerticalAlignment="Center"
+        Orientation="Horizontal">
+        <ui:SymbolIcon
+          VerticalAlignment="Center"
+          Foreground="{DynamicResource SystemFillColorSuccessBrush}"
+          Symbol="CloudCheckmark24"
+          Visibility="{Binding ViewModel.IsSynced, Converter={StaticResource BoolToVisibility}}" />
+        <ui:SymbolIcon
+          VerticalAlignment="Center"
+          Foreground="{DynamicResource SystemFillColorCautionBrush}"
+          Symbol="CloudOff24"
+          Visibility="{Binding ViewModel.IsOffline, Converter={StaticResource BoolToVisibility}}" />
+        <TextBlock
+          Margin="6,0,0,0"
+          VerticalAlignment="Center"
+          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+          Text="{Binding ViewModel.GameVersion}" />
+      </StackPanel>
+    </Grid>
+
+    <!-- Filters: search, reward category, required resource -->
+    <Grid Grid.Row="1" Margin="0,12,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+
+      <ui:TextBox
+        Grid.Column="0"
+        Icon="{ui:SymbolIcon Search24}"
+        PlaceholderText="{DynamicResource Catalog_Search}"
+        Text="{Binding ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+      <ComboBox
+        Grid.Column="1"
+        MinWidth="170"
+        Margin="8,0,0,0"
+        SelectedIndex="{Binding ViewModel.CategoryIndex, Mode=TwoWay}">
+        <ComboBoxItem Content="{DynamicResource Catalog_Filter_AllCategories}" />
+        <ComboBoxItem Content="{DynamicResource Catalog_Cat_Ships}" />
+        <ComboBoxItem Content="{DynamicResource Catalog_Cat_Vehicles}" />
+        <ComboBoxItem Content="{DynamicResource Catalog_Cat_Paints}" />
+        <ComboBoxItem Content="{DynamicResource Catalog_Cat_Weapons}" />
+        <ComboBoxItem Content="{DynamicResource Catalog_Cat_Armor}" />
+        <ComboBoxItem Content="{DynamicResource Catalog_Cat_Other}" />
+      </ComboBox>
+
+      <ComboBox
+        Grid.Column="2"
+        MinWidth="190"
+        Margin="8,0,0,0"
+        ItemsSource="{Binding ViewModel.ResourceOptions}"
+        SelectedIndex="{Binding ViewModel.ResourceIndex, Mode=TwoWay}" />
+
+      <ui:Button
+        Grid.Column="3"
+        Margin="8,0,0,0"
+        VerticalAlignment="Stretch"
+        Command="{Binding ViewModel.ClearFiltersCommand}"
+        Icon="{ui:SymbolIcon Dismiss24}"
+        ToolTip="{DynamicResource Catalog_ClearFilters}" />
+    </Grid>
+
+    <!-- Status messages -->
+    <StackPanel Grid.Row="2" Margin="0,12,0,0">
+      <ui:InfoBar
+        Title="{DynamicResource Catalog_LoadError_Title}"
+        IsClosable="False"
+        IsOpen="{Binding ViewModel.HasLoadError, Mode=OneWay}"
+        Message="{DynamicResource Catalog_LoadError_Message}"
+        Severity="Error" />
+      <ui:InfoBar
+        Title="{DynamicResource Catalog_Offline_Title}"
+        IsClosable="False"
+        IsOpen="{Binding ViewModel.IsOffline, Mode=OneWay}"
+        Message="{DynamicResource Catalog_Offline_Message}"
+        Severity="Warning" />
+      <ui:InfoBar
+        Title="{DynamicResource Catalog_RateLimited_Title}"
+        IsClosable="True"
+        IsOpen="{Binding ViewModel.RateLimit.IsActive, Mode=TwoWay}"
+        Message="{Binding ViewModel.RateLimit.Message, Mode=OneWay}"
+        Severity="Warning" />
+      <!-- First-start initialization: version check + catalog fetch -->
+      <StackPanel Margin="0,24,0,0" Visibility="{Binding ViewModel.IsLoading, Converter={StaticResource BoolToVisibility}}">
+        <ui:ProgressRing HorizontalAlignment="Center" IsIndeterminate="True" />
+        <TextBlock
+          Margin="0,12,0,0"
+          HorizontalAlignment="Center"
+          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+          Text="{DynamicResource Catalog_Loading}" />
+      </StackPanel>
+      <TextBlock
+        Margin="0,24,0,0"
+        HorizontalAlignment="Center"
+        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+        Text="{DynamicResource Catalog_Empty}"
+        Visibility="{Binding ViewModel.IsEmpty, Converter={StaticResource BoolToVisibility}}" />
+    </StackPanel>
+
+    <!-- Contract list -->
+    <ScrollViewer
+      Grid.Row="3"
       Margin="0,12,0,0"
-      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-      Text="{DynamicResource Catalog_Placeholder}" />
-  </StackPanel>
+      HorizontalScrollBarVisibility="Disabled"
+      VerticalScrollBarVisibility="Auto">
+      <ItemsControl ItemsSource="{Binding ViewModel.Contracts}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Border
+              Margin="0,4"
+              Padding="16,12"
+              Background="{DynamicResource ControlFillColorDefaultBrush}"
+              CornerRadius="8"
+              Cursor="Hand">
+              <Border.InputBindings>
+                <MouseBinding
+                  Command="{Binding ViewModel.OpenDetailsCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                  CommandParameter="{Binding}"
+                  MouseAction="LeftClick" />
+              </Border.InputBindings>
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+
+              <!-- Reward preview: image from the disk cache, category icon until it loads -->
+              <Grid
+                Grid.Column="0"
+                Width="64"
+                Height="64"
+                Margin="0,0,14,0"
+                VerticalAlignment="Center">
+                <ui:SymbolIcon
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center"
+                  FontSize="32"
+                  Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                  Symbol="{Binding Category, Converter={StaticResource CategoryToSymbol}}"
+                  Visibility="{Binding Source, ElementName=PreviewImage, Converter={StaticResource NullToVisibility}}" />
+                <Image
+                  x:Name="PreviewImage"
+                  helpers:RewardPreview.Contract="{Binding}"
+                  RenderOptions.BitmapScalingMode="HighQuality"
+                  Stretch="Uniform" />
+              </Grid>
+
+              <StackPanel Grid.Column="1">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock
+                  Grid.Column="0"
+                  FontSize="16"
+                  FontWeight="SemiBold"
+                  Text="{Binding Title}"
+                  TextTrimming="CharacterEllipsis" />
+
+                <!-- Reputation gained on completion -->
+                <StackPanel
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  Orientation="Horizontal">
+                  <ui:SymbolIcon
+                    VerticalAlignment="Center"
+                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                    Symbol="Star24" />
+                  <TextBlock
+                    Margin="4,0,0,0"
+                    VerticalAlignment="Center"
+                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                    Text="{Binding ReputationAmount, StringFormat=+{0}}" />
+                </StackPanel>
+              </Grid>
+
+              <!-- Required items -->
+              <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding Requirements}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Border
+                      Margin="0,0,6,6"
+                      Padding="8,3"
+                      Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                      CornerRadius="10">
+                      <TextBlock FontSize="12">
+                        <Run Text="{Binding Name, Mode=OneWay}" /><Run Text=" × " /><Run Text="{Binding AmountLabel, Mode=OneWay}" />
+                      </TextBlock>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <!-- Rewards (filled by background enrichment) -->
+              <ItemsControl ItemsSource="{Binding Rewards}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Border
+                      Margin="0,0,6,6"
+                      Padding="8,3"
+                      Background="{DynamicResource AccentFillColorDefaultBrush}"
+                      CornerRadius="10">
+                      <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon
+                          VerticalAlignment="Center"
+                          FontSize="12"
+                          Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}"
+                          Symbol="Gift24" />
+                        <TextBlock
+                          Margin="4,0,0,0"
+                          FontSize="12"
+                          Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}"
+                          Text="{Binding Name}" />
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              </StackPanel>
+            </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </Grid>
 </Page>

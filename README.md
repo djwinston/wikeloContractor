@@ -1,3 +1,5 @@
+![Wikelo Contractor](docs/banner.png)
+
 # Wikelo Contractor
 
 Windows companion app for **Wikelo** trades in Star Citizen.
@@ -26,7 +28,47 @@ minimal extension set, import the bundled profile once: `Ctrl+Shift+P` →
 then switch to it in this workspace (`Ctrl+Shift+P` → **Profiles: Switch Profile**).
 VS Code remembers the chosen profile per workspace.
 
+## Tests
+
+```powershell
+dotnet test tests/WikeloContractor.Tests.csproj
+```
+
+## Releases & updates
+
+Distributed as a **Velopack** installer with in-app auto-update. The build is
+framework-dependent; the installer downloads the .NET 10 Desktop Runtime on first install if it's
+missing. Once installed, **Settings → Check for app updates** pulls new versions from GitHub
+Releases (and the app checks in the background on launch).
+
+CI runs on every PR to `dev`/`main` (`.github/workflows/ci.yml`). To cut a release, merge into
+`main`, then push a SemVer tag — `.github/workflows/release.yml` builds and publishes the Release:
+
+```powershell
+git tag v1.2.3
+git push origin v1.2.3
+```
+
+For a release PR into `main`, open it with the release template
+(`?template=release.md` on the "compare" URL) to capture the intended version and post-merge steps.
+
 ## Documentation
 
 - [PLAN.md](PLAN.md) — development plan by phases
 - [CLAUDE.md](CLAUDE.md) — project context for Claude Code
+- [docs/data-pipeline.md](docs/data-pipeline.md) — catalog data: caching, enrichment, rate limiting
+- [docs/ui-notes.md](docs/ui-notes.md) — UI patterns and WPF-UI quirks
+- [docs/testing.md](docs/testing.md) — test layout and conventions
+- [docs/api-item-fields.md](docs/api-item-fields.md) — field inventory of the item/vehicle API responses
+- [docs/reward-images.md](docs/reward-images.md) — which reward items still need a manual image URL
+
+## License, attribution & disclaimer
+
+- The application source code is licensed under the [MIT License](LICENSE).
+- Game data is provided by the [Star Citizen Wiki API](https://api.star-citizen.wiki)
+  (community-maintained, unofficial). Per its terms of use, this credit is required for
+  public projects, and commercial use of the data is not permitted.
+- This is an unofficial fan-made application, not affiliated with or endorsed by
+  Cloud Imperium Games or Roberts Space Industries. Star Citizen®, Roberts Space
+  Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC.
+  All game data belongs to Cloud Imperium Games.

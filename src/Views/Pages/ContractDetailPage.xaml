@@ -1,0 +1,311 @@
+<Page
+  x:Class="WikeloContractor.Views.Pages.ContractDetailPage"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:local="clr-namespace:WikeloContractor.Views.Pages"
+  xmlns:converters="clr-namespace:WikeloContractor.Views.Converters"
+  xmlns:helpers="clr-namespace:WikeloContractor.Views.Helpers"
+  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+  Title="ContractDetailPage"
+  d:DataContext="{d:DesignInstance local:ContractDetailPage, IsDesignTimeCreatable=False}"
+  d:DesignHeight="600"
+  d:DesignWidth="800"
+  ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+  ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+  ScrollViewer.CanContentScroll="False"
+  mc:Ignorable="d">
+
+  <Page.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+    <converters:CategoryToSymbolConverter x:Key="CategoryToSymbol" />
+    <converters:PresenceToVisibilityConverter x:Key="NullToVisibility" Invert="True" />
+    <converters:PresenceToVisibilityConverter x:Key="NotNullToVisibility" />
+
+    <!-- Shared look for the Stats/Weapons/Components chip lists on a reward card -->
+    <Style x:Key="ChipListStyle" TargetType="ItemsControl">
+      <Setter Property="ItemsPanel">
+        <Setter.Value>
+          <ItemsPanelTemplate>
+            <WrapPanel />
+          </ItemsPanelTemplate>
+        </Setter.Value>
+      </Setter>
+      <Setter Property="ItemTemplate">
+        <Setter.Value>
+          <DataTemplate>
+            <Border
+              Margin="0,0,6,6"
+              Padding="8,3"
+              Background="{DynamicResource ControlFillColorSecondaryBrush}"
+              CornerRadius="10">
+              <TextBlock FontSize="12" Text="{Binding}" />
+            </Border>
+          </DataTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Page.Resources>
+
+  <ScrollViewer
+    Margin="42,24,42,0"
+    HorizontalScrollBarVisibility="Disabled"
+    VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="0,0,0,24">
+
+      <!-- Back + title -->
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <ui:Button
+          Grid.Column="0"
+          VerticalAlignment="Center"
+          Command="{Binding ViewModel.GoBackCommand}"
+          Icon="{ui:SymbolIcon ArrowLeft24}"
+          ToolTip="{DynamicResource Details_Back}" />
+        <TextBlock
+          Grid.Column="1"
+          Margin="14,0,0,0"
+          VerticalAlignment="Center"
+          FontSize="28"
+          FontWeight="DemiBold"
+          Text="{Binding ViewModel.Contract.Title}"
+          TextWrapping="Wrap" />
+      </Grid>
+
+      <!-- Badges: category, reputation, flags, game version, wiki link -->
+      <WrapPanel Margin="0,14,0,0">
+        <Border
+          Margin="0,0,8,6"
+          Padding="10,4"
+          Background="{DynamicResource ControlFillColorSecondaryBrush}"
+          CornerRadius="12"
+          Visibility="{Binding ViewModel.CategoryLabel, Converter={StaticResource NotNullToVisibility}}">
+          <StackPanel Orientation="Horizontal">
+            <ui:SymbolIcon
+              VerticalAlignment="Center"
+              FontSize="14"
+              Symbol="{Binding ViewModel.Contract.Category, Converter={StaticResource CategoryToSymbol}}" />
+            <TextBlock
+              Margin="6,0,0,0"
+              VerticalAlignment="Center"
+              FontSize="12"
+              Text="{Binding ViewModel.CategoryLabel}" />
+          </StackPanel>
+        </Border>
+
+        <Border
+          Margin="0,0,8,6"
+          Padding="10,4"
+          Background="{DynamicResource ControlFillColorSecondaryBrush}"
+          CornerRadius="12">
+          <StackPanel Orientation="Horizontal">
+            <ui:SymbolIcon
+              VerticalAlignment="Center"
+              FontSize="14"
+              Symbol="Star24" />
+            <TextBlock
+              Margin="6,0,0,0"
+              VerticalAlignment="Center"
+              FontSize="12"
+              Text="{Binding ViewModel.Contract.ReputationAmount, StringFormat=+{0}}" />
+          </StackPanel>
+        </Border>
+
+        <Border
+          Margin="0,0,8,6"
+          Padding="10,4"
+          Background="{DynamicResource ControlFillColorSecondaryBrush}"
+          CornerRadius="12"
+          Visibility="{Binding ViewModel.Contract.OnceOnly, Converter={StaticResource BoolToVisibility}}">
+          <TextBlock FontSize="12" Text="{DynamicResource Details_OnceOnly}" />
+        </Border>
+
+        <Border
+          Margin="0,0,8,6"
+          Padding="10,4"
+          Background="{DynamicResource ControlFillColorSecondaryBrush}"
+          CornerRadius="12"
+          Visibility="{Binding ViewModel.Contract.HasPrerequisites, Converter={StaticResource BoolToVisibility}}">
+          <TextBlock FontSize="12" Text="{DynamicResource Details_Prerequisites}" />
+        </Border>
+
+        <Border
+          Margin="0,0,8,6"
+          Padding="10,4"
+          Background="{DynamicResource ControlFillColorSecondaryBrush}"
+          CornerRadius="12"
+          Visibility="{Binding ViewModel.Contract.GameVersion, Converter={StaticResource NotNullToVisibility}}">
+          <TextBlock
+            FontSize="12"
+            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+            Text="{Binding ViewModel.Contract.GameVersion}" />
+        </Border>
+
+        <ui:HyperlinkButton
+          Margin="0,0,0,6"
+          Padding="10,2"
+          Content="{DynamicResource Details_OpenWiki}"
+          FontSize="12"
+          NavigateUri="{Binding ViewModel.Contract.WebUrl}"
+          Visibility="{Binding ViewModel.Contract.WebUrl, Converter={StaticResource NotNullToVisibility}}" />
+      </WrapPanel>
+
+      <!-- Contract description -->
+      <TextBlock
+        Margin="0,10,0,0"
+        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+        Text="{Binding ViewModel.Contract.Description}"
+        TextWrapping="Wrap"
+        Visibility="{Binding ViewModel.Contract.Description, Converter={StaticResource NotNullToVisibility}}" />
+
+      <!-- Required items -->
+      <TextBlock
+        Margin="0,24,0,0"
+        FontSize="18"
+        FontWeight="SemiBold"
+        Text="{DynamicResource Details_Requirements}" />
+      <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding ViewModel.Contract.Requirements}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Border
+              Margin="0,0,6,6"
+              Padding="10,5"
+              Background="{DynamicResource ControlFillColorSecondaryBrush}"
+              CornerRadius="10">
+              <TextBlock FontSize="13">
+                <Run Text="{Binding Name, Mode=OneWay}" /><Run Text=" × " /><Run FontWeight="SemiBold" Text="{Binding AmountLabel, Mode=OneWay}" />
+              </TextBlock>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <!-- Rewards -->
+      <TextBlock
+        Margin="0,20,0,0"
+        FontSize="18"
+        FontWeight="SemiBold"
+        Text="{DynamicResource Details_Rewards}" />
+
+      <TextBlock
+        Margin="0,10,0,0"
+        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+        Text="{DynamicResource Details_RewardsPending}"
+        Visibility="{Binding ViewModel.IsRewardsPending, Converter={StaticResource BoolToVisibility}}" />
+
+      <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding ViewModel.Rewards}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Border
+              Margin="0,0,0,10"
+              Padding="16,14"
+              Background="{DynamicResource ControlFillColorDefaultBrush}"
+              CornerRadius="8">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Reward image with a gift placeholder -->
+                <Grid
+                  Grid.Column="0"
+                  Width="260"
+                  Height="180"
+                  Margin="0,0,18,0"
+                  VerticalAlignment="Top">
+                  <ui:SymbolIcon
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    FontSize="64"
+                    Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                    Symbol="Gift24"
+                    Visibility="{Binding Source, ElementName=RewardImage, Converter={StaticResource NullToVisibility}}" />
+                  <Image
+                    x:Name="RewardImage"
+                    helpers:RewardPreview.Reward="{Binding Reward}"
+                    RenderOptions.BitmapScalingMode="HighQuality"
+                    Stretch="Uniform" />
+                </Grid>
+
+                <StackPanel Grid.Column="1">
+                  <TextBlock
+                    FontSize="16"
+                    FontWeight="SemiBold"
+                    Text="{Binding Header}"
+                    TextWrapping="Wrap" />
+                  <TextBlock
+                    Margin="0,2,0,0"
+                    FontSize="12"
+                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                    Text="{Binding SubHeader}"
+                    TextWrapping="Wrap"
+                    Visibility="{Binding SubHeader, Converter={StaticResource NotNullToVisibility}}" />
+
+                  <!-- Stat chips -->
+                  <ItemsControl
+                    Margin="0,8,0,0"
+                    ItemsSource="{Binding Stats}"
+                    Style="{StaticResource ChipListStyle}" />
+
+                  <!-- Ship loadout: installed weapons and core components -->
+                  <TextBlock
+                    Margin="0,10,0,0"
+                    FontSize="13"
+                    FontWeight="SemiBold"
+                    Text="{DynamicResource Details_Loadout_Weapons}"
+                    Visibility="{Binding HasWeapons, Converter={StaticResource BoolToVisibility}}" />
+                  <ItemsControl
+                    Margin="0,6,0,0"
+                    ItemsSource="{Binding Weapons}"
+                    Style="{StaticResource ChipListStyle}"
+                    Visibility="{Binding HasWeapons, Converter={StaticResource BoolToVisibility}}" />
+
+                  <TextBlock
+                    Margin="0,6,0,0"
+                    FontSize="13"
+                    FontWeight="SemiBold"
+                    Text="{DynamicResource Details_Loadout_Components}"
+                    Visibility="{Binding HasComponents, Converter={StaticResource BoolToVisibility}}" />
+                  <ItemsControl
+                    Margin="0,6,0,0"
+                    ItemsSource="{Binding Components}"
+                    Style="{StaticResource ChipListStyle}"
+                    Visibility="{Binding HasComponents, Converter={StaticResource BoolToVisibility}}" />
+
+                  <TextBlock
+                    Margin="0,6,0,0"
+                    FontSize="12"
+                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                    Text="{Binding Description}"
+                    TextWrapping="Wrap"
+                    Visibility="{Binding Description, Converter={StaticResource NotNullToVisibility}}" />
+
+                  <ui:HyperlinkButton
+                    Margin="0,6,0,0"
+                    Padding="0"
+                    Content="{DynamicResource Details_OpenPledge}"
+                    FontSize="12"
+                    NavigateUri="{Binding PledgeUrl}"
+                    Visibility="{Binding PledgeUrl, Converter={StaticResource NotNullToVisibility}}" />
+                </StackPanel>
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+    </StackPanel>
+  </ScrollViewer>
+</Page>

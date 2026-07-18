@@ -31,6 +31,11 @@ public sealed class ApplicationHostService(IServiceProvider serviceProvider) : I
 
             _ = _navigationWindow.Navigate(typeof(Views.Pages.CatalogPage));
         }
+
+        // Learn about a pending app update in the background; never block startup on it. Result
+        // surfaces through IAppUpdateService.StatusChanged (the Settings page reflects it). No-op
+        // in a dev run.
+        _ = serviceProvider.GetRequiredService<IAppUpdateService>().CheckAndDownloadAsync();
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

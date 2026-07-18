@@ -24,6 +24,17 @@
       "problemMatcher": "$msCompile"
     },
     {
+      "label": "test",
+      "command": "dotnet",
+      "type": "process",
+      "args": [
+        "test",
+        "${workspaceFolder}/tests/WikeloContractor.Tests.csproj"
+      ],
+      "problemMatcher": "$msCompile",
+      "group": { "kind": "test", "isDefault": true }
+    },
+    {
       "label": "watch",
       "command": "dotnet",
       "type": "process",

@@ -1,0 +1,50 @@
+using WikeloContractor.Models.Api;
+
+namespace WikeloContractor.Services.Api;
+
+public interface IStarCitizenWikiClient
+{
+    /// <summary>Fetches all Wikelo missions from the live API (single page, up to 200 entries).</summary>
+    Task<IReadOnlyList<MissionDto>> GetWikeloMissionsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns the current default LIVE game version code (e.g. "4.9.0-LIVE.12232306").
+    /// Doubles as an API availability check.
+    /// </summary>
+    Task<string> GetCurrentGameVersionAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Fetches full mission detail (reward items, mission type).</summary>
+    Task<MissionDetailDto?> GetMissionDetailAsync(string missionUuid, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Fetches classification signals for an item. The endpoint transparently returns
+    /// vehicle records for vehicle UUIDs, so the shape is inspected dynamically.
+    /// </summary>
+    Task<ItemClassification?> GetItemClassificationAsync(string itemUuid, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Looks up a ship gun by display name (vehicle records list guns by name only) to get
+    /// its kind label ("Laser Repeater"), size and grade. Null when not found.
+    /// </summary>
+    Task<VehicleWeaponInfo?> GetVehicleWeaponInfoAsync(string weaponName, CancellationToken cancellationToken = default);
+}
+
+/// <summary>Extra display data of a ship gun, from the gun's own item record.</summary>
+/// <param name="TypeLabel">Human kind label from <c>vehicle_weapon.type</c>, e.g. "Laser Repeater".</param>
+/// <param name="Size">Weapon size class.</param>
+/// <param name="Grade">Grade "A".."D".</param>
+public sealed record VehicleWeaponInfo(string? TypeLabel, int? Size, string? Grade);
+
+/// <summary>Raw classification signals of a reward item.</summary>
+/// <param name="TypeString">Item type (e.g. "Char_Armor_Arms", "WeaponPersonal"); null for vehicle records.</param>
+/// <param name="IsSpaceship">True for spaceship vehicle records.</param>
+/// <param name="IsVehicleRecord">True when the payload is a vehicle record (ground vehicle, gravlev, power suit).</param>
+/// <param name="Images">External images of the item (may be empty, e.g. Wikelo-exclusive variants).</param>
+/// <param name="Details">Display details for the contract detail view.</param>
+public sealed record ItemClassification(
+    string Name,
+    string? TypeString,
+    bool IsSpaceship,
+    bool IsVehicleRecord,
+    IReadOnlyList<Models.RewardImage> Images,
+    Models.RewardDetails? Details = null);
