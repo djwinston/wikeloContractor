@@ -52,7 +52,14 @@ Reference (what already exists): https://wikelotrades.com , community Excel spre
 - [x] Contract list: cards with requirements, rewards, reputation; local search box
 - [x] Filters: by reward category (Ships / Ground vehicles / Paints / Weapons / Armor / Other,
       derived from reward item data via background enrichment) and by required resource
-- [ ] Contract details: full list of requirements and rewards (incl. SCU-based amounts from `hauling_orders`)
+- [x] Reward preview images in the list: URLs come free with enrichment (`images` in item
+      detail), files cached once in `cache/images/` from external CDNs (no API rate-limit
+      impact), category icon fallback, custom overrides via `image-overrides.json`
+- [x] Contract details page: click a card → full requirements (incl. SCU amounts and extra
+      entries from `hauling_orders`, e.g. Wikelo Favor) + reward cards with image, description,
+      manufacturer, item stats (rarity/resistances/temperature) or vehicle stats
+      (cargo/crew/HP/shields/speeds/MSRP + pledge link); back navigation via
+      `NavigateWithHierarchy`. See `docs/api-item-fields.md` for what else the API offers
 - [ ] "Tracked" flag on a contract (persisted)
 - [ ] Aggregation: combined resource list across all tracked contracts
 

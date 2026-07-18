@@ -30,6 +30,8 @@ TODO after first successful `dotnet restore`: pin exact package versions in the 
 
 - `docs/data-pipeline.md` — before touching `src/Services/` or `src/Models/Api/`
   (caching, version invalidation, enrichment, rate limiting, service events)
+- `docs/api-item-fields.md` — full field inventory of item/vehicle detail responses;
+  consult before extending `RewardDetails` or the contract detail view
 - `docs/ui-notes.md` — before touching `src/Views/` or `src/ViewModels/`
   (WPF-UI pitfalls, status InfoBar pattern, adaptive icon, formatted localized strings)
 - `docs/testing.md` — before adding/changing tests in `tests/`
@@ -58,6 +60,18 @@ TODO after first successful `dotnet restore`: pin exact package versions in the 
 - Settings: `ISettingsService` (JSON, `%AppData%\WikeloContractor\settings.json`).
   Theme: System/Light/Dark via `ApplicationThemeManager` (see `ApplicationHostService.ApplyTheme`).
 - File-scoped namespaces, `_camelCase` private fields, nullable enabled.
+- **Reuse before writing new code** — check the shared helpers first; adding a second copy
+  of one of these is a review finding. Current homes:
+  - `Services/AppStorage` — `%AppData%` root, subdirectories, shared `JsonSerializerOptions`
+  - `Services/AppHttp` — the User-Agent constant for every outgoing HttpClient
+  - `ViewModels/Localized` — code-side localized strings: `Localized.String(key)` /
+    `Localized.Format(key, args)` (XAML uses `{DynamicResource}` directly)
+  - `Models/ContractRequirement.FormatRange` — min–max display rule ("2", "1–3", "≤2"),
+    invariant culture
+  - `Models/ContractCategoryDisplay.LabelKey` — category → localization resource key
+  - `Views/Converters/` — one parameterized converter per concern
+    (e.g. `PresenceToVisibilityConverter` with `Invert`), not inverse-twin classes
+  - `tests/Services/StubHandler` — shared HTTP stub for client tests
 - **Language policy**: all code comments, XML docs, and repo documentation are in **English**.
   Ukrainian is used only in conversation with the user. Localization resources
   (`Strings.uk.xaml`) and displayed UI values are data, not comments — keep them as is.

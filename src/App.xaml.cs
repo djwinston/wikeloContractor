@@ -28,6 +28,13 @@ public partial class App
             _ = services.AddSingleton<IContractCatalogService, ContractCatalogService>();
             _ = services.AddSingleton<ViewModels.RateLimitWatcher>();
 
+            // Reward preview images: external CDN downloads + disk cache + user overrides.
+            // Registered as a singleton (not AddHttpClient's transient) so the in-flight
+            // download deduplication and the politeness semaphore are app-wide; one plain
+            // HttpClient for the app lifetime, no factory indirection needed.
+            _ = services.AddSingleton<IImageCacheService>(_ => new ImageCacheService(new System.Net.Http.HttpClient()));
+            _ = services.AddSingleton<IImageOverrideService, ImageOverrideService>();
+
             // Main window
             _ = services.AddSingleton<INavigationWindow, Views.MainWindow>();
             _ = services.AddSingleton<ViewModels.MainWindowViewModel>();
@@ -35,6 +42,8 @@ public partial class App
             // Pages and their ViewModels
             _ = services.AddSingleton<Views.Pages.CatalogPage>();
             _ = services.AddSingleton<ViewModels.CatalogViewModel>();
+            _ = services.AddSingleton<Views.Pages.ContractDetailPage>();
+            _ = services.AddSingleton<ViewModels.ContractDetailViewModel>();
             _ = services.AddSingleton<Views.Pages.InventoryPage>();
             _ = services.AddSingleton<ViewModels.InventoryViewModel>();
             _ = services.AddSingleton<Views.Pages.SettingsPage>();

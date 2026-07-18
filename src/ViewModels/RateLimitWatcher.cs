@@ -64,14 +64,12 @@ public partial class RateLimitWatcher : ObservableObject
 
         if (secondsLeft > 0)
         {
-            var format = Application.Current.TryFindResource("Catalog_RateLimited_Retry") as string
-                ?? "Retrying in {0} s.";
-            Message = string.Format(format, secondsLeft);
+            Message = Localized.Format("Catalog_RateLimited_Retry", secondsLeft);
         }
         else
         {
             _timer.Stop();
-            Message = Application.Current.TryFindResource("Catalog_RateLimited_Resuming") as string;
+            Message = Localized.String("Catalog_RateLimited_Resuming");
         }
     }
 }

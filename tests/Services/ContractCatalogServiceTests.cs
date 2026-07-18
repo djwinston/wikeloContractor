@@ -30,11 +30,15 @@ public sealed class ContractCatalogServiceTests : IDisposable
             return Task.FromResult<IReadOnlyList<MissionDto>>(Missions);
         }
 
+        public Dictionary<string, MissionDetailDto?> MissionDetails { get; set; } = [];
+
+        public Dictionary<string, ItemClassification?> Classifications { get; set; } = [];
+
         public Task<MissionDetailDto?> GetMissionDetailAsync(string missionUuid, CancellationToken cancellationToken = default) =>
-            Task.FromResult<MissionDetailDto?>(null);
+            Task.FromResult(MissionDetails.GetValueOrDefault(missionUuid));
 
         public Task<ItemClassification?> GetItemClassificationAsync(string itemUuid, CancellationToken cancellationToken = default) =>
-            Task.FromResult<ItemClassification?>(null);
+            Task.FromResult(Classifications.GetValueOrDefault(itemUuid));
     }
 
     private readonly string _cacheDirectory = Path.Combine(
@@ -158,5 +162,113 @@ public sealed class ContractCatalogServiceTests : IDisposable
 
         Assert.Equal(2, client.VersionCalls);
         Assert.Equal(1, client.MissionsCalls);
+    }
+
+    [Fact]
+    public async Task Enrichment_attaches_item_images_to_rewards()
+    {
+        var client = new FakeApiClient
+        {
+            Missions = [Mission("m1", "Armor exchange")],
+            MissionDetails = new()
+            {
+                ["m1"] = new MissionDetailDto
+                {
+                    Uuid = "m1",
+                    RewardItems = [new RewardItemDto { Name = "Testudo Helmet", Uuid = "item-1", Amount = 1 }],
+                    HaulingOrders =
+                    [
+                        new HaulingOrderDto { Name = "Quantainium", MinScu = 36, MaxScu = 36 },
+                        new HaulingOrderDto { Name = "Wikelo Favor", MaxAmount = 1 },
+                    ],
+                },
+            },
+            Classifications = new()
+            {
+                ["item-1"] = new ItemClassification(
+                    "Testudo Helmet",
+                    "Char_Armor_Helmet",
+                    IsSpaceship: false,
+                    IsVehicleRecord: false,
+                    Images:
+                    [
+                        new WikeloContractor.Models.RewardImage
+                        {
+                            Source = "starcitizen.tools",
+                            ThumbnailUrl = "https://media.starcitizen.tools/thumb/t.webp",
+                            OriginalUrl = "https://media.starcitizen.tools/t.png",
+                        },
+                    ],
+                    Details: new WikeloContractor.Models.RewardDetails { Manufacturer = "CC's Conversions", Rarity = "Rare" }),
+            },
+        };
+        var service = new ContractCatalogService(client, _cacheDirectory);
+
+        var enriched = new TaskCompletionSource();
+        service.CatalogUpdated += (_, _) => enriched.TrySetResult();
+
+        _ = await service.GetContractsAsync();
+        await enriched.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        var contract = Assert.Single(service.Current!.Contracts);
+        var reward = Assert.Single(contract.Rewards);
+        var image = Assert.Single(reward.Images);
+        Assert.Equal("starcitizen.tools", image.Source);
+        Assert.Equal("https://media.starcitizen.tools/thumb/t.webp", image.ThumbnailUrl);
+        Assert.Equal("https://media.starcitizen.tools/t.png", image.OriginalUrl);
+        Assert.Equal("CC's Conversions", reward.Details?.Manufacturer);
+        Assert.Equal("Rare", reward.Details?.Rarity);
+
+        // hauling_orders replace the summary-based requirements (SCU amounts, extra entries).
+        Assert.Equal(2, contract.Requirements.Count);
+        Assert.Equal("36 SCU", contract.Requirements[0].AmountLabel);
+        Assert.Equal("Wikelo Favor", contract.Requirements[1].Name);
+        Assert.Equal("≤1", contract.Requirements[1].AmountLabel);
+    }
+
+    [Fact]
+    public async Task Cache_with_older_schema_version_is_discarded_and_refetched()
+    {
+        // Pre-v2 cache: no SchemaVersion field (reads as 0), same game version as the API.
+        _ = Directory.CreateDirectory(_cacheDirectory);
+        await File.WriteAllTextAsync(Path.Combine(_cacheDirectory, "contracts.json"), """
+            {
+              "GameVersion": "4.2.0-LIVE.111",
+              "FetchedAt": "2026-07-01T00:00:00+00:00",
+              "LastVersionCheckAt": "2099-01-01T00:00:00+00:00",
+              "Enriched": true,
+              "Contracts": []
+            }
+            """);
+
+        var client = new FakeApiClient { Missions = [Mission("a", "Real contract")] };
+        var service = new ContractCatalogService(client, _cacheDirectory);
+
+        var result = await service.GetContractsAsync();
+
+        // The stale-schema cache must not be trusted even with a fresh version check timestamp.
+        Assert.Equal(1, client.MissionsCalls);
+        Assert.Single(result.Contracts);
+    }
+
+    [Fact]
+    public async Task Current_schema_cache_is_reused_by_a_new_service_instance()
+    {
+        var client = new FakeApiClient { Missions = [Mission("a", "Real contract")] };
+        var service = new ContractCatalogService(client, _cacheDirectory);
+
+        var enriched = new TaskCompletionSource();
+        service.CatalogUpdated += (_, _) => enriched.TrySetResult();
+        _ = await service.GetContractsAsync();
+        await enriched.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        // Fresh instance over the same cache directory (new app run).
+        var secondClient = new FakeApiClient { Missions = [Mission("a", "Real contract")] };
+        var secondService = new ContractCatalogService(secondClient, _cacheDirectory);
+
+        var result = await secondService.GetContractsAsync();
+
+        Assert.Single(result.Contracts);
+        Assert.Equal(0, secondClient.MissionsCalls);
     }
 }

@@ -68,8 +68,20 @@ $d.data[0].PSObject.Properties.Name                            # field inventory
 - Category lives in detail field `mission_type`: "Wikelo - Vehicles" / "Wikelo - Other Items" / "Collection".
 - Current LIVE version: `GET /api/game-versions` → entry with `is_default: true`; doubles as a health check.
 - SCU-based requirements have `min_amount/max_amount = null` and use `min_scu/max_scu` (detail `hauling_orders`).
+- Detail `hauling_orders` also list entries the list-level `hauling_summary` omits:
+  "Wikelo Favor" (41 of 55 contracts) and vehicles to hand over — treat orders as the
+  authoritative requirements source.
 - `GET /api/items/{uuid}` transparently returns **vehicle records** for vehicle UUIDs:
   `type` becomes a localized object (or is absent) and flags `is_spaceship` / `is_vehicle` /
   `is_gravlev` / `is_power_suit` appear. For regular items `type` is a string
   (`Char_Armor_*`, `WeaponPersonal`, ...). Parse with JsonDocument, not a fixed DTO.
 - Paint/color rewards are whole vehicle variant records; detect them by name (`color|paint|livery`).
+- Item/vehicle detail responses **always include an `images` array** (no `include` param needed):
+  `[{ source, thumbnail_url, original_url, thumbnail_width/height, original_width/height }]`.
+  Sources seen: `cstone.space` (regular items; `thumbnail_url == original_url`, no real thumb)
+  and `starcitizen.tools` (vehicles/armor; real 600px `.webp` thumbs on `media.starcitizen.tools`).
+- The `images` array can be **empty** — Wikelo-exclusive vehicle variants
+  (e.g. "Asgard Wikelo War Special") have no wiki coverage; plan a placeholder fallback.
+- Image files are hosted on external Cloudflare-backed CDNs (`cstone.space`,
+  `media.starcitizen.tools`) — **separate from the API's rate limit**, long `Cache-Control`
+  (7–31 days), no auth, no rate-limit headers observed.

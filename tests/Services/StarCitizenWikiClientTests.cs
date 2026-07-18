@@ -9,17 +9,6 @@ namespace WikeloContractor.Tests.Services;
 
 public class StarCitizenWikiClientTests
 {
-    private sealed class StubHandler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler
-    {
-        public HttpRequestMessage? LastRequest { get; private set; }
-
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            LastRequest = request;
-            return Task.FromResult(responder(request));
-        }
-    }
-
     private static HttpResponseMessage Json(string payload) => new(HttpStatusCode.OK)
     {
         Content = new StringContent(payload, Encoding.UTF8, "application/json"),
@@ -139,6 +128,134 @@ public class StarCitizenWikiClientTests
         Assert.Equal("WeaponPersonal", classification.TypeString);
         Assert.False(classification.IsSpaceship);
         Assert.False(classification.IsVehicleRecord);
+    }
+
+    [Fact]
+    public async Task Item_images_are_parsed_and_entries_without_urls_are_skipped()
+    {
+        var handler = new StubHandler(_ => Json("""
+            {
+              "data": {
+                "name": "Testudo Helmet Clanguard",
+                "type": "Char_Armor_Helmet",
+                "images": [
+                  {
+                    "source": "starcitizen.tools",
+                    "thumbnail_url": "https://media.starcitizen.tools/thumb/t.webp",
+                    "original_url": "https://media.starcitizen.tools/t.png",
+                    "thumbnail_width": 600,
+                    "thumbnail_height": 600
+                  },
+                  { "source": "broken", "thumbnail_url": null, "original_url": null }
+                ]
+              }
+            }
+            """));
+
+        var classification = await CreateClient(handler).GetItemClassificationAsync("uuid");
+
+        Assert.NotNull(classification);
+        var image = Assert.Single(classification.Images);
+        Assert.Equal("starcitizen.tools", image.Source);
+        Assert.Equal("https://media.starcitizen.tools/thumb/t.webp", image.ThumbnailUrl);
+        Assert.Equal("https://media.starcitizen.tools/t.png", image.OriginalUrl);
+    }
+
+    [Fact]
+    public async Task Item_details_are_parsed_from_api_shape()
+    {
+        var handler = new StubHandler(_ => Json("""
+            {
+              "data": {
+                "name": "Ana Arms Endro",
+                "type": "Char_Armor_Arms",
+                "type_label": "Arms (Armor)",
+                "sub_type_label": "Heavy",
+                "rarity": "Common",
+                "description": { "en_EN": "Modified Antium Armor.", "de_DE": "..." },
+                "manufacturer": { "name": "Quirinus Tech", "code": "QRT" },
+                "clothing": {
+                  "slot": "Arms",
+                  "damage_resistance_map": {
+                    "physical": 0.6, "physical_change": -0.4,
+                    "stun": 0.4, "stun_change": -0.6
+                  }
+                },
+                "temperature_resistance": { "min": -95, "max": 120 },
+                "radiation_resistance": { "maximum_radiation_capacity": 26800, "radiation_dissipation_rate": 145.8 }
+              }
+            }
+            """));
+
+        var classification = await CreateClient(handler).GetItemClassificationAsync("uuid");
+
+        var details = classification!.Details!;
+        Assert.Equal("Modified Antium Armor.", details.Description);
+        Assert.Equal("Quirinus Tech", details.Manufacturer);
+        Assert.Equal("Arms (Armor)", details.TypeLabel);
+        Assert.Equal("Heavy", details.SubTypeLabel);
+        Assert.Equal("Common", details.Rarity);
+        Assert.Equal(new Dictionary<string, double> { ["physical"] = 0.6, ["stun"] = 0.4 }, details.DamageResistances);
+        Assert.Equal(-95, details.TemperatureMin);
+        Assert.Equal(120, details.TemperatureMax);
+        Assert.Equal(26800, details.RadiationCapacity);
+        Assert.Equal(145.8, details.RadiationDissipationRate);
+        Assert.Null(details.CargoCapacityScu);
+    }
+
+    [Fact]
+    public async Task Vehicle_details_are_parsed_from_api_shape()
+    {
+        var handler = new StubHandler(_ => Json("""
+            {
+              "data": {
+                "name": "Syulen",
+                "is_spaceship": true,
+                "description": { "en_EN": "Artfully crafted by House Gatac." },
+                "manufacturer": { "name": "Gatac Manufacture", "code": "GAMA" },
+                "career": "Multi-Role",
+                "role": "Starter / Pathfinder",
+                "cargo_capacity": 6,
+                "crew": { "min": 1, "max": 1 },
+                "health": 11740,
+                "shield_hp": 4320,
+                "speed": { "scm": 225, "max": 1175 },
+                "msrp": 70,
+                "pledge_url": "https://robertsspaceindustries.com/pledge/ships/syulen/Syulen"
+              }
+            }
+            """));
+
+        var classification = await CreateClient(handler).GetItemClassificationAsync("uuid");
+
+        var details = classification!.Details!;
+        Assert.Equal("Artfully crafted by House Gatac.", details.Description);
+        Assert.Equal("Gatac Manufacture", details.Manufacturer);
+        Assert.Equal("Multi-Role", details.Career);
+        Assert.Equal("Starter / Pathfinder", details.Role);
+        Assert.Equal(6, details.CargoCapacityScu);
+        Assert.Equal(1, details.CrewMin);
+        Assert.Equal(1, details.CrewMax);
+        Assert.Equal(11740, details.Health);
+        Assert.Equal(4320, details.ShieldHp);
+        Assert.Equal(225, details.SpeedScm);
+        Assert.Equal(1175, details.SpeedMax);
+        Assert.Equal(70, details.Msrp);
+        Assert.Equal("https://robertsspaceindustries.com/pledge/ships/syulen/Syulen", details.PledgeUrl);
+        Assert.Null(details.Rarity);
+    }
+
+    [Fact]
+    public async Task Item_without_images_field_yields_empty_image_list()
+    {
+        var handler = new StubHandler(_ => Json("""
+            { "data": { "name": "Arrowhead", "type": "WeaponPersonal" } }
+            """));
+
+        var classification = await CreateClient(handler).GetItemClassificationAsync("uuid");
+
+        Assert.NotNull(classification);
+        Assert.Empty(classification.Images);
     }
 
     [Fact]

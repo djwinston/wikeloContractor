@@ -5,6 +5,8 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:local="clr-namespace:WikeloContractor.Views.Pages"
+  xmlns:converters="clr-namespace:WikeloContractor.Views.Converters"
+  xmlns:helpers="clr-namespace:WikeloContractor.Views.Helpers"
   xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
   Title="CatalogPage"
   d:DataContext="{d:DesignInstance local:CatalogPage, IsDesignTimeCreatable=False}"
@@ -18,6 +20,8 @@
 
   <Page.Resources>
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+    <converters:CategoryToSymbolConverter x:Key="CategoryToSymbol" />
+    <converters:PresenceToVisibilityConverter x:Key="NullToVisibility" Invert="True" />
   </Page.Resources>
 
   <Grid Margin="42,24,42,0">
@@ -159,8 +163,43 @@
               Margin="0,4"
               Padding="16,12"
               Background="{DynamicResource ControlFillColorDefaultBrush}"
-              CornerRadius="8">
-            <StackPanel>
+              CornerRadius="8"
+              Cursor="Hand"
+              ToolTip="{DynamicResource Catalog_OpenDetails}">
+              <Border.InputBindings>
+                <MouseBinding
+                  Command="{Binding ViewModel.OpenDetailsCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                  CommandParameter="{Binding}"
+                  MouseAction="LeftClick" />
+              </Border.InputBindings>
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+
+              <!-- Reward preview: image from the disk cache, category icon until it loads -->
+              <Grid
+                Grid.Column="0"
+                Width="64"
+                Height="64"
+                Margin="0,0,14,0"
+                VerticalAlignment="Center">
+                <ui:SymbolIcon
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center"
+                  FontSize="32"
+                  Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                  Symbol="{Binding Category, Converter={StaticResource CategoryToSymbol}}"
+                  Visibility="{Binding Source, ElementName=PreviewImage, Converter={StaticResource NullToVisibility}}" />
+                <Image
+                  x:Name="PreviewImage"
+                  helpers:RewardPreview.Contract="{Binding}"
+                  RenderOptions.BitmapScalingMode="HighQuality"
+                  Stretch="Uniform" />
+              </Grid>
+
+              <StackPanel Grid.Column="1">
               <Grid>
                 <Grid.ColumnDefinitions>
                   <ColumnDefinition Width="*" />
@@ -244,6 +283,7 @@
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
               </StackPanel>
+            </Grid>
             </Border>
           </DataTemplate>
         </ItemsControl.ItemTemplate>

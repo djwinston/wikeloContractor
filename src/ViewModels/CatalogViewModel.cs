@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Windows.Data;
 using WikeloContractor.Models;
 using WikeloContractor.Services;
+using Wpf.Ui;
 
 namespace WikeloContractor.ViewModels;
 
@@ -76,10 +77,19 @@ public partial class CatalogViewModel : ViewModel
     /// <summary>Shared rate-limit countdown, bound by both the Catalog and Settings pages.</summary>
     public RateLimitWatcher RateLimit { get; }
 
-    public CatalogViewModel(IContractCatalogService catalogService, RateLimitWatcher rateLimit)
+    private readonly INavigationService _navigationService;
+    private readonly ContractDetailViewModel _detailViewModel;
+
+    public CatalogViewModel(
+        IContractCatalogService catalogService,
+        RateLimitWatcher rateLimit,
+        INavigationService navigationService,
+        ContractDetailViewModel detailViewModel)
     {
         _catalogService = catalogService;
         RateLimit = rateLimit;
+        _navigationService = navigationService;
+        _detailViewModel = detailViewModel;
         _catalogService.CatalogUpdated += OnCatalogUpdated;
     }
 
@@ -101,6 +111,19 @@ public partial class CatalogViewModel : ViewModel
         SearchText = string.Empty;
         CategoryIndex = 0;
         ResourceIndex = 0;
+    }
+
+    [RelayCommand]
+    private void OpenDetails(WikeloContract? contract)
+    {
+        if (contract is null)
+        {
+            return;
+        }
+
+        _detailViewModel.Show(contract);
+        // The detail page is not a nav menu item — navigate with back-stack support.
+        _ = _navigationService.NavigateWithHierarchy(typeof(Views.Pages.ContractDetailPage));
     }
 
     private void OnCatalogUpdated(object? sender, EventArgs e) =>
@@ -158,8 +181,7 @@ public partial class CatalogViewModel : ViewModel
             ? ResourceOptions[ResourceIndex]
             : null;
 
-        var allResourcesLabel = Application.Current.TryFindResource("Catalog_Filter_AllResources") as string
-            ?? "All resources";
+        var allResourcesLabel = Localized.String("Catalog_Filter_AllResources") ?? "All resources";
         ResourceOptions = new ObservableCollection<string>([allResourcesLabel, .. resources]);
 
         var restoredIndex = previouslySelected is null

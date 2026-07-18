@@ -39,6 +39,47 @@ state. It subscribes to the service's `RateLimitChanged` event, reads the author
 `RateLimitedUntil` deadline, and ticks a `DispatcherTimer` (1 s) to compose the message from
 the `Catalog_RateLimited_Retry` format string (`{DynamicResource}` cannot inject the number).
 
+## Reward preview images (CatalogPage)
+
+Each contract card shows a 64×64 preview left of the content, loaded asynchronously by the
+`helpers:RewardPreview.Contract` attached property on an `Image` (`Views/Helpers/RewardPreview.cs`):
+
+- Candidate order per reward: user override → thumbnail → original; the first that downloads
+  **and decodes** wins. A `.webp` thumbnail on a machine without the WebP codec fails decode
+  and falls back to the original PNG automatically.
+- Bitmaps are decoded on a worker thread (`DecodePixelWidth=128`), frozen, and memoized for
+  the session, so filter refreshes don't re-decode.
+- The **final result per candidate list** (including "nothing loadable") is also memoized:
+  `ICollectionView.Refresh` regenerates every card container on each search keystroke, and
+  the memo turns those re-fires into a synchronous `Source` assignment — no placeholder
+  flash, no repeated downloads or decode attempts. The memo key includes the override URL,
+  so editing `image-overrides.json` still takes effect on refresh; a failed URL is not
+  retried until the app restarts.
+- After awaiting, the handler re-checks the attached value (`ReferenceEquals`) — the template
+  may have been rebound while loading; stale results are dropped.
+- The category placeholder (`CategoryToSymbolConverter`) sits under the `Image` and stays
+  visible via `PresenceToVisibilityConverter` (`Invert="True"`, the `NullToVisibility`
+  resource) bound to the image's `Source` (ElementName binding), so contracts without images
+  (Wikelo-exclusive variants) show an icon instead.
+
+## Contract detail page (navigation outside the nav menu)
+
+`ContractDetailPage` is a DI singleton like every page but is **not** a NavigationView menu
+item. The flow: catalog card click (a `MouseBinding` on the card `Border`, command bound via
+`RelativeSource AncestorType=Page`) → `CatalogViewModel.OpenDetails` sets the contract on the
+shared `ContractDetailViewModel` (`Show(contract)`) → `INavigationService.NavigateWithHierarchy`
+(navigates with back-stack support for non-menu pages; plain `Navigate` would not). The page's
+back button calls `INavigationService.GoBack()`.
+
+Contracts are immutable records and enrichment rebuilds them as new instances, so the detail
+VM subscribes to `CatalogUpdated` and swaps its snapshot for the fresh contract by UUID —
+otherwise a page opened before enrichment finished would stay reward-less forever.
+
+Reward stat chips are composed in the VM (`RewardDisplay`) from localized format strings via
+`TryFindResource` — same pattern as the rate-limit countdown; they refresh on re-navigation,
+not live on language switch (accepted trade-off). Damage-type names in resist chips are game
+data and stay English.
+
 ## Adaptive app icon
 
 The window/taskbar icon follows the theme: light icon on the dark theme and vice versa.

@@ -10,6 +10,13 @@ namespace WikeloContractor.Services;
 
 public sealed partial class ContractCatalogService : IContractCatalogService
 {
+    /// <summary>
+    /// Shape version of the cache envelope. Bump when enrichment output changes so older
+    /// caches are discarded and rebuilt (v2: reward images; v3: reward details;
+    /// v4: requirements from hauling_orders with SCU amounts).
+    /// </summary>
+    private const int _cacheSchemaVersion = 4;
+
     /// <summary>How often the current game version is re-checked against the API.</summary>
     private static readonly TimeSpan _versionCheckInterval = TimeSpan.FromHours(12);
 
@@ -112,6 +119,7 @@ public sealed partial class ContractCatalogService : IContractCatalogService
 
                 _envelope = new CacheEnvelope
                 {
+                    SchemaVersion = _cacheSchemaVersion,
                     GameVersion = latestVersion,
                     FetchedAt = DateTimeOffset.UtcNow,
                     LastVersionCheckAt = DateTimeOffset.UtcNow,
@@ -197,13 +205,28 @@ public sealed partial class ContractCatalogService : IContractCatalogService
             return;
         }
 
-        // 1. Mission details → reward items.
+        // 1. Mission details → reward items + full requirements (hauling orders).
         var rewardsByMission = new Dictionary<string, List<ContractReward>>();
+        var requirementsByMission = new Dictionary<string, List<ContractRequirement>>();
         foreach (var contract in envelope.Contracts)
         {
             var detail = await WithRateLimitRetryAsync(() => _apiClient.GetMissionDetailAsync(contract.Uuid));
             rewardsByMission[contract.Uuid] = detail?.RewardItems
                 .Select(r => new ContractReward { Name = r.Name, ItemUuid = r.Uuid, Amount = r.Amount ?? 1 })
+                .ToList() ?? [];
+
+            // hauling_orders are richer than the list's hauling_summary: SCU amounts plus
+            // entries the summary omits (Wikelo Favor, vehicles to hand over).
+            requirementsByMission[contract.Uuid] = detail?.HaulingOrders
+                .Where(o => !string.IsNullOrWhiteSpace(o.Name))
+                .Select(o => new ContractRequirement
+                {
+                    Name = o.Name,
+                    MinAmount = o.MinAmount,
+                    MaxAmount = o.MaxAmount,
+                    MinScu = o.MinScu,
+                    MaxScu = o.MaxScu,
+                })
                 .ToList() ?? [];
 
             await Task.Delay(_enrichmentDelay);
@@ -231,15 +254,31 @@ public sealed partial class ContractCatalogService : IContractCatalogService
             await Task.Delay(_enrichmentDelay);
         }
 
-        // 3. Rebuild contracts with rewards and derived category.
+        // 3. Rebuild contracts with rewards (incl. item images and details) and derived category.
         var enriched = envelope.Contracts
             .Select(c =>
             {
-                var rewards = rewardsByMission.GetValueOrDefault(c.Uuid) ?? [];
+                var rewards = (rewardsByMission.GetValueOrDefault(c.Uuid) ?? [])
+                    .Select(r =>
+                    {
+                        var classification = r.ItemUuid is null ? null : classifications.GetValueOrDefault(r.ItemUuid);
+                        return r with
+                        {
+                            // All known images are kept in the cache for later selection.
+                            Images = classification?.Images ?? [],
+                            Details = classification?.Details,
+                        };
+                    })
+                    .ToList();
+
+                var requirements = requirementsByMission.GetValueOrDefault(c.Uuid);
+
                 return c with
                 {
                     Rewards = rewards,
                     Category = DeriveCategory(rewards, classifications),
+                    // Keep the summary-based requirements when the detail had no orders.
+                    Requirements = requirements is { Count: > 0 } ? requirements : c.Requirements,
                 };
             })
             .ToList();
@@ -382,7 +421,10 @@ public sealed partial class ContractCatalogService : IContractCatalogService
         try
         {
             await using var stream = File.OpenRead(_cacheFilePath);
-            return await JsonSerializer.DeserializeAsync<CacheEnvelope>(stream, AppStorage.JsonOptions, cancellationToken);
+            var envelope = await JsonSerializer.DeserializeAsync<CacheEnvelope>(stream, AppStorage.JsonOptions, cancellationToken);
+
+            // Older schema — discard so the catalog is refetched and re-enriched with the new shape.
+            return envelope?.SchemaVersion == _cacheSchemaVersion ? envelope : null;
         }
         catch (Exception ex) when (ex is IOException or JsonException)
         {
@@ -406,6 +448,9 @@ public sealed partial class ContractCatalogService : IContractCatalogService
 
     private sealed record CacheEnvelope
     {
+        /// <summary>See <see cref="_cacheSchemaVersion"/>; missing in pre-v2 caches (reads as 0).</summary>
+        public int SchemaVersion { get; init; }
+
         public string? GameVersion { get; init; }
 
         public DateTimeOffset FetchedAt { get; init; }

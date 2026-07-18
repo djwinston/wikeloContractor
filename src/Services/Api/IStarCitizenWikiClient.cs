@@ -27,4 +27,12 @@ public interface IStarCitizenWikiClient
 /// <param name="TypeString">Item type (e.g. "Char_Armor_Arms", "WeaponPersonal"); null for vehicle records.</param>
 /// <param name="IsSpaceship">True for spaceship vehicle records.</param>
 /// <param name="IsVehicleRecord">True when the payload is a vehicle record (ground vehicle, gravlev, power suit).</param>
-public sealed record ItemClassification(string Name, string? TypeString, bool IsSpaceship, bool IsVehicleRecord);
+/// <param name="Images">External images of the item (may be empty, e.g. Wikelo-exclusive variants).</param>
+/// <param name="Details">Display details for the contract detail view.</param>
+public sealed record ItemClassification(
+    string Name,
+    string? TypeString,
+    bool IsSpaceship,
+    bool IsVehicleRecord,
+    IReadOnlyList<Models.RewardImage> Images,
+    Models.RewardDetails? Details = null);

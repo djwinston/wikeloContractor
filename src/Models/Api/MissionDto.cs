@@ -106,6 +106,35 @@ public sealed class MissionDetailDto
 
     [JsonPropertyName("reward_items")]
     public List<RewardItemDto> RewardItems { get; set; } = [];
+
+    [JsonPropertyName("hauling_orders")]
+    public List<HaulingOrderDto> HaulingOrders { get; set; } = [];
+}
+
+/// <summary>
+/// A required delivery of the mission detail. Richer than the list's <c>hauling_summary</c>:
+/// carries SCU-based amounts (<c>min_scu</c>/<c>max_scu</c>) and entries the summary omits
+/// (e.g. "Wikelo Favor", vehicles to hand over).
+/// </summary>
+public sealed class HaulingOrderDto
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("uuid")]
+    public string? Uuid { get; set; }
+
+    [JsonPropertyName("min_amount")]
+    public int? MinAmount { get; set; }
+
+    [JsonPropertyName("max_amount")]
+    public int? MaxAmount { get; set; }
+
+    [JsonPropertyName("min_scu")]
+    public double? MinScu { get; set; }
+
+    [JsonPropertyName("max_scu")]
+    public double? MaxScu { get; set; }
 }
 
 public sealed class RewardItemDto

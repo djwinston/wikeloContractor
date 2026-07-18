@@ -53,6 +53,46 @@ classification calls. This runs fire-and-forget after the list is served:
   on a background thread** — subscribers must marshal to the dispatcher.
 - On failure: silently aborted; retried on the next catalog load (envelope stays `Enriched = false`).
 
+## Requirements from hauling orders
+
+The mission detail's `hauling_orders` are richer than the list's `hauling_summary`:
+they carry SCU-based amounts (`min_scu`/`max_scu` — the summary shows those as `null`)
+and entries the summary omits entirely ("Wikelo Favor", vehicles to hand over).
+Enrichment **replaces** a contract's `Requirements` with the orders when the detail has
+any; the summary-based list stays as a fallback. `ContractRequirement.AmountLabel`
+renders SCU ranges ("36 SCU") when the SCU fields are set.
+
+## Reward details
+
+Enrichment also captures per-reward display details (`ContractReward.Details`,
+`Models/RewardDetails`) from the same item/vehicle detail responses: description (en),
+manufacturer, plus item stats (type/subtype labels, rarity, damage/temperature/radiation
+resistances) or vehicle stats (career/role, cargo SCU, crew, HP/shields, SCM/max speed,
+MSRP + pledge URL). The full field inventory of those responses — including everything we
+do **not** store yet — is documented in `docs/api-item-fields.md`; extending it is
+parse-only (no extra API calls), just bump the cache schema version.
+
+## Reward preview images
+
+Item/vehicle detail responses always carry an `images` array (no `include` param), so image
+URLs ride along with the classification calls enrichment already makes — **zero extra API
+requests**. Enrichment stores **all** entries per reward (`ContractReward.Images`); the UI
+uses the first loadable one, keeping the rest available for manual selection later.
+
+- The envelope has a `SchemaVersion` (`_cacheSchemaVersion`); a mismatch on read
+  discards the cache so the catalog is refetched and re-enriched with the new shape.
+- Image **files** are hosted on external Cloudflare CDNs (`cstone.space`,
+  `media.starcitizen.tools`) — outside the API rate limit, so downloads bypass the 429 gate
+  entirely. `ImageCacheService` (own HttpClient, singleton) downloads each URL once into
+  `cache/images/<sha256(url)><ext>` (atomic write) with a politeness cap of 4 parallel
+  downloads and in-flight deduplication; failures are not cached and retry on next use.
+- Wikelo-exclusive variants (e.g. "Asgard Wikelo War Special") have **no** wiki images —
+  the UI falls back to a category placeholder icon.
+- `ImageOverrideService` reads `%AppData%\WikeloContractor\image-overrides.json`
+  (template auto-created): keys are item UUID **or** item name (case-insensitive), values
+  are an image URL or an absolute local file path. Overrides win over API images and are
+  re-read when the file changes on disk.
+
 ## Rate limiting (HTTP 429)
 
 - The client throws `ApiRateLimitedException` (with `Retry-After` when the server sends it)

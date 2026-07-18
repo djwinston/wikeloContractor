@@ -29,6 +29,24 @@
   <sys:String x:Key="Catalog_RateLimited_Title">Too many requests</sys:String>
   <sys:String x:Key="Catalog_RateLimited_Retry">The Star Citizen Wiki API allows a limited number of requests per minute. Loading resumes in {0} s.</sys:String>
   <sys:String x:Key="Catalog_RateLimited_Resuming">Resuming loading...</sys:String>
+  <sys:String x:Key="Catalog_OpenDetails">Open contract details</sys:String>
+
+  <sys:String x:Key="Details_Back">Back to the catalog</sys:String>
+  <sys:String x:Key="Details_OnceOnly">One-time contract</sys:String>
+  <sys:String x:Key="Details_Prerequisites">Has prerequisites</sys:String>
+  <sys:String x:Key="Details_OpenWiki">Open on the wiki</sys:String>
+  <sys:String x:Key="Details_OpenPledge">Pledge store page</sys:String>
+  <sys:String x:Key="Details_Requirements">Required items</sys:String>
+  <sys:String x:Key="Details_Rewards">Rewards</sys:String>
+  <sys:String x:Key="Details_RewardsPending">Reward details are still loading — check back in a moment.</sys:String>
+  <sys:String x:Key="Details_Stat_Cargo">Cargo: {0} SCU</sys:String>
+  <sys:String x:Key="Details_Stat_Crew">Crew: {0}</sys:String>
+  <sys:String x:Key="Details_Stat_Health">Hull HP: {0}</sys:String>
+  <sys:String x:Key="Details_Stat_Shields">Shields: {0}</sys:String>
+  <sys:String x:Key="Details_Stat_Speed">Speed (SCM/max): {0} / {1} m/s</sys:String>
+  <sys:String x:Key="Details_Stat_Msrp">MSRP: ${0}</sys:String>
+  <sys:String x:Key="Details_Stat_Temperature">Temperature: {0}…{1} °C</sys:String>
+  <sys:String x:Key="Details_Stat_Radiation">Radiation capacity: {0}</sys:String>
 
   <sys:String x:Key="Inventory_Title">My Inventory</sys:String>
   <sys:String x:Key="Inventory_Placeholder">Your collected resources will appear here (Phase 3).</sys:String>

@@ -18,6 +18,17 @@ public class ContractRequirementTests
         Assert.Equal(expected, requirement.AmountLabel);
     }
 
+    [Theory]
+    [InlineData(36, 36, "36 SCU")]
+    [InlineData(1.5, 3, "1.5–3 SCU")]
+    [InlineData(null, 8, "≤8 SCU")]
+    public void AmountLabel_prefers_scu_amounts_when_present(double? minScu, double? maxScu, string expected)
+    {
+        var requirement = new ContractRequirement { Name = "Quantainium", MinScu = minScu, MaxScu = maxScu };
+
+        Assert.Equal(expected, requirement.AmountLabel);
+    }
+
     [Fact]
     public void Contract_defaults_are_safe_before_enrichment()
     {
