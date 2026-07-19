@@ -63,21 +63,53 @@ Reference (what already exists): https://wikelotrades.com , community Excel spre
       manufacturer, item stats (rarity/resistances/temperature) or vehicle stats
       (cargo/crew/HP/shields/speeds/MSRP + pledge link); back navigation via
       `NavigateWithHierarchy`. See `docs/api-item-fields.md` for what else the API offers
+- [x] Settings split into two nav pages: **Settings** (language, theme, catalog data) and **About**
+      (version, self-update, attribution, disclaimer) to keep each page focused
+- [ ] **In-app editor for `image-overrides.json`** (on consideration): WPF-UI ships no reusable
+      code-editor control (its gallery "Editor" is a rich-text demo window, "Monaco" a WebView2
+      embed), so a real JSON editor means Monaco (WebView2) or AvalonEdit. Would edit the `%AppData%`
+      user override layer (updates never touch it). Deferred
 - [x] Detail page refinements: large reward image (own decode resolution); ship loadout —
       weapons with kind labels ("Laser Repeater") and grades, loaded ordnance with signal
       types (CrossSection/IR/EM), core components incl. jump drive with grade/class; armor
       resistances as reduction percentages + radiation protection/scrub rate; paint rewards
       show no vehicle stats; search also matches reward names; per-contract multi-category
       set so mixed-reward contracts appear under every matching category filter
+- [x] Full-window reward image preview on the detail page (click a reward image → full-resolution
+      overlay; click anywhere or press Esc to close). Native-resolution decode variant added to the
+      `RewardPreview` attached-property loader
+- [x] First-load progress uses a `ProgressBar` (indeterminate) instead of a `ProgressRing`
+- [x] Wikelo reputation: mark a contract completed on the card and detail page (`ICompletionService`,
+      persisted to `completed.json` as UUID → earned reputation); accumulated total drives a rank
+      progress bar at the top of the catalog. Ranks: New Customer (0) → Very Good Customer (340) →
+      Very Best Customer (999) — thresholds are not in the API (`min_standing`/`rank_index` are null),
+      so they live in `Models/ReputationLevels`
 - [ ] "Tracked" flag on a contract (persisted)
 - [ ] Aggregation: combined resource list across all tracked contracts
+- [x] **Readiness indicator (needs Inventory)**: on the catalog card and detail page, each *Required
+      items* chip is colored by availability vs. the inventory — default (none), caution tint (partial),
+      success tint (full) — plus a "Ready to turn in" badge and an "X / Y satisfied" count. Computed
+      state lives on `ContractCardViewModel` (catalog) and `ContractDetailViewModel` (detail); the math
+      is `Models/InventoryReadiness`, chips are `ViewModels/RequirementChip`, color via
+      `Views/Converters/AvailabilityToBrushConverter`. Both VMs refresh on `IInventoryStore.Changed`
 
 ## Phase 3 — Inventory
 
-- [ ] `InventoryItem` model (item ref + quantity), persisted to `inventory.json` (atomic write)
-- [ ] UI: add/edit quantities, quick search by item name
-- [ ] Progress: "collected X of Y" for each tracked contract (inventory × requirements)
-- [ ] "Contract ready to turn in" indicator
+- [x] Inventory counter store (`IInventoryStore` → `inventory.json`, atomic write, name-keyed),
+      auto-populated from every distinct required item across the catalog. Each item has a `+`/`−`
+      counter. Items are grouped into categories via a keyword classifier
+      (`Models/InventoryCategoryClassifier`, unit-tested) with a per-item image supplied through a
+      user-editable config (`inventory-image-overrides.json`, bundled + `%AppData%` layers) analogous
+      to `image-overrides.json`; the two-layer engine is shared as `Services/OverrideFileSet`
+- [x] UI: `+`/`−` quantity editing, quick search by item name, category section headers,
+      category filter dropdown
+- [x] Progress + readiness: per-requirement availability coloring, "X / Y satisfied" count, and a
+      "Contract ready to turn in" indicator on the catalog card and detail page (see Phase 2 entry)
+- [x] Marking a contract completed is gated on readiness (`IsReady`); confirming a dialog deducts the
+      required amounts from the inventory. Reopening a completed contract shows a warning dialog (the
+      spent items are **not** restored) listing what was deducted. Shared flow lives in
+      `ViewModels/ContractCompletionInteraction` (WPF-UI `MessageBox`), called by both the catalog card
+      and the detail page; the completion toggle disables until the contract is ready
 
 ## Phase 4 — Overlay
 

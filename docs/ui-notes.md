@@ -13,6 +13,22 @@ collects patterns and pitfalls discovered while building the UI.
 - `ui:TitleBar` icon is set from code-behind, not XAML — see "Adaptive app icon" below.
 - `ui:InfoBar` needs `IsOpen` bound with `Mode=OneWay` (or `TwoWay` when `IsClosable="True"`
   so the close button can clear the VM flag).
+- **No `ui:ProgressBar` control** — WPF-UI 4.x ships `ui:ProgressRing` but *not* a ProgressBar;
+  use the plain WPF `<ProgressBar>` (WPF-UI themes it via implicit styles). Likewise the gallery's
+  "Editor" (a rich-text demo) and "Monaco" (a WebView2 embed) are sample *windows*, not reusable
+  controls — there is no drop-in code-editor control.
+- **No `ui:NumberBox`/stepper for counters** — the inventory `+`/`−` counter is built from two
+  `ui:Button`s (`Subtract24` / `Add24`) around a `TextBlock`, each bound to a `[RelayCommand]` on the
+  item VM. There is no dedicated numeric control to reuse.
+- **Overlay scrollbars overlap content** — WPF-UI restyles `ScrollViewer` with a thin overlay
+  scrollbar drawn at the right edge *on top of* the content (not in its own column), so cards/buttons
+  under it get clipped. Fix: give the **scrolled content** a right `Margin` (~16) so the scrollbar sits
+  in that gutter — applied on `CatalogPage`, `ContractDetailPage` and `InventoryPage`. (`ScrollViewer.Padding`
+  is not reliably honored by the restyled template; a content `Margin` always works.)
+- **Dialogs use `Wpf.Ui.Controls.MessageBox`**, a self-contained Fluent window with `ShowDialogAsync()`
+  → `MessageBoxResult` — no `ContentDialogService`/dialog-host wiring needed. Alias it
+  (`using UiMessageBox = Wpf.Ui.Controls.MessageBox;`) to avoid the clash with the global-using
+  `System.Windows.MessageBox`. Set `Owner = Application.Current.MainWindow` to center it.
 
 ## Status surface pattern (CatalogPage)
 
@@ -24,7 +40,7 @@ own VM flag, only one is normally visible at a time:
 | `HasLoadError` | Error InfoBar | no network **and** no cache — nothing to show |
 | `IsOffline` | Warning InfoBar | API unreachable, stale cache shown |
 | `RateLimit.IsActive` + `RateLimit.Message` | Warning InfoBar (closable) | HTTP 429, live countdown text (shared watcher) |
-| `IsLoading` | ProgressRing + caption | first fetch in progress |
+| `IsLoading` | ProgressBar (indeterminate) + caption | first fetch in progress |
 | `IsEmpty` | TextBlock | filters matched nothing |
 
 `IsSynced` and `IsOffline` are **computed** from the service's single `CatalogStatus`
@@ -91,7 +107,69 @@ variant record in the API, but its stats belong to the vehicle, not the paint.
 
 The detail image is decoded at a higher resolution than the 64 px list thumbnail:
 `RewardPreview` keys its decode/result memos by decode width (128 list / 640 detail), so the
-same URL yields two cached bitmaps of different sizes.
+same URL yields cached bitmaps of different sizes. The full-window preview (below) adds a third
+variant at **native** resolution (`DecodePixelWidth=0`); that one is deliberately **not** memoized
+— only one preview is on screen at a time, so pinning its multi-MB bitmaps for the whole session
+isn't worth the memory (`memoize = decodePixelWidth != 0` gates both memos).
+
+## Full-window reward image preview (ContractDetailPage)
+
+Clicking a reward image opens a full-window overlay — the app's only overlay pattern. The page
+root is a `Grid` wrapping the `ScrollViewer` plus a sibling full-bleed `Grid` (later in XAML =
+higher Z-order, semi-transparent `#CC000000`) whose `Visibility` binds `IsPreviewOpen`.
+`OpenPreview(reward)` — a `MouseBinding` on the reward `Image`, command reached via
+`RelativeSource AncestorType=Page` — sets `PreviewReward` and opens it; a `MouseBinding` on the
+overlay and a page-level `Esc` `KeyBinding` both call `ClosePreview`. The overlay `Image` uses the
+`RewardPreview.PreviewReward` attached property (the native-resolution variant). `OnContractChanged`
+closes any open preview when the shown contract changes.
+
+## Contract completion & Wikelo reputation
+
+`ICompletionService` persists completed contracts to `%AppData%\WikeloContractor\completed.json`
+as a UUID→earned-reputation map (storing the amount, not just the id, keeps the running total
+correct when a contract rotates out of the catalog across patches). `TotalReputation` feeds
+`ReputationLevels.Compute` (thresholds New 0 / Very Good 340 / Very Best 999 — the API leaves
+`min_standing`/`rank_index` null, so they live in `Models/ReputationLevels`) → `ReputationSummary`
+(localized rank label + `Fraction` for the catalog's top progress bar, `Maximum="1"`).
+
+Catalog cards bind a per-item `ContractCardViewModel` wrapper (not the raw record) so completion is
+observable and it is the home for the readiness indicator (below). The completion toggle lives
+on both the card and the detail VM; completing/reopening now routes through
+`ContractCompletionInteraction` (see "Inventory & readiness"). Both rely on the service's `Changed`
+event to refresh — the **list** is refreshed by `CatalogViewModel.OnCompletionChanged` iterating its
+cards (one subscription total, not one per card), while the single **detail** VM self-subscribes.
+Rank names stay English in both dictionaries (game standings); the surrounding text is localized.
+
+## Inventory & readiness
+
+The **Inventory page** is the second data-driven list. Its items are auto-derived from every distinct
+required-item name across the catalog (`InventoryViewModel` flattens `Contract.Requirements`), each
+wrapped in an `InventoryItemViewModel` with a persisted `+`/`−` counter (`IInventoryStore` →
+`inventory.json`). Items are grouped into category sections via a `ListCollectionView` with a
+`PropertyGroupDescription` on `CategoryLabel` (`GroupStyle` renders the headers) plus a `Filter`
+combining the search box and a category dropdown — the same collection-view idiom as the catalog.
+Categories come from `InventoryCategoryClassifier` (name-keyword rules; see `CLAUDE.md`), the placeholder
+icon per category from `InventoryCategoryToSymbolConverter`.
+
+Item **images** have no API source, so they load purely from a user-editable override config
+(`InventoryImageOverrideService` → `inventory-image-overrides.json`, bundled + `%AppData%` layers)
+through the `helpers:InventoryPreview.ItemName` attached property — a simpler cousin of `RewardPreview`
+(override URL → disk cache → decode; category icon placeholder until it loads). The two-layer +
+hot-reload mechanics are shared with reward overrides via `Services/OverrideFileSet`.
+
+**Readiness** compares requirements against inventory counts (`Models/InventoryReadiness`). On the
+catalog card and detail page, each requirement chip is colored by `AvailabilityToBrushConverter`
+(none → default, partial → caution tint, full → success tint), plus a "Ready to turn in" badge and an
+"X / Y satisfied" count. Both `ContractCardViewModel` and `ContractDetailViewModel` recompute on
+`IInventoryStore.Changed`; `ShowReadiness` hides the badge/count once a contract is completed (its
+chips render neutral, since availability is then moot).
+
+Completion is wired to the inventory through `ViewModels/ContractCompletionInteraction`: the toggle is
+gated on `IsReady` (`RelayCommand.CanExecute`, so the button disables until the inventory covers the
+requirements). Completing shows a confirm dialog then **deducts** `InventoryReadiness.RequiredCount`
+per requirement; reopening shows a warning dialog and lists what was deducted but does **not** restore
+it (the inventory is the source of truth — the user updates it manually). Deductions fire
+`IInventoryStore.Changed`, so sibling contracts recompute their readiness immediately.
 
 ## Adaptive app icon
 
@@ -110,10 +188,11 @@ languages, so `{0}` counts must match.
 
 ## ViewModel conventions
 
-- The contract list is an `ICollectionView` (`ListCollectionView` over the loaded list) with a
-  `Filter` predicate. Filter `OnXChanged` hooks call `Contracts.Refresh()` (re-evaluates in
-  place) instead of rebuilding an `ObservableCollection` on every keystroke; a fresh view is
-  created only when a new catalog is loaded. `IsEmpty` reads `Contracts.IsEmpty`.
+- The contract list is an `ICollectionView` (`ListCollectionView` over the per-contract
+  `ContractCardViewModel` wrappers) with a `Filter` predicate. Filter `OnXChanged` hooks call
+  `Contracts.Refresh()` (re-evaluates in place) instead of rebuilding an `ObservableCollection`
+  on every keystroke; a fresh view is created only when a new catalog is loaded. `IsEmpty` reads
+  `Contracts.IsEmpty`.
 - Prefer deriving read-only UI state from one source over hand-syncing parallel bools:
   `IsSynced`/`IsOffline` are computed from `CatalogStatus` (see the status surface above).
 - Guard first-time initialization with an `_isInitialized` flag when OnChanged hooks

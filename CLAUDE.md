@@ -68,11 +68,38 @@ TODO after first successful `dotnet restore`: pin exact package versions in the 
     `Localized.Format(key, args)` (XAML uses `{DynamicResource}` directly)
   - `Models/ContractRequirement.FormatRange` — min–max display rule ("2", "1–3";
     max-only is the API's fixed amount and renders plain "N"), invariant culture
-  - `Models/ContractCategoryDisplay.LabelKey`, `Models/ComponentTypeDisplay.LabelKey` — the
-    `XDisplay.LabelKey(value)` pattern: an enum/API-string → localization-key mapping lives as
-    a static class next to the type it maps, one per type needing this, not inline switches
-    or string interpolation into a resource key (`$"Prefix_{apiValue}"` breaks silently on an
-    unmapped value with no compile-time check)
+  - `Models/ContractCategoryDisplay.LabelKey`, `Models/ComponentTypeDisplay.LabelKey`,
+    `Models/ReputationTierDisplay.LabelKey` — the `XDisplay.LabelKey(value)` pattern: an
+    enum/API-string → localization-key mapping lives as a static class next to the type it maps,
+    one per type needing this, not inline switches or string interpolation into a resource key
+    (`$"Prefix_{apiValue}"` breaks silently on an unmapped value with no compile-time check)
+  - `Services/CompletionService` — the completed-contracts + accumulated Wikelo reputation store
+    (`completed.json`, UUID→earned reputation). New per-service JSON stores follow this shape:
+    `AppStorage.Root`/`JsonOptions`, load-with-`try/catch(JsonException)`, atomic tmp+`File.Move`
+    write (same as `SettingsService`/`ContractCatalogService`). `Services/InventoryStore`
+    (`inventory.json`, name→count) is the second store on this shape
+  - `Services/OverrideFileSet` — the reusable two-layer (bundled + `%AppData%`) key→value override
+    engine with throttled hot-reload and a first-run user template. `ImageOverrideService` (reward
+    images) and `InventoryImageOverrideService` (inventory item images, `inventory-image-overrides.json`)
+    both delegate to it — a new user-editable override config wraps this, it does not re-implement it
+  - `Models/InventoryCategoryClassifier.Classify(name, hasScu)` — the single home for the required-item
+    → `InventoryCategory` mapping (ordered keyword rules, first match wins; unit-tested).
+    `Models/InventoryCategoryDisplay.LabelKey` is its `XDisplay.LabelKey` companion
+  - `Models/ReputationLevels` — Wikelo rank thresholds (New 0 / Very Good 340 / Very Best 999,
+    not in the API) + `Compute(total)`; the single home for the tier math, unit-tested
+  - `ViewModels/ContractCardViewModel` — the per-catalog-card wrapper over a `WikeloContract`
+    holding observable completion state and the inventory-readiness state (colored requirement
+    chips, `IsReady`, `ReadinessLabel`). `ViewModels/ReputationSummary` — display-ready reputation
+    standing for the bar
+  - `Models/InventoryReadiness` — the requirement-vs-inventory readiness math (`RequiredAmount`,
+    `RequiredCount` for deduction, `Availability` → `RequirementAvailability`), unit-tested; the single
+    home for that decision. `ViewModels/RequirementChip` is the display wrapper (name/amount/availability)
+    both the catalog card and `ContractDetailViewModel` build; `Views/Converters/AvailabilityToBrushConverter`
+    colors it
+  - `ViewModels/ContractCompletionInteraction` — the single home for the complete/reopen flow: confirms
+    and deducts inventory on completion, warns (no restore) on reopen. Both the catalog card and detail
+    page call it; completion is gated on `IsReady`. Uses `Wpf.Ui.Controls.MessageBox` (aliased to avoid
+    the `System.Windows.MessageBox` clash), so no dialog-host wiring is needed
   - `ViewModels/ContractDetailViewModel.RewardDisplay` — reward stat/loadout chip composition
     (`ComposeStats`/`ComposeWeapons`/`ComposeComponents`/`FormatEntry`/`JoinNonEmpty`). Lives in
     the VM layer, not `Models/`, because it needs `Localized` (actual localized strings, not

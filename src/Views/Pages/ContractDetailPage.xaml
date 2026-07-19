@@ -23,6 +23,7 @@
     <converters:CategoryToSymbolConverter x:Key="CategoryToSymbol" />
     <converters:PresenceToVisibilityConverter x:Key="NullToVisibility" Invert="True" />
     <converters:PresenceToVisibilityConverter x:Key="NotNullToVisibility" />
+    <converters:AvailabilityToBrushConverter x:Key="AvailabilityToBrush" />
 
     <!-- Shared look for the Stats/Weapons/Components chip lists on a reward card -->
     <Style x:Key="ChipListStyle" TargetType="ItemsControl">
@@ -49,17 +50,23 @@
     </Style>
   </Page.Resources>
 
+  <Page.InputBindings>
+    <KeyBinding Key="Escape" Command="{Binding ViewModel.ClosePreviewCommand}" />
+  </Page.InputBindings>
+
+  <Grid>
   <ScrollViewer
     Margin="42,24,42,0"
     HorizontalScrollBarVisibility="Disabled"
     VerticalScrollBarVisibility="Auto">
-    <StackPanel Margin="0,0,0,24">
+    <StackPanel Margin="0,0,16,24">
 
-      <!-- Back + title -->
+      <!-- Back + title + completed toggle -->
       <Grid>
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="Auto" />
           <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
 
         <ui:Button
@@ -76,6 +83,13 @@
           FontWeight="DemiBold"
           Text="{Binding ViewModel.Contract.Title}"
           TextWrapping="Wrap" />
+        <ui:Button
+          Grid.Column="2"
+          Margin="14,0,0,0"
+          VerticalAlignment="Center"
+          Command="{Binding ViewModel.ToggleCompletedCommand}"
+          Content="{Binding ViewModel.CompletedButtonLabel}"
+          Icon="{ui:SymbolIcon Checkmark24}" />
       </Grid>
 
       <!-- Badges: category, reputation, flags, game version, wiki link -->
@@ -164,13 +178,45 @@
         TextWrapping="Wrap"
         Visibility="{Binding ViewModel.Contract.Description, Converter={StaticResource NotNullToVisibility}}" />
 
-      <!-- Required items -->
-      <TextBlock
-        Margin="0,24,0,0"
-        FontSize="18"
-        FontWeight="SemiBold"
-        Text="{DynamicResource Details_Requirements}" />
-      <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding ViewModel.Contract.Requirements}">
+      <!-- Required items, colored by availability vs the inventory -->
+      <StackPanel Margin="0,24,0,0" Orientation="Horizontal">
+        <TextBlock
+          FontSize="18"
+          FontWeight="SemiBold"
+          Text="{DynamicResource Details_Requirements}" />
+        <StackPanel
+          Orientation="Horizontal"
+          Visibility="{Binding ViewModel.ShowReadiness, Converter={StaticResource BoolToVisibility}}">
+          <Border
+            Margin="12,0,0,0"
+            Padding="8,2"
+            VerticalAlignment="Center"
+            Background="{DynamicResource SystemFillColorSuccessBackgroundBrush}"
+            CornerRadius="10"
+            Visibility="{Binding ViewModel.IsReady, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel Orientation="Horizontal">
+              <ui:SymbolIcon
+                VerticalAlignment="Center"
+                FontSize="14"
+                Foreground="{DynamicResource SystemFillColorSuccessBrush}"
+                Symbol="CheckmarkCircle24" />
+              <TextBlock
+                Margin="6,0,0,0"
+                VerticalAlignment="Center"
+                FontSize="12"
+                Text="{DynamicResource Contract_Ready}" />
+            </StackPanel>
+          </Border>
+          <TextBlock
+            Margin="12,0,0,0"
+            VerticalAlignment="Center"
+            FontSize="13"
+            Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+            Text="{Binding ViewModel.ReadinessLabel}"
+            ToolTip="{DynamicResource Contract_ReadinessTooltip}" />
+        </StackPanel>
+      </StackPanel>
+      <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding ViewModel.RequirementChips}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
             <WrapPanel />
@@ -181,7 +227,7 @@
             <Border
               Margin="0,0,6,6"
               Padding="10,5"
-              Background="{DynamicResource ControlFillColorSecondaryBrush}"
+              Background="{Binding Availability, Converter={StaticResource AvailabilityToBrush}}"
               CornerRadius="10">
               <TextBlock FontSize="13">
                 <Run Text="{Binding Name, Mode=OneWay}" /><Run Text=" × " /><Run FontWeight="SemiBold" Text="{Binding AmountLabel, Mode=OneWay}" />
@@ -235,8 +281,16 @@
                   <Image
                     x:Name="RewardImage"
                     helpers:RewardPreview.Reward="{Binding Reward}"
+                    Cursor="Hand"
                     RenderOptions.BitmapScalingMode="HighQuality"
-                    Stretch="Uniform" />
+                    Stretch="Uniform">
+                    <Image.InputBindings>
+                      <MouseBinding
+                        Command="{Binding ViewModel.OpenPreviewCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                        CommandParameter="{Binding Reward}"
+                        MouseAction="LeftClick" />
+                    </Image.InputBindings>
+                  </Image>
                 </Grid>
 
                 <StackPanel Grid.Column="1">
@@ -308,4 +362,25 @@
 
     </StackPanel>
   </ScrollViewer>
+
+    <!-- Full-window reward image preview; click anywhere or press Esc to close -->
+    <Grid
+      Background="#CC000000"
+      Visibility="{Binding ViewModel.IsPreviewOpen, Converter={StaticResource BoolToVisibility}}">
+      <Grid.InputBindings>
+        <MouseBinding Command="{Binding ViewModel.ClosePreviewCommand}" MouseAction="LeftClick" />
+      </Grid.InputBindings>
+      <Image
+        Margin="60"
+        helpers:RewardPreview.PreviewReward="{Binding ViewModel.PreviewReward}"
+        RenderOptions.BitmapScalingMode="HighQuality"
+        Stretch="Uniform" />
+      <ui:Button
+        Margin="0,24,24,0"
+        HorizontalAlignment="Right"
+        VerticalAlignment="Top"
+        Command="{Binding ViewModel.ClosePreviewCommand}"
+        Icon="{ui:SymbolIcon Dismiss24}" />
+    </Grid>
+  </Grid>
 </Page>

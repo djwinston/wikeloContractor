@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Windows.Controls;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using Microsoft.Extensions.DependencyInjection;
 using WikeloContractor.Models;
 using WikeloContractor.Services;
@@ -22,8 +21,8 @@ public static class RewardPreview
     /// <summary>Decode width for the detail page image (260 px box + DPI headroom).</summary>
     private const int _detailDecodePixelWidth = 640;
 
-    /// <summary>Session-lifetime memoization of decoded thumbnails (frozen, shareable).</summary>
-    private static readonly ConcurrentDictionary<string, ImageSource> _decoded = new();
+    /// <summary>Native resolution for the full-window preview (0 = no downscale on decode).</summary>
+    private const int _previewDecodePixelWidth = 0;
 
     /// <summary>
     /// Final result per candidate-URL list, including failures (null). Filter refreshes
@@ -46,6 +45,13 @@ public static class RewardPreview
         typeof(RewardPreview),
         new PropertyMetadata(null, OnRewardChanged));
 
+    /// <summary>Full-resolution variant for the detail page's full-window image preview.</summary>
+    public static readonly DependencyProperty PreviewRewardProperty = DependencyProperty.RegisterAttached(
+        "PreviewReward",
+        typeof(ContractReward),
+        typeof(RewardPreview),
+        new PropertyMetadata(null, OnPreviewRewardChanged));
+
     public static WikeloContract? GetContract(DependencyObject obj) => (WikeloContract?)obj.GetValue(ContractProperty);
 
     public static void SetContract(DependencyObject obj, WikeloContract? value) => obj.SetValue(ContractProperty, value);
@@ -54,11 +60,18 @@ public static class RewardPreview
 
     public static void SetReward(DependencyObject obj, ContractReward? value) => obj.SetValue(RewardProperty, value);
 
+    public static ContractReward? GetPreviewReward(DependencyObject obj) => (ContractReward?)obj.GetValue(PreviewRewardProperty);
+
+    public static void SetPreviewReward(DependencyObject obj, ContractReward? value) => obj.SetValue(PreviewRewardProperty, value);
+
     private static void OnContractChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
         LoadInto(d, ContractProperty, e.NewValue, (e.NewValue as WikeloContract)?.Rewards ?? [], _listDecodePixelWidth);
 
     private static void OnRewardChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
         LoadInto(d, RewardProperty, e.NewValue, e.NewValue is ContractReward reward ? [reward] : [], _detailDecodePixelWidth);
+
+    private static void OnPreviewRewardChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
+        LoadInto(d, PreviewRewardProperty, e.NewValue, e.NewValue is ContractReward reward ? [reward] : [], _previewDecodePixelWidth);
 
     private static async void LoadInto(
         DependencyObject d,
@@ -79,10 +92,13 @@ public static class RewardPreview
             return;
         }
 
-        // Decode width is part of both memo keys: the same URL is cached separately
-        // for the 64 px list thumbnail and the large detail image.
+        // The full-window preview decodes at native resolution (width 0); caching those multi-MB
+        // bitmaps for the whole session is not worth it (one preview on screen at a time), so it is
+        // resolved fresh each time. The bounded thumbnail/detail variants are memoized — decode width
+        // is part of the key, so the same URL is cached separately per size.
+        var memoize = decodePixelWidth != 0;
         var memoKey = $"{decodePixelWidth}|" + string.Join("\n", candidates);
-        if (_resolved.TryGetValue(memoKey, out var memoized))
+        if (memoize && _resolved.TryGetValue(memoKey, out var memoized))
         {
             image.Source = memoized;
             return;
@@ -93,7 +109,7 @@ public static class RewardPreview
         ImageSource? source;
         try
         {
-            source = await ResolveAsync(candidates, decodePixelWidth);
+            source = await ThumbnailLoader.ResolveAsync(candidates, decodePixelWidth);
         }
         catch (Exception)
         {
@@ -101,45 +117,16 @@ public static class RewardPreview
             return;
         }
 
-        _resolved[memoKey] = source;
+        if (memoize)
+        {
+            _resolved[memoKey] = source;
+        }
 
         // The template may have been rebound (filtering, refresh) while we were loading.
         if (ReferenceEquals(image.GetValue(property), value))
         {
             image.Source = source;
         }
-    }
-
-    /// <summary>First loadable image across the given candidates.</summary>
-    private static async Task<ImageSource?> ResolveAsync(IReadOnlyList<string> candidates, int decodePixelWidth)
-    {
-        var imageCache = App.Services.GetRequiredService<IImageCacheService>();
-
-        foreach (var candidate in candidates)
-        {
-            var decodedKey = $"{decodePixelWidth}|{candidate}";
-            if (_decoded.TryGetValue(decodedKey, out var cached))
-            {
-                return cached;
-            }
-
-            var localPath = await imageCache.GetLocalPathAsync(candidate);
-            if (localPath is null)
-            {
-                continue;
-            }
-
-            // Decode failures fall through to the next candidate — e.g. a .webp
-            // thumbnail on a machine without the WebP codec falls back to the original PNG.
-            var decoded = await Task.Run(() => TryDecode(localPath, decodePixelWidth));
-            if (decoded is not null)
-            {
-                _decoded[decodedKey] = decoded;
-                return decoded;
-            }
-        }
-
-        return null;
     }
 
     /// <summary>Candidate URLs across the rewards, override first, in stable order.</summary>
@@ -168,25 +155,6 @@ public static class RewardPreview
                     yield return image.OriginalUrl;
                 }
             }
-        }
-    }
-
-    private static BitmapImage? TryDecode(string path, int decodePixelWidth)
-    {
-        try
-        {
-            var bitmap = new BitmapImage();
-            bitmap.BeginInit();
-            bitmap.CacheOption = BitmapCacheOption.OnLoad;
-            bitmap.DecodePixelWidth = decodePixelWidth;
-            bitmap.UriSource = new Uri(path);
-            bitmap.EndInit();
-            bitmap.Freeze();
-            return bitmap;
-        }
-        catch (Exception ex) when (ex is NotSupportedException or System.IO.FileFormatException or System.IO.IOException)
-        {
-            return null;
         }
     }
 }

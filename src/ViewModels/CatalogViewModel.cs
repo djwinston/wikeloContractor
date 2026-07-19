@@ -21,13 +21,17 @@ public partial class CatalogViewModel : ViewModel
     ];
 
     private readonly IContractCatalogService _catalogService;
+    private readonly ICompletionService _completionService;
+    private readonly IInventoryStore _inventoryStore;
+    private readonly ContractCompletionInteraction _completionInteraction;
 
-    private List<WikeloContract> _allContracts = [];
+    /// <summary>Card wrappers (one per contract); the collection view is built and filtered over these.</summary>
+    private List<ContractCardViewModel> _cards = [];
 
     /// <summary>Suppresses the filter re-run while <see cref="SetContracts"/> restores the resource selection.</summary>
     private bool _suppressFilter;
 
-    /// <summary>Filtered view over <see cref="_allContracts"/>; refreshed in place as filters change.</summary>
+    /// <summary>Filtered view over <see cref="_cards"/>; refreshed in place as filters change.</summary>
     [ObservableProperty]
     private ICollectionView? _contracts;
 
@@ -74,6 +78,10 @@ public partial class CatalogViewModel : ViewModel
     [ObservableProperty]
     private string? _gameVersion;
 
+    /// <summary>Wikelo standing shown as a progress bar above the contract list.</summary>
+    [ObservableProperty]
+    private ReputationSummary? _reputation;
+
     /// <summary>Shared rate-limit countdown, bound by both the Catalog and Settings pages.</summary>
     public RateLimitWatcher RateLimit { get; }
 
@@ -82,15 +90,26 @@ public partial class CatalogViewModel : ViewModel
 
     public CatalogViewModel(
         IContractCatalogService catalogService,
+        ICompletionService completionService,
+        IInventoryStore inventoryStore,
+        ContractCompletionInteraction completionInteraction,
         RateLimitWatcher rateLimit,
         INavigationService navigationService,
         ContractDetailViewModel detailViewModel)
     {
         _catalogService = catalogService;
+        _completionService = completionService;
+        _inventoryStore = inventoryStore;
+        _completionInteraction = completionInteraction;
         RateLimit = rateLimit;
         _navigationService = navigationService;
         _detailViewModel = detailViewModel;
         _catalogService.CatalogUpdated += OnCatalogUpdated;
+
+        // Both this VM and the service are app-lifetime singletons — the subscription needs no teardown.
+        _completionService.Changed += OnCompletionChanged;
+        _inventoryStore.Changed += OnInventoryChanged;
+        RecomputeReputation();
     }
 
     public override async Task OnNavigatedToAsync()
@@ -136,6 +155,29 @@ public partial class CatalogViewModel : ViewModel
             }
         });
 
+    private void OnCompletionChanged(object? sender, EventArgs e) =>
+        Application.Current.Dispatcher.Invoke(() =>
+        {
+            foreach (var card in _cards)
+            {
+                card.RefreshCompleted();
+            }
+
+            RecomputeReputation();
+        });
+
+    private void OnInventoryChanged(object? sender, EventArgs e) =>
+        Application.Current.Dispatcher.Invoke(() =>
+        {
+            foreach (var card in _cards)
+            {
+                card.RefreshReadiness();
+            }
+        });
+
+    private void RecomputeReputation() =>
+        Reputation = ReputationSummary.From(ReputationLevels.Compute(_completionService.TotalReputation));
+
     private async Task LoadAsync()
     {
         if (IsLoading)
@@ -167,7 +209,7 @@ public partial class CatalogViewModel : ViewModel
 
     private void SetContracts(IReadOnlyList<WikeloContract> contracts)
     {
-        _allContracts = contracts.ToList();
+        _cards = contracts.Select(c => new ContractCardViewModel(c, _completionService, _inventoryStore, _completionInteraction)).ToList();
 
         var resources = contracts
             .SelectMany(c => c.Requirements)
@@ -193,8 +235,9 @@ public partial class CatalogViewModel : ViewModel
         ResourceIndex = restoredIndex >= 0 ? restoredIndex + 1 : 0;
         _suppressFilter = false;
 
-        Contracts = new ListCollectionView(_allContracts) { Filter = FilterContract };
+        Contracts = new ListCollectionView(_cards) { Filter = FilterContract };
         UpdateIsEmpty();
+        RecomputeReputation();
     }
 
     /// <summary>Re-evaluates the current view against the filters without reallocating the collection.</summary>
@@ -211,7 +254,7 @@ public partial class CatalogViewModel : ViewModel
 
     private bool FilterContract(object item)
     {
-        if (item is not WikeloContract contract)
+        if (item is not ContractCardViewModel { Contract: var contract })
         {
             return false;
         }
@@ -245,5 +288,5 @@ public partial class CatalogViewModel : ViewModel
         return true;
     }
 
-    private void UpdateIsEmpty() => IsEmpty = _allContracts.Count > 0 && (Contracts?.IsEmpty ?? false);
+    private void UpdateIsEmpty() => IsEmpty = _cards.Count > 0 && (Contracts?.IsEmpty ?? false);
 }

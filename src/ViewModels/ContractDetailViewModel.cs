@@ -13,10 +13,31 @@ public partial class ContractDetailViewModel : ViewModel
 {
     private readonly INavigationService _navigationService;
     private readonly IContractCatalogService _catalogService;
+    private readonly ICompletionService _completionService;
+    private readonly IInventoryStore _inventoryStore;
+    private readonly ContractCompletionInteraction _completionInteraction;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CategoryLabel))]
+    [NotifyPropertyChangedFor(nameof(IsCompleted))]
+    [NotifyPropertyChangedFor(nameof(CompletedButtonLabel))]
     private WikeloContract? _contract;
+
+    private ContractReadiness _readiness = ContractReadiness.Empty;
+
+    private IReadOnlyList<ContractRequirement> Requirements => Contract?.Requirements ?? [];
+
+    /// <summary>Requirement chips carrying per-item availability vs the inventory (drives chip color).</summary>
+    public IReadOnlyList<RequirementChip> RequirementChips => _readiness.Chips;
+
+    /// <summary>All requirements are fully covered by the inventory — the contract can be turned in.</summary>
+    public bool IsReady => _readiness.IsReady;
+
+    /// <summary>Readiness (badge + count) is only meaningful before the contract is completed.</summary>
+    public bool ShowReadiness => _readiness.ShowReadiness;
+
+    /// <summary>"3 / 5" — satisfied requirements out of total.</summary>
+    public string ReadinessLabel => _readiness.ReadinessLabel;
 
     /// <summary>Rewards prepared for display (stats composed with localized labels).</summary>
     [ObservableProperty]
@@ -26,17 +47,43 @@ public partial class ContractDetailViewModel : ViewModel
     [ObservableProperty]
     private bool _isRewardsPending;
 
+    /// <summary>Reward whose image fills the full-window preview overlay; null when closed.</summary>
+    [ObservableProperty]
+    private ContractReward? _previewReward;
+
+    /// <summary>Whether the full-window image preview overlay is showing.</summary>
+    [ObservableProperty]
+    private bool _isPreviewOpen;
+
+    public bool IsCompleted => Contract is { } contract && _completionService.IsCompleted(contract.Uuid);
+
+    /// <summary>Localized label for the completion toggle, reflecting the current state.</summary>
+    public string CompletedButtonLabel =>
+        Localized.String(IsCompleted ? "Contract_Completed" : "Contract_MarkDone") ?? string.Empty;
+
     /// <summary>Localized category name; null when the contract is not classified yet.</summary>
     public string? CategoryLabel =>
         Contract is { } contract && ContractCategoryDisplay.LabelKey(contract.Category) is { } key
             ? Localized.String(key)
             : null;
 
-    public ContractDetailViewModel(INavigationService navigationService, IContractCatalogService catalogService)
+    public ContractDetailViewModel(
+        INavigationService navigationService,
+        IContractCatalogService catalogService,
+        ICompletionService completionService,
+        IInventoryStore inventoryStore,
+        ContractCompletionInteraction completionInteraction)
     {
         _navigationService = navigationService;
         _catalogService = catalogService;
+        _completionService = completionService;
+        _inventoryStore = inventoryStore;
+        _completionInteraction = completionInteraction;
         _catalogService.CatalogUpdated += OnCatalogUpdated;
+
+        // App-lifetime singletons on both sides — no unsubscription needed.
+        _completionService.Changed += OnCompletionChanged;
+        _inventoryStore.Changed += OnInventoryChanged;
     }
 
     /// <summary>Sets the contract to display; call right before navigating to the page.</summary>
@@ -46,6 +93,29 @@ public partial class ContractDetailViewModel : ViewModel
     {
         Rewards = value?.Rewards.Select(r => RewardDisplay.From(r, value.Category)).ToList() ?? [];
         IsRewardsPending = value is not null && value.Rewards.Count == 0;
+        IsPreviewOpen = false;
+        RecomputeReadiness();
+    }
+
+    private void OnInventoryChanged(object? sender, EventArgs e) =>
+        Application.Current.Dispatcher.Invoke(RecomputeReadiness);
+
+    private void OnCompletionChanged(object? sender, EventArgs e) =>
+        Application.Current.Dispatcher.Invoke(() =>
+        {
+            OnPropertyChanged(nameof(IsCompleted));
+            OnPropertyChanged(nameof(CompletedButtonLabel));
+            RecomputeReadiness();
+        });
+
+    private void RecomputeReadiness()
+    {
+        _readiness = ContractReadiness.From(Requirements, _inventoryStore, IsCompleted);
+        OnPropertyChanged(nameof(RequirementChips));
+        OnPropertyChanged(nameof(IsReady));
+        OnPropertyChanged(nameof(ShowReadiness));
+        OnPropertyChanged(nameof(ReadinessLabel));
+        ToggleCompletedCommand.NotifyCanExecuteChanged();
     }
 
     /// <summary>
@@ -65,6 +135,34 @@ public partial class ContractDetailViewModel : ViewModel
 
     [RelayCommand]
     private void GoBack() => _navigationService.GoBack();
+
+    /// <summary>Opens the full-window preview for a reward's image.</summary>
+    [RelayCommand]
+    private void OpenPreview(ContractReward? reward)
+    {
+        if (reward is null)
+        {
+            return;
+        }
+
+        PreviewReward = reward;
+        IsPreviewOpen = true;
+    }
+
+    [RelayCommand]
+    private void ClosePreview() => IsPreviewOpen = false;
+
+    /// <summary>Completing is allowed only once the inventory covers the requirements; un-completing always.</summary>
+    private bool CanToggleCompleted() => IsCompleted || IsReady;
+
+    [RelayCommand(CanExecute = nameof(CanToggleCompleted))]
+    private async Task ToggleCompleted()
+    {
+        if (Contract is { } contract)
+        {
+            await _completionInteraction.ToggleAsync(contract);
+        }
+    }
 }
 
 /// <summary>A reward prepared for the detail page: header lines and localized stat chips.</summary>
