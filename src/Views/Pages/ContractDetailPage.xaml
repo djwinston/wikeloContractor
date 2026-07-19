@@ -23,6 +23,7 @@
     <converters:CategoryToSymbolConverter x:Key="CategoryToSymbol" />
     <converters:PresenceToVisibilityConverter x:Key="NullToVisibility" Invert="True" />
     <converters:PresenceToVisibilityConverter x:Key="NotNullToVisibility" />
+    <converters:AvailabilityToBrushConverter x:Key="AvailabilityToBrush" />
 
     <!-- Shared look for the Stats/Weapons/Components chip lists on a reward card -->
     <Style x:Key="ChipListStyle" TargetType="ItemsControl">
@@ -58,7 +59,7 @@
     Margin="42,24,42,0"
     HorizontalScrollBarVisibility="Disabled"
     VerticalScrollBarVisibility="Auto">
-    <StackPanel Margin="0,0,0,24">
+    <StackPanel Margin="0,0,16,24">
 
       <!-- Back + title + completed toggle -->
       <Grid>
@@ -177,13 +178,45 @@
         TextWrapping="Wrap"
         Visibility="{Binding ViewModel.Contract.Description, Converter={StaticResource NotNullToVisibility}}" />
 
-      <!-- Required items -->
-      <TextBlock
-        Margin="0,24,0,0"
-        FontSize="18"
-        FontWeight="SemiBold"
-        Text="{DynamicResource Details_Requirements}" />
-      <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding ViewModel.Contract.Requirements}">
+      <!-- Required items, colored by availability vs the inventory -->
+      <StackPanel Margin="0,24,0,0" Orientation="Horizontal">
+        <TextBlock
+          FontSize="18"
+          FontWeight="SemiBold"
+          Text="{DynamicResource Details_Requirements}" />
+        <StackPanel
+          Orientation="Horizontal"
+          Visibility="{Binding ViewModel.ShowReadiness, Converter={StaticResource BoolToVisibility}}">
+          <Border
+            Margin="12,0,0,0"
+            Padding="8,2"
+            VerticalAlignment="Center"
+            Background="{DynamicResource SystemFillColorSuccessBackgroundBrush}"
+            CornerRadius="10"
+            Visibility="{Binding ViewModel.IsReady, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel Orientation="Horizontal">
+              <ui:SymbolIcon
+                VerticalAlignment="Center"
+                FontSize="14"
+                Foreground="{DynamicResource SystemFillColorSuccessBrush}"
+                Symbol="CheckmarkCircle24" />
+              <TextBlock
+                Margin="6,0,0,0"
+                VerticalAlignment="Center"
+                FontSize="12"
+                Text="{DynamicResource Contract_Ready}" />
+            </StackPanel>
+          </Border>
+          <TextBlock
+            Margin="12,0,0,0"
+            VerticalAlignment="Center"
+            FontSize="13"
+            Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+            Text="{Binding ViewModel.ReadinessLabel}"
+            ToolTip="{DynamicResource Contract_ReadinessTooltip}" />
+        </StackPanel>
+      </StackPanel>
+      <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding ViewModel.RequirementChips}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
             <WrapPanel />
@@ -194,7 +227,7 @@
             <Border
               Margin="0,0,6,6"
               Padding="10,5"
-              Background="{DynamicResource ControlFillColorSecondaryBrush}"
+              Background="{Binding Availability, Converter={StaticResource AvailabilityToBrush}}"
               CornerRadius="10">
               <TextBlock FontSize="13">
                 <Run Text="{Binding Name, Mode=OneWay}" /><Run Text=" × " /><Run FontWeight="SemiBold" Text="{Binding AmountLabel, Mode=OneWay}" />

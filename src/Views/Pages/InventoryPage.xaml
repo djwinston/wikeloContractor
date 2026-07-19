@@ -5,6 +5,8 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:local="clr-namespace:WikeloContractor.Views.Pages"
+  xmlns:converters="clr-namespace:WikeloContractor.Views.Converters"
+  xmlns:helpers="clr-namespace:WikeloContractor.Views.Helpers"
   xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
   Title="InventoryPage"
   d:DataContext="{d:DesignInstance local:InventoryPage, IsDesignTimeCreatable=False}"
@@ -13,16 +15,166 @@
   ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
   ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+  ScrollViewer.CanContentScroll="False"
   mc:Ignorable="d">
 
-  <StackPanel Margin="42,24">
+  <Page.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+    <converters:InventoryCategoryToSymbolConverter x:Key="CategoryToSymbol" />
+    <converters:PresenceToVisibilityConverter x:Key="NullToVisibility" Invert="True" />
+  </Page.Resources>
+
+  <Grid Margin="42,24,42,0">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <!-- Header -->
     <TextBlock
+      Grid.Row="0"
       FontSize="28"
       FontWeight="DemiBold"
       Text="{DynamicResource Inventory_Title}" />
+
+    <!-- Search + category filter -->
+    <Grid Grid.Row="1" Margin="0,12,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+
+      <ui:TextBox
+        Grid.Column="0"
+        Icon="{ui:SymbolIcon Search24}"
+        PlaceholderText="{DynamicResource Inventory_SearchPlaceholder}"
+        Text="{Binding ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+      <ComboBox
+        Grid.Column="1"
+        MinWidth="190"
+        Margin="8,0,0,0"
+        SelectedIndex="{Binding ViewModel.CategoryIndex, Mode=TwoWay}">
+        <ComboBoxItem Content="{DynamicResource Catalog_Filter_AllCategories}" />
+        <ComboBoxItem Content="{DynamicResource Inventory_Cat_OreMineral}" />
+        <ComboBoxItem Content="{DynamicResource Inventory_Cat_Armor}" />
+        <ComboBoxItem Content="{DynamicResource Inventory_Cat_Weapon}" />
+        <ComboBoxItem Content="{DynamicResource Inventory_Cat_Vehicle}" />
+        <ComboBoxItem Content="{DynamicResource Inventory_Cat_Component}" />
+        <ComboBoxItem Content="{DynamicResource Inventory_Cat_CreatureMaterial}" />
+        <ComboBoxItem Content="{DynamicResource Inventory_Cat_Collectible}" />
+        <ComboBoxItem Content="{DynamicResource Inventory_Cat_Consumable}" />
+        <ComboBoxItem Content="{DynamicResource Inventory_Cat_Favor}" />
+        <ComboBoxItem Content="{DynamicResource Inventory_Cat_Other}" />
+      </ComboBox>
+    </Grid>
+
+    <!-- Empty state -->
     <TextBlock
-      Margin="0,12,0,0"
+      Grid.Row="2"
+      Margin="0,24,0,0"
+      HorizontalAlignment="Center"
       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-      Text="{DynamicResource Inventory_Placeholder}" />
-  </StackPanel>
+      Text="{DynamicResource Inventory_Empty}"
+      Visibility="{Binding ViewModel.IsEmpty, Converter={StaticResource BoolToVisibility}}" />
+
+    <!-- Item list, grouped by category -->
+    <ScrollViewer
+      Grid.Row="3"
+      Margin="0,12,0,0"
+      HorizontalScrollBarVisibility="Disabled"
+      VerticalScrollBarVisibility="Auto">
+      <ItemsControl Margin="0,0,16,0" ItemsSource="{Binding ViewModel.Items}">
+        <ItemsControl.GroupStyle>
+          <GroupStyle>
+            <GroupStyle.HeaderTemplate>
+              <DataTemplate>
+                <TextBlock
+                  Margin="0,16,0,4"
+                  FontSize="16"
+                  FontWeight="SemiBold"
+                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                  Text="{Binding Name}" />
+              </DataTemplate>
+            </GroupStyle.HeaderTemplate>
+          </GroupStyle>
+        </ItemsControl.GroupStyle>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Border
+              Margin="0,4"
+              Padding="16,12"
+              Background="{DynamicResource ControlFillColorDefaultBrush}"
+              CornerRadius="8">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Item image: category icon until the configured image loads -->
+                <Grid
+                  Grid.Column="0"
+                  Width="64"
+                  Height="64"
+                  Margin="0,0,14,0"
+                  VerticalAlignment="Center">
+                  <ui:SymbolIcon
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    FontSize="32"
+                    Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                    Symbol="{Binding Category, Converter={StaticResource CategoryToSymbol}}"
+                    Visibility="{Binding Source, ElementName=PreviewImage, Converter={StaticResource NullToVisibility}}" />
+                  <Image
+                    x:Name="PreviewImage"
+                    helpers:InventoryPreview.ItemName="{Binding Name}"
+                    RenderOptions.BitmapScalingMode="HighQuality"
+                    Stretch="Uniform" />
+                </Grid>
+
+                <!-- Name -->
+                <TextBlock
+                  Grid.Column="1"
+                  VerticalAlignment="Center"
+                  FontSize="16"
+                  FontWeight="SemiBold"
+                  Text="{Binding Name}"
+                  TextTrimming="CharacterEllipsis"
+                  TextWrapping="Wrap" />
+
+                <!-- Counter: - N + -->
+                <StackPanel
+                  Grid.Column="2"
+                  VerticalAlignment="Center"
+                  Orientation="Horizontal">
+                  <ui:Button
+                    Padding="8,4"
+                    Command="{Binding DecrementCommand}"
+                    Icon="{ui:SymbolIcon Subtract24}"
+                    ToolTip="{DynamicResource Inventory_Decrement}" />
+                  <TextBlock
+                    MinWidth="40"
+                    Margin="10,0"
+                    VerticalAlignment="Center"
+                    FontSize="18"
+                    FontWeight="SemiBold"
+                    Text="{Binding Count}"
+                    TextAlignment="Center" />
+                  <ui:Button
+                    Padding="8,4"
+                    Command="{Binding IncrementCommand}"
+                    Icon="{ui:SymbolIcon Add24}"
+                    ToolTip="{DynamicResource Inventory_Increment}" />
+                </StackPanel>
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </Grid>
 </Page>

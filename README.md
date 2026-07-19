@@ -8,7 +8,9 @@ Windows companion app for **Wikelo** trades in Star Citizen.
   with a full-window preview for reward images
 - **Reputation** — mark contracts completed and track your Wikelo standing (New Customer → Very Good
   Customer → Very Best Customer) on a progress bar
-- **Inventory** — tracking of collected resources with per-contract progress and an in-game overlay
+- **Inventory** — track collected resources with `+`/`−` counters, grouped by category; each contract
+  shows readiness (which required items you already have) and completing one deducts them
+  *(in-game overlay coming next)*
 
 ## Stack
 

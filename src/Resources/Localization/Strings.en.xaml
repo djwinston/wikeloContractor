@@ -39,6 +39,15 @@
   <sys:String x:Key="Reputation_Max">{0} XP · Max rank</sys:String>
   <sys:String x:Key="Contract_MarkDone">Mark completed</sys:String>
   <sys:String x:Key="Contract_Completed">Completed</sys:String>
+  <sys:String x:Key="Contract_Ready">Ready to turn in</sys:String>
+  <sys:String x:Key="Contract_ReadinessTooltip">Required items you already have in your inventory</sys:String>
+  <sys:String x:Key="Dialog_Cancel">Cancel</sys:String>
+  <sys:String x:Key="Complete_Dialog_Title">Complete contract?</sys:String>
+  <sys:String x:Key="Complete_Dialog_Message">These items will be deducted from your inventory:</sys:String>
+  <sys:String x:Key="Complete_Dialog_Confirm">Complete &amp; deduct</sys:String>
+  <sys:String x:Key="Uncomplete_Dialog_Title">Reopen contract?</sys:String>
+  <sys:String x:Key="Uncomplete_Dialog_Message">The items spent to complete this contract were already removed from your inventory and will not be restored. Update your inventory manually if needed. Items that were deducted:</sys:String>
+  <sys:String x:Key="Uncomplete_Dialog_Confirm">Reopen</sys:String>
 
   <sys:String x:Key="Details_Back">Back to the catalog</sys:String>
   <sys:String x:Key="Details_OnceOnly">One-time contract</sys:String>
@@ -67,7 +76,20 @@
   <sys:String x:Key="Details_Comp_JumpDrive">Jump drive</sys:String>
 
   <sys:String x:Key="Inventory_Title">My Inventory</sys:String>
-  <sys:String x:Key="Inventory_Placeholder">Your collected resources will appear here (Phase 3).</sys:String>
+  <sys:String x:Key="Inventory_SearchPlaceholder">Search items…</sys:String>
+  <sys:String x:Key="Inventory_Empty">No items yet — required items from the catalog will appear here.</sys:String>
+  <sys:String x:Key="Inventory_Increment">Add one</sys:String>
+  <sys:String x:Key="Inventory_Decrement">Remove one</sys:String>
+  <sys:String x:Key="Inventory_Cat_OreMineral">Ores &amp; minerals</sys:String>
+  <sys:String x:Key="Inventory_Cat_Armor">Armor</sys:String>
+  <sys:String x:Key="Inventory_Cat_Weapon">Weapons</sys:String>
+  <sys:String x:Key="Inventory_Cat_Vehicle">Vehicles</sys:String>
+  <sys:String x:Key="Inventory_Cat_Component">Components</sys:String>
+  <sys:String x:Key="Inventory_Cat_CreatureMaterial">Creature materials</sys:String>
+  <sys:String x:Key="Inventory_Cat_Collectible">Collectibles</sys:String>
+  <sys:String x:Key="Inventory_Cat_Consumable">Consumables</sys:String>
+  <sys:String x:Key="Inventory_Cat_Favor">Favor &amp; scrip</sys:String>
+  <sys:String x:Key="Inventory_Cat_Other">Other</sys:String>
 
   <sys:String x:Key="Settings_Title">Settings</sys:String>
   <sys:String x:Key="Settings_Language">Language</sys:String>

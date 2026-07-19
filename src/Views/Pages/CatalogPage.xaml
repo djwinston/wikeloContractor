@@ -22,6 +22,7 @@
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
     <converters:CategoryToSymbolConverter x:Key="CategoryToSymbol" />
     <converters:PresenceToVisibilityConverter x:Key="NullToVisibility" Invert="True" />
+    <converters:AvailabilityToBrushConverter x:Key="AvailabilityToBrush" />
   </Page.Resources>
 
   <Grid Margin="42,24,42,0">
@@ -199,7 +200,7 @@
       Margin="0,12,0,0"
       HorizontalScrollBarVisibility="Disabled"
       VerticalScrollBarVisibility="Auto">
-      <ItemsControl ItemsSource="{Binding ViewModel.Contracts}">
+      <ItemsControl Margin="0,0,16,0" ItemsSource="{Binding ViewModel.Contracts}">
         <ItemsControl.ItemTemplate>
           <DataTemplate>
             <Border
@@ -293,8 +294,27 @@
                 </StackPanel>
               </Grid>
 
-              <!-- Required items -->
-              <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding Contract.Requirements}">
+              <!-- Required items, colored by availability vs the inventory -->
+              <StackPanel
+                Margin="0,8,0,0"
+                Orientation="Horizontal"
+                Visibility="{Binding ShowReadiness, Converter={StaticResource BoolToVisibility}}">
+                <ui:SymbolIcon
+                  VerticalAlignment="Center"
+                  FontSize="14"
+                  Foreground="{DynamicResource SystemFillColorSuccessBrush}"
+                  Symbol="CheckmarkCircle24"
+                  ToolTip="{DynamicResource Contract_Ready}"
+                  Visibility="{Binding IsReady, Converter={StaticResource BoolToVisibility}}" />
+                <TextBlock
+                  Margin="6,0,0,0"
+                  VerticalAlignment="Center"
+                  FontSize="12"
+                  Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                  Text="{Binding ReadinessLabel}"
+                  ToolTip="{DynamicResource Contract_ReadinessTooltip}" />
+              </StackPanel>
+              <ItemsControl Margin="0,6,0,0" ItemsSource="{Binding RequirementChips}">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate>
                     <WrapPanel />
@@ -305,7 +325,7 @@
                     <Border
                       Margin="0,0,6,6"
                       Padding="8,3"
-                      Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                      Background="{Binding Availability, Converter={StaticResource AvailabilityToBrush}}"
                       CornerRadius="10">
                       <TextBlock FontSize="12">
                         <Run Text="{Binding Name, Mode=OneWay}" /><Run Text=" × " /><Run Text="{Binding AmountLabel, Mode=OneWay}" />

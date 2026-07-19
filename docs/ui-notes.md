@@ -17,6 +17,18 @@ collects patterns and pitfalls discovered while building the UI.
   use the plain WPF `<ProgressBar>` (WPF-UI themes it via implicit styles). Likewise the gallery's
   "Editor" (a rich-text demo) and "Monaco" (a WebView2 embed) are sample *windows*, not reusable
   controls — there is no drop-in code-editor control.
+- **No `ui:NumberBox`/stepper for counters** — the inventory `+`/`−` counter is built from two
+  `ui:Button`s (`Subtract24` / `Add24`) around a `TextBlock`, each bound to a `[RelayCommand]` on the
+  item VM. There is no dedicated numeric control to reuse.
+- **Overlay scrollbars overlap content** — WPF-UI restyles `ScrollViewer` with a thin overlay
+  scrollbar drawn at the right edge *on top of* the content (not in its own column), so cards/buttons
+  under it get clipped. Fix: give the **scrolled content** a right `Margin` (~16) so the scrollbar sits
+  in that gutter — applied on `CatalogPage`, `ContractDetailPage` and `InventoryPage`. (`ScrollViewer.Padding`
+  is not reliably honored by the restyled template; a content `Margin` always works.)
+- **Dialogs use `Wpf.Ui.Controls.MessageBox`**, a self-contained Fluent window with `ShowDialogAsync()`
+  → `MessageBoxResult` — no `ContentDialogService`/dialog-host wiring needed. Alias it
+  (`using UiMessageBox = Wpf.Ui.Controls.MessageBox;`) to avoid the clash with the global-using
+  `System.Windows.MessageBox`. Set `Owner = Application.Current.MainWindow` to center it.
 
 ## Status surface pattern (CatalogPage)
 
@@ -121,12 +133,43 @@ correct when a contract rotates out of the catalog across patches). `TotalReputa
 (localized rank label + `Fraction` for the catalog's top progress bar, `Maximum="1"`).
 
 Catalog cards bind a per-item `ContractCardViewModel` wrapper (not the raw record) so completion is
-observable and the card is the home for the future readiness indicator. The completion toggle lives
-on both the card and the detail VM; both call `SetCompletedAsync` and rely on the service's
-`Changed` event to refresh — the **list** is refreshed by `CatalogViewModel.OnCompletionChanged`
-iterating its cards (one subscription total, not one per card), while the single **detail** VM
-self-subscribes. Rank names stay English in both dictionaries (game standings); the surrounding
-text is localized.
+observable and it is the home for the readiness indicator (below). The completion toggle lives
+on both the card and the detail VM; completing/reopening now routes through
+`ContractCompletionInteraction` (see "Inventory & readiness"). Both rely on the service's `Changed`
+event to refresh — the **list** is refreshed by `CatalogViewModel.OnCompletionChanged` iterating its
+cards (one subscription total, not one per card), while the single **detail** VM self-subscribes.
+Rank names stay English in both dictionaries (game standings); the surrounding text is localized.
+
+## Inventory & readiness
+
+The **Inventory page** is the second data-driven list. Its items are auto-derived from every distinct
+required-item name across the catalog (`InventoryViewModel` flattens `Contract.Requirements`), each
+wrapped in an `InventoryItemViewModel` with a persisted `+`/`−` counter (`IInventoryStore` →
+`inventory.json`). Items are grouped into category sections via a `ListCollectionView` with a
+`PropertyGroupDescription` on `CategoryLabel` (`GroupStyle` renders the headers) plus a `Filter`
+combining the search box and a category dropdown — the same collection-view idiom as the catalog.
+Categories come from `InventoryCategoryClassifier` (name-keyword rules; see `CLAUDE.md`), the placeholder
+icon per category from `InventoryCategoryToSymbolConverter`.
+
+Item **images** have no API source, so they load purely from a user-editable override config
+(`InventoryImageOverrideService` → `inventory-image-overrides.json`, bundled + `%AppData%` layers)
+through the `helpers:InventoryPreview.ItemName` attached property — a simpler cousin of `RewardPreview`
+(override URL → disk cache → decode; category icon placeholder until it loads). The two-layer +
+hot-reload mechanics are shared with reward overrides via `Services/OverrideFileSet`.
+
+**Readiness** compares requirements against inventory counts (`Models/InventoryReadiness`). On the
+catalog card and detail page, each requirement chip is colored by `AvailabilityToBrushConverter`
+(none → default, partial → caution tint, full → success tint), plus a "Ready to turn in" badge and an
+"X / Y satisfied" count. Both `ContractCardViewModel` and `ContractDetailViewModel` recompute on
+`IInventoryStore.Changed`; `ShowReadiness` hides the badge/count once a contract is completed (its
+chips render neutral, since availability is then moot).
+
+Completion is wired to the inventory through `ViewModels/ContractCompletionInteraction`: the toggle is
+gated on `IsReady` (`RelayCommand.CanExecute`, so the button disables until the inventory covers the
+requirements). Completing shows a confirm dialog then **deducts** `InventoryReadiness.RequiredCount`
+per requirement; reopening shows a warning dialog and lists what was deducted but does **not** restore
+it (the inventory is the source of truth — the user updates it manually). Deductions fire
+`IInventoryStore.Changed`, so sibling contracts recompute their readiness immediately.
 
 ## Adaptive app icon
 

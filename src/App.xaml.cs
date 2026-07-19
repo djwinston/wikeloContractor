@@ -39,6 +39,13 @@ public partial class App
             // Completed contracts + accumulated Wikelo reputation.
             _ = services.AddSingleton<ICompletionService, CompletionService>();
 
+            // Personal inventory: counter store + user-supplied item images.
+            _ = services.AddSingleton<IInventoryStore, InventoryStore>();
+            _ = services.AddSingleton<IInventoryImageOverrideService, InventoryImageOverrideService>();
+
+            // Completion ↔ inventory flow (deduction/warning dialogs), shared by catalog + detail.
+            _ = services.AddSingleton<ViewModels.ContractCompletionInteraction>();
+
             // Self-update (Velopack). No-op in a dev run; drives Settings' "Check for updates".
             _ = services.AddSingleton<IAppUpdateService, AppUpdateService>();
 

@@ -22,6 +22,8 @@ public partial class CatalogViewModel : ViewModel
 
     private readonly IContractCatalogService _catalogService;
     private readonly ICompletionService _completionService;
+    private readonly IInventoryStore _inventoryStore;
+    private readonly ContractCompletionInteraction _completionInteraction;
 
     /// <summary>Card wrappers (one per contract); the collection view is built and filtered over these.</summary>
     private List<ContractCardViewModel> _cards = [];
@@ -89,12 +91,16 @@ public partial class CatalogViewModel : ViewModel
     public CatalogViewModel(
         IContractCatalogService catalogService,
         ICompletionService completionService,
+        IInventoryStore inventoryStore,
+        ContractCompletionInteraction completionInteraction,
         RateLimitWatcher rateLimit,
         INavigationService navigationService,
         ContractDetailViewModel detailViewModel)
     {
         _catalogService = catalogService;
         _completionService = completionService;
+        _inventoryStore = inventoryStore;
+        _completionInteraction = completionInteraction;
         RateLimit = rateLimit;
         _navigationService = navigationService;
         _detailViewModel = detailViewModel;
@@ -102,6 +108,7 @@ public partial class CatalogViewModel : ViewModel
 
         // Both this VM and the service are app-lifetime singletons — the subscription needs no teardown.
         _completionService.Changed += OnCompletionChanged;
+        _inventoryStore.Changed += OnInventoryChanged;
         RecomputeReputation();
     }
 
@@ -159,6 +166,15 @@ public partial class CatalogViewModel : ViewModel
             RecomputeReputation();
         });
 
+    private void OnInventoryChanged(object? sender, EventArgs e) =>
+        Application.Current.Dispatcher.Invoke(() =>
+        {
+            foreach (var card in _cards)
+            {
+                card.RefreshReadiness();
+            }
+        });
+
     private void RecomputeReputation() =>
         Reputation = ReputationSummary.From(ReputationLevels.Compute(_completionService.TotalReputation));
 
@@ -193,7 +209,7 @@ public partial class CatalogViewModel : ViewModel
 
     private void SetContracts(IReadOnlyList<WikeloContract> contracts)
     {
-        _cards = contracts.Select(c => new ContractCardViewModel(c, _completionService)).ToList();
+        _cards = contracts.Select(c => new ContractCardViewModel(c, _completionService, _inventoryStore, _completionInteraction)).ToList();
 
         var resources = contracts
             .SelectMany(c => c.Requirements)

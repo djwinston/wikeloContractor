@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Windows.Controls;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using Microsoft.Extensions.DependencyInjection;
 using WikeloContractor.Models;
 using WikeloContractor.Services;
@@ -24,9 +23,6 @@ public static class RewardPreview
 
     /// <summary>Native resolution for the full-window preview (0 = no downscale on decode).</summary>
     private const int _previewDecodePixelWidth = 0;
-
-    /// <summary>Session-lifetime memoization of decoded thumbnails (frozen, shareable).</summary>
-    private static readonly ConcurrentDictionary<string, ImageSource> _decoded = new();
 
     /// <summary>
     /// Final result per candidate-URL list, including failures (null). Filter refreshes
@@ -113,7 +109,7 @@ public static class RewardPreview
         ImageSource? source;
         try
         {
-            source = await ResolveAsync(candidates, decodePixelWidth);
+            source = await ThumbnailLoader.ResolveAsync(candidates, decodePixelWidth);
         }
         catch (Exception)
         {
@@ -131,43 +127,6 @@ public static class RewardPreview
         {
             image.Source = source;
         }
-    }
-
-    /// <summary>First loadable image across the given candidates.</summary>
-    private static async Task<ImageSource?> ResolveAsync(IReadOnlyList<string> candidates, int decodePixelWidth)
-    {
-        var imageCache = App.Services.GetRequiredService<IImageCacheService>();
-        var memoize = decodePixelWidth != 0;
-
-        foreach (var candidate in candidates)
-        {
-            var decodedKey = $"{decodePixelWidth}|{candidate}";
-            if (memoize && _decoded.TryGetValue(decodedKey, out var cached))
-            {
-                return cached;
-            }
-
-            var localPath = await imageCache.GetLocalPathAsync(candidate);
-            if (localPath is null)
-            {
-                continue;
-            }
-
-            // Decode failures fall through to the next candidate — e.g. a .webp
-            // thumbnail on a machine without the WebP codec falls back to the original PNG.
-            var decoded = await Task.Run(() => TryDecode(localPath, decodePixelWidth));
-            if (decoded is not null)
-            {
-                if (memoize)
-                {
-                    _decoded[decodedKey] = decoded;
-                }
-
-                return decoded;
-            }
-        }
-
-        return null;
     }
 
     /// <summary>Candidate URLs across the rewards, override first, in stable order.</summary>
@@ -196,25 +155,6 @@ public static class RewardPreview
                     yield return image.OriginalUrl;
                 }
             }
-        }
-    }
-
-    private static BitmapImage? TryDecode(string path, int decodePixelWidth)
-    {
-        try
-        {
-            var bitmap = new BitmapImage();
-            bitmap.BeginInit();
-            bitmap.CacheOption = BitmapCacheOption.OnLoad;
-            bitmap.DecodePixelWidth = decodePixelWidth;
-            bitmap.UriSource = new Uri(path);
-            bitmap.EndInit();
-            bitmap.Freeze();
-            return bitmap;
-        }
-        catch (Exception ex) when (ex is NotSupportedException or System.IO.FileFormatException or System.IO.IOException)
-        {
-            return null;
         }
     }
 }

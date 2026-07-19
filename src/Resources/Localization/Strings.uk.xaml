@@ -39,6 +39,15 @@
   <sys:String x:Key="Reputation_Max">{0} XP · Макс. ранг</sys:String>
   <sys:String x:Key="Contract_MarkDone">Позначити виконаним</sys:String>
   <sys:String x:Key="Contract_Completed">Виконано</sys:String>
+  <sys:String x:Key="Contract_Ready">Готово до здачі</sys:String>
+  <sys:String x:Key="Contract_ReadinessTooltip">Потрібні предмети, які вже є у вашому інвентарі</sys:String>
+  <sys:String x:Key="Dialog_Cancel">Скасувати</sys:String>
+  <sys:String x:Key="Complete_Dialog_Title">Виконати контракт?</sys:String>
+  <sys:String x:Key="Complete_Dialog_Message">Ці предмети буде списано з вашого інвентарю:</sys:String>
+  <sys:String x:Key="Complete_Dialog_Confirm">Виконати та списати</sys:String>
+  <sys:String x:Key="Uncomplete_Dialog_Title">Повернути контракт у роботу?</sys:String>
+  <sys:String x:Key="Uncomplete_Dialog_Message">Предмети, витрачені на виконання цього контракту, вже прибрані з інвентарю й не будуть повернені. За потреби оновіть інвентар вручну. Було списано:</sys:String>
+  <sys:String x:Key="Uncomplete_Dialog_Confirm">Повернути</sys:String>
 
   <sys:String x:Key="Details_Back">Назад до каталогу</sys:String>
   <sys:String x:Key="Details_OnceOnly">Одноразовий контракт</sys:String>
@@ -67,7 +76,20 @@
   <sys:String x:Key="Details_Comp_JumpDrive">Стрибковий двигун</sys:String>
 
   <sys:String x:Key="Inventory_Title">Мій інвентар</sys:String>
-  <sys:String x:Key="Inventory_Placeholder">Тут з'являться зібрані ресурси (Фаза 3).</sys:String>
+  <sys:String x:Key="Inventory_SearchPlaceholder">Пошук предметів…</sys:String>
+  <sys:String x:Key="Inventory_Empty">Поки що порожньо — тут з'являться потрібні предмети з каталогу.</sys:String>
+  <sys:String x:Key="Inventory_Increment">Додати один</sys:String>
+  <sys:String x:Key="Inventory_Decrement">Прибрати один</sys:String>
+  <sys:String x:Key="Inventory_Cat_OreMineral">Руди й мінерали</sys:String>
+  <sys:String x:Key="Inventory_Cat_Armor">Броня</sys:String>
+  <sys:String x:Key="Inventory_Cat_Weapon">Зброя</sys:String>
+  <sys:String x:Key="Inventory_Cat_Vehicle">Транспорт</sys:String>
+  <sys:String x:Key="Inventory_Cat_Component">Компоненти</sys:String>
+  <sys:String x:Key="Inventory_Cat_CreatureMaterial">Матеріали істот</sys:String>
+  <sys:String x:Key="Inventory_Cat_Collectible">Колекційне</sys:String>
+  <sys:String x:Key="Inventory_Cat_Consumable">Витратне</sys:String>
+  <sys:String x:Key="Inventory_Cat_Favor">Прихильність і скрип</sys:String>
+  <sys:String x:Key="Inventory_Cat_Other">Інше</sys:String>
 
   <sys:String x:Key="Settings_Title">Налаштування</sys:String>
   <sys:String x:Key="Settings_Language">Мова</sys:String>

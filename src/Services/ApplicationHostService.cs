@@ -21,6 +21,9 @@ public sealed class ApplicationHostService(IServiceProvider serviceProvider) : I
         // Completed contracts + reputation, so the catalog shows the right standing on first paint.
         await serviceProvider.GetRequiredService<ICompletionService>().LoadAsync();
 
+        // Personal inventory counters, so the inventory page shows the right totals on first open.
+        await serviceProvider.GetRequiredService<IInventoryStore>().LoadAsync();
+
         serviceProvider
             .GetRequiredService<ILocalizationService>()
             .ApplyLanguage(settingsService.Current.Language);
