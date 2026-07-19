@@ -1,0 +1,95 @@
+<Page
+  x:Class="WikeloContractor.Views.Pages.AboutPage"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:local="clr-namespace:WikeloContractor.Views.Pages"
+  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+  Title="AboutPage"
+  d:DataContext="{d:DesignInstance local:AboutPage, IsDesignTimeCreatable=False}"
+  d:DesignHeight="450"
+  d:DesignWidth="800"
+  ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+  ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+  mc:Ignorable="d">
+
+  <Page.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+  </Page.Resources>
+
+  <StackPanel Margin="42,24" MaxWidth="600" HorizontalAlignment="Left">
+    <TextBlock
+      FontSize="28"
+      FontWeight="DemiBold"
+      Text="{DynamicResource Nav_About}" />
+
+    <Image
+      Margin="0,24,0,0"
+      HorizontalAlignment="Left"
+      MaxWidth="360"
+      Source="pack://application:,,,/Assets/about-hero.png"
+      Stretch="Uniform">
+      <Image.Clip>
+        <RectangleGeometry RadiusX="8" RadiusY="8" Rect="0,0,360,225" />
+      </Image.Clip>
+    </Image>
+
+    <TextBlock
+      Margin="0,12,0,0"
+      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+      Text="{DynamicResource Settings_About}"
+      TextWrapping="Wrap" />
+
+    <StackPanel Margin="0,8,0,0" Orientation="Horizontal">
+      <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="{DynamicResource Settings_AppVersion}" />
+      <TextBlock
+        Margin="6,0,0,0"
+        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+        Text="{Binding ViewModel.AppVersion, Mode=OneWay}" />
+    </StackPanel>
+
+    <!-- Self-update (Velopack): manual check + restart-to-apply -->
+    <StackPanel Margin="0,12,0,0" Orientation="Horizontal">
+      <ui:Button
+        Command="{Binding ViewModel.CheckAppUpdateCommand}"
+        Content="{DynamicResource Settings_AppUpdate_Check}"
+        Icon="{ui:SymbolIcon ArrowDownload24}" />
+      <ui:ProgressRing
+        Width="20"
+        Height="20"
+        Margin="8,0,0,0"
+        VerticalAlignment="Center"
+        IsIndeterminate="True"
+        Visibility="{Binding ViewModel.IsAppUpdateBusy, Converter={StaticResource BoolToVisibility}}" />
+    </StackPanel>
+    <ui:InfoBar
+      Margin="0,8,0,0"
+      IsClosable="False"
+      IsOpen="{Binding ViewModel.HasAppUpdateMessage, Mode=OneWay}"
+      Message="{Binding ViewModel.AppUpdateMessage, Mode=OneWay}"
+      Severity="Informational" />
+    <ui:Button
+      Margin="0,8,0,0"
+      Command="{Binding ViewModel.RestartForAppUpdateCommand}"
+      Content="{DynamicResource Settings_AppUpdate_Restart}"
+      Icon="{ui:SymbolIcon ArrowClockwise24}"
+      Visibility="{Binding ViewModel.IsAppUpdateReady, Converter={StaticResource BoolToVisibility}}" />
+
+    <!-- Required credit per Star Citizen Wiki API terms of use -->
+    <TextBlock
+      Margin="0,12,0,0"
+      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+      TextWrapping="Wrap">
+      <Run Text="{DynamicResource Settings_Attribution}" />
+      <Hyperlink NavigateUri="https://api.star-citizen.wiki" RequestNavigate="OnAttributionLinkNavigate">api.star-citizen.wiki</Hyperlink>
+    </TextBlock>
+
+    <TextBlock
+      Margin="0,8,0,0"
+      Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+      Text="{DynamicResource Settings_Disclaimer}"
+      TextWrapping="Wrap" />
+  </StackPanel>
+</Page>

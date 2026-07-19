@@ -49,17 +49,23 @@
     </Style>
   </Page.Resources>
 
+  <Page.InputBindings>
+    <KeyBinding Key="Escape" Command="{Binding ViewModel.ClosePreviewCommand}" />
+  </Page.InputBindings>
+
+  <Grid>
   <ScrollViewer
     Margin="42,24,42,0"
     HorizontalScrollBarVisibility="Disabled"
     VerticalScrollBarVisibility="Auto">
     <StackPanel Margin="0,0,0,24">
 
-      <!-- Back + title -->
+      <!-- Back + title + completed toggle -->
       <Grid>
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="Auto" />
           <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
 
         <ui:Button
@@ -76,6 +82,13 @@
           FontWeight="DemiBold"
           Text="{Binding ViewModel.Contract.Title}"
           TextWrapping="Wrap" />
+        <ui:Button
+          Grid.Column="2"
+          Margin="14,0,0,0"
+          VerticalAlignment="Center"
+          Command="{Binding ViewModel.ToggleCompletedCommand}"
+          Content="{Binding ViewModel.CompletedButtonLabel}"
+          Icon="{ui:SymbolIcon Checkmark24}" />
       </Grid>
 
       <!-- Badges: category, reputation, flags, game version, wiki link -->
@@ -235,8 +248,16 @@
                   <Image
                     x:Name="RewardImage"
                     helpers:RewardPreview.Reward="{Binding Reward}"
+                    Cursor="Hand"
                     RenderOptions.BitmapScalingMode="HighQuality"
-                    Stretch="Uniform" />
+                    Stretch="Uniform">
+                    <Image.InputBindings>
+                      <MouseBinding
+                        Command="{Binding ViewModel.OpenPreviewCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                        CommandParameter="{Binding Reward}"
+                        MouseAction="LeftClick" />
+                    </Image.InputBindings>
+                  </Image>
                 </Grid>
 
                 <StackPanel Grid.Column="1">
@@ -308,4 +329,25 @@
 
     </StackPanel>
   </ScrollViewer>
+
+    <!-- Full-window reward image preview; click anywhere or press Esc to close -->
+    <Grid
+      Background="#CC000000"
+      Visibility="{Binding ViewModel.IsPreviewOpen, Converter={StaticResource BoolToVisibility}}">
+      <Grid.InputBindings>
+        <MouseBinding Command="{Binding ViewModel.ClosePreviewCommand}" MouseAction="LeftClick" />
+      </Grid.InputBindings>
+      <Image
+        Margin="60"
+        helpers:RewardPreview.PreviewReward="{Binding ViewModel.PreviewReward}"
+        RenderOptions.BitmapScalingMode="HighQuality"
+        Stretch="Uniform" />
+      <ui:Button
+        Margin="0,24,24,0"
+        HorizontalAlignment="Right"
+        VerticalAlignment="Top"
+        Command="{Binding ViewModel.ClosePreviewCommand}"
+        Icon="{ui:SymbolIcon Dismiss24}" />
+    </Grid>
+  </Grid>
 </Page>

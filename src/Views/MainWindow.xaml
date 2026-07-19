@@ -58,6 +58,10 @@
           Content="{DynamicResource Nav_Settings}"
           Icon="{ui:SymbolIcon Settings24}"
           TargetPageType="{x:Type pages:SettingsPage}" />
+        <ui:NavigationViewItem
+          Content="{DynamicResource Nav_About}"
+          Icon="{ui:SymbolIcon Info24}"
+          TargetPageType="{x:Type pages:AboutPage}" />
       </ui:NavigationView.FooterMenuItems>
 
     </ui:NavigationView>

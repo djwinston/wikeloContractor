@@ -84,3 +84,14 @@ jobs:
           )
           if ($env:PRERELEASE -eq 'true') { $uploadArgs += '--pre' }
           vpk @uploadArgs
+
+      - name: Fill release notes from merged PRs and commits
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # vpk creates the release but leaves the body empty; GitHub's generate-notes API
+          # builds the "What's Changed" changelog (merged PRs since the previous tag).
+          $body = gh api "repos/$env:GITHUB_REPOSITORY/releases/generate-notes" -f tag_name=$env:TAG --jq '.body'
+          Set-Content -Path notes.md -Value $body
+          gh release edit $env:TAG --notes-file notes.md

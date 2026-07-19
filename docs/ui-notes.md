@@ -13,6 +13,10 @@ collects patterns and pitfalls discovered while building the UI.
 - `ui:TitleBar` icon is set from code-behind, not XAML — see "Adaptive app icon" below.
 - `ui:InfoBar` needs `IsOpen` bound with `Mode=OneWay` (or `TwoWay` when `IsClosable="True"`
   so the close button can clear the VM flag).
+- **No `ui:ProgressBar` control** — WPF-UI 4.x ships `ui:ProgressRing` but *not* a ProgressBar;
+  use the plain WPF `<ProgressBar>` (WPF-UI themes it via implicit styles). Likewise the gallery's
+  "Editor" (a rich-text demo) and "Monaco" (a WebView2 embed) are sample *windows*, not reusable
+  controls — there is no drop-in code-editor control.
 
 ## Status surface pattern (CatalogPage)
 
@@ -24,7 +28,7 @@ own VM flag, only one is normally visible at a time:
 | `HasLoadError` | Error InfoBar | no network **and** no cache — nothing to show |
 | `IsOffline` | Warning InfoBar | API unreachable, stale cache shown |
 | `RateLimit.IsActive` + `RateLimit.Message` | Warning InfoBar (closable) | HTTP 429, live countdown text (shared watcher) |
-| `IsLoading` | ProgressRing + caption | first fetch in progress |
+| `IsLoading` | ProgressBar (indeterminate) + caption | first fetch in progress |
 | `IsEmpty` | TextBlock | filters matched nothing |
 
 `IsSynced` and `IsOffline` are **computed** from the service's single `CatalogStatus`
@@ -91,7 +95,38 @@ variant record in the API, but its stats belong to the vehicle, not the paint.
 
 The detail image is decoded at a higher resolution than the 64 px list thumbnail:
 `RewardPreview` keys its decode/result memos by decode width (128 list / 640 detail), so the
-same URL yields two cached bitmaps of different sizes.
+same URL yields cached bitmaps of different sizes. The full-window preview (below) adds a third
+variant at **native** resolution (`DecodePixelWidth=0`); that one is deliberately **not** memoized
+— only one preview is on screen at a time, so pinning its multi-MB bitmaps for the whole session
+isn't worth the memory (`memoize = decodePixelWidth != 0` gates both memos).
+
+## Full-window reward image preview (ContractDetailPage)
+
+Clicking a reward image opens a full-window overlay — the app's only overlay pattern. The page
+root is a `Grid` wrapping the `ScrollViewer` plus a sibling full-bleed `Grid` (later in XAML =
+higher Z-order, semi-transparent `#CC000000`) whose `Visibility` binds `IsPreviewOpen`.
+`OpenPreview(reward)` — a `MouseBinding` on the reward `Image`, command reached via
+`RelativeSource AncestorType=Page` — sets `PreviewReward` and opens it; a `MouseBinding` on the
+overlay and a page-level `Esc` `KeyBinding` both call `ClosePreview`. The overlay `Image` uses the
+`RewardPreview.PreviewReward` attached property (the native-resolution variant). `OnContractChanged`
+closes any open preview when the shown contract changes.
+
+## Contract completion & Wikelo reputation
+
+`ICompletionService` persists completed contracts to `%AppData%\WikeloContractor\completed.json`
+as a UUID→earned-reputation map (storing the amount, not just the id, keeps the running total
+correct when a contract rotates out of the catalog across patches). `TotalReputation` feeds
+`ReputationLevels.Compute` (thresholds New 0 / Very Good 340 / Very Best 999 — the API leaves
+`min_standing`/`rank_index` null, so they live in `Models/ReputationLevels`) → `ReputationSummary`
+(localized rank label + `Fraction` for the catalog's top progress bar, `Maximum="1"`).
+
+Catalog cards bind a per-item `ContractCardViewModel` wrapper (not the raw record) so completion is
+observable and the card is the home for the future readiness indicator. The completion toggle lives
+on both the card and the detail VM; both call `SetCompletedAsync` and rely on the service's
+`Changed` event to refresh — the **list** is refreshed by `CatalogViewModel.OnCompletionChanged`
+iterating its cards (one subscription total, not one per card), while the single **detail** VM
+self-subscribes. Rank names stay English in both dictionaries (game standings); the surrounding
+text is localized.
 
 ## Adaptive app icon
 
@@ -110,10 +145,11 @@ languages, so `{0}` counts must match.
 
 ## ViewModel conventions
 
-- The contract list is an `ICollectionView` (`ListCollectionView` over the loaded list) with a
-  `Filter` predicate. Filter `OnXChanged` hooks call `Contracts.Refresh()` (re-evaluates in
-  place) instead of rebuilding an `ObservableCollection` on every keystroke; a fresh view is
-  created only when a new catalog is loaded. `IsEmpty` reads `Contracts.IsEmpty`.
+- The contract list is an `ICollectionView` (`ListCollectionView` over the per-contract
+  `ContractCardViewModel` wrappers) with a `Filter` predicate. Filter `OnXChanged` hooks call
+  `Contracts.Refresh()` (re-evaluates in place) instead of rebuilding an `ObservableCollection`
+  on every keystroke; a fresh view is created only when a new catalog is loaded. `IsEmpty` reads
+  `Contracts.IsEmpty`.
 - Prefer deriving read-only UI state from one source over hand-syncing parallel bools:
   `IsSynced`/`IsOffline` are computed from `CatalogStatus` (see the status surface above).
 - Guard first-time initialization with an `_isInitialized` flag when OnChanged hooks

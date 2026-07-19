@@ -29,6 +29,7 @@
       <RowDefinition Height="Auto" />
       <RowDefinition Height="Auto" />
       <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
     </Grid.RowDefinitions>
 
@@ -68,8 +69,47 @@
       </StackPanel>
     </Grid>
 
+    <!-- Wikelo reputation standing: rank + progress toward the next rank -->
+    <Border
+      Grid.Row="1"
+      Margin="0,12,0,0"
+      Padding="16,12"
+      Background="{DynamicResource ControlFillColorDefaultBrush}"
+      CornerRadius="8">
+      <StackPanel>
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <ui:SymbolIcon
+            Grid.Column="0"
+            VerticalAlignment="Center"
+            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+            Symbol="Trophy24" />
+          <TextBlock
+            Grid.Column="1"
+            Margin="8,0,0,0"
+            VerticalAlignment="Center"
+            FontWeight="SemiBold"
+            Text="{Binding ViewModel.Reputation.TierLabel}" />
+          <TextBlock
+            Grid.Column="2"
+            VerticalAlignment="Center"
+            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+            Text="{Binding ViewModel.Reputation.ProgressText}" />
+        </Grid>
+        <ProgressBar
+          Margin="0,10,0,0"
+          Maximum="1"
+          Minimum="0"
+          Value="{Binding ViewModel.Reputation.Fraction, Mode=OneWay}" />
+      </StackPanel>
+    </Border>
+
     <!-- Filters: search, reward category, required resource -->
-    <Grid Grid.Row="1" Margin="0,12,0,0">
+    <Grid Grid.Row="2" Margin="0,12,0,0">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="Auto" />
@@ -114,7 +154,7 @@
     </Grid>
 
     <!-- Status messages -->
-    <StackPanel Grid.Row="2" Margin="0,12,0,0">
+    <StackPanel Grid.Row="3" Margin="0,12,0,0">
       <ui:InfoBar
         Title="{DynamicResource Catalog_LoadError_Title}"
         IsClosable="False"
@@ -135,7 +175,10 @@
         Severity="Warning" />
       <!-- First-start initialization: version check + catalog fetch -->
       <StackPanel Margin="0,24,0,0" Visibility="{Binding ViewModel.IsLoading, Converter={StaticResource BoolToVisibility}}">
-        <ui:ProgressRing HorizontalAlignment="Center" IsIndeterminate="True" />
+        <ProgressBar
+          Width="280"
+          HorizontalAlignment="Center"
+          IsIndeterminate="True" />
         <TextBlock
           Margin="0,12,0,0"
           HorizontalAlignment="Center"
@@ -152,7 +195,7 @@
 
     <!-- Contract list -->
     <ScrollViewer
-      Grid.Row="3"
+      Grid.Row="4"
       Margin="0,12,0,0"
       HorizontalScrollBarVisibility="Disabled"
       VerticalScrollBarVisibility="Auto">
@@ -168,7 +211,7 @@
               <Border.InputBindings>
                 <MouseBinding
                   Command="{Binding ViewModel.OpenDetailsCommand, RelativeSource={RelativeSource AncestorType=Page}}"
-                  CommandParameter="{Binding}"
+                  CommandParameter="{Binding Contract}"
                   MouseAction="LeftClick" />
               </Border.InputBindings>
             <Grid>
@@ -189,11 +232,11 @@
                   VerticalAlignment="Center"
                   FontSize="32"
                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                  Symbol="{Binding Category, Converter={StaticResource CategoryToSymbol}}"
+                  Symbol="{Binding Contract.Category, Converter={StaticResource CategoryToSymbol}}"
                   Visibility="{Binding Source, ElementName=PreviewImage, Converter={StaticResource NullToVisibility}}" />
                 <Image
                   x:Name="PreviewImage"
-                  helpers:RewardPreview.Contract="{Binding}"
+                  helpers:RewardPreview.Contract="{Binding Contract}"
                   RenderOptions.BitmapScalingMode="HighQuality"
                   Stretch="Uniform" />
               </Grid>
@@ -205,14 +248,29 @@
                   <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <TextBlock
-                  Grid.Column="0"
-                  FontSize="16"
-                  FontWeight="SemiBold"
-                  Text="{Binding Title}"
-                  TextTrimming="CharacterEllipsis" />
+                <!-- Title, prefixed by a green check when the contract is completed -->
+                <Grid Grid.Column="0">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <ui:SymbolIcon
+                    Grid.Column="0"
+                    Margin="0,0,6,0"
+                    VerticalAlignment="Center"
+                    Foreground="{DynamicResource SystemFillColorSuccessBrush}"
+                    Symbol="CheckmarkCircle24"
+                    Visibility="{Binding IsCompleted, Converter={StaticResource BoolToVisibility}}" />
+                  <TextBlock
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    FontSize="16"
+                    FontWeight="SemiBold"
+                    Text="{Binding Contract.Title}"
+                    TextTrimming="CharacterEllipsis" />
+                </Grid>
 
-                <!-- Reputation gained on completion -->
+                <!-- Reputation gained + completed toggle -->
                 <StackPanel
                   Grid.Column="1"
                   VerticalAlignment="Center"
@@ -225,12 +283,18 @@
                     Margin="4,0,0,0"
                     VerticalAlignment="Center"
                     Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                    Text="{Binding ReputationAmount, StringFormat=+{0}}" />
+                    Text="{Binding Contract.ReputationAmount, StringFormat=+{0}}" />
+                  <ui:Button
+                    Margin="12,0,0,0"
+                    Padding="8,4"
+                    Command="{Binding ToggleCompletedCommand}"
+                    Icon="{ui:SymbolIcon Checkmark24}"
+                    ToolTip="{DynamicResource Contract_MarkDone}" />
                 </StackPanel>
               </Grid>
 
               <!-- Required items -->
-              <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding Requirements}">
+              <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding Contract.Requirements}">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate>
                     <WrapPanel />
@@ -252,7 +316,7 @@
               </ItemsControl>
 
               <!-- Rewards (filled by background enrichment) -->
-              <ItemsControl ItemsSource="{Binding Rewards}">
+              <ItemsControl ItemsSource="{Binding Contract.Rewards}">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate>
                     <WrapPanel />

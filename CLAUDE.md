@@ -68,11 +68,20 @@ TODO after first successful `dotnet restore`: pin exact package versions in the 
     `Localized.Format(key, args)` (XAML uses `{DynamicResource}` directly)
   - `Models/ContractRequirement.FormatRange` — min–max display rule ("2", "1–3";
     max-only is the API's fixed amount and renders plain "N"), invariant culture
-  - `Models/ContractCategoryDisplay.LabelKey`, `Models/ComponentTypeDisplay.LabelKey` — the
-    `XDisplay.LabelKey(value)` pattern: an enum/API-string → localization-key mapping lives as
-    a static class next to the type it maps, one per type needing this, not inline switches
-    or string interpolation into a resource key (`$"Prefix_{apiValue}"` breaks silently on an
-    unmapped value with no compile-time check)
+  - `Models/ContractCategoryDisplay.LabelKey`, `Models/ComponentTypeDisplay.LabelKey`,
+    `Models/ReputationTierDisplay.LabelKey` — the `XDisplay.LabelKey(value)` pattern: an
+    enum/API-string → localization-key mapping lives as a static class next to the type it maps,
+    one per type needing this, not inline switches or string interpolation into a resource key
+    (`$"Prefix_{apiValue}"` breaks silently on an unmapped value with no compile-time check)
+  - `Services/CompletionService` — the completed-contracts + accumulated Wikelo reputation store
+    (`completed.json`, UUID→earned reputation). New per-service JSON stores follow this shape:
+    `AppStorage.Root`/`JsonOptions`, load-with-`try/catch(JsonException)`, atomic tmp+`File.Move`
+    write (same as `SettingsService`/`ContractCatalogService`)
+  - `Models/ReputationLevels` — Wikelo rank thresholds (New 0 / Very Good 340 / Very Best 999,
+    not in the API) + `Compute(total)`; the single home for the tier math, unit-tested
+  - `ViewModels/ContractCardViewModel` — the per-catalog-card wrapper over a `WikeloContract`
+    holding observable completion state; also the intended home for the Phase-3 readiness
+    indicator. `ViewModels/ReputationSummary` — display-ready reputation standing for the bar
   - `ViewModels/ContractDetailViewModel.RewardDisplay` — reward stat/loadout chip composition
     (`ComposeStats`/`ComposeWeapons`/`ComposeComponents`/`FormatEntry`/`JoinNonEmpty`). Lives in
     the VM layer, not `Models/`, because it needs `Localized` (actual localized strings, not

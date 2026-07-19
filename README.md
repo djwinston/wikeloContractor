@@ -4,7 +4,10 @@
 
 Windows companion app for **Wikelo** trades in Star Citizen.
 
-- **Catalog** — all Wikelo contracts (data from the [Star Citizen Wiki API](https://api.star-citizen.wiki/))
+- **Catalog** — all Wikelo contracts (data from the [Star Citizen Wiki API](https://api.star-citizen.wiki/)),
+  with a full-window preview for reward images
+- **Reputation** — mark contracts completed and track your Wikelo standing (New Customer → Very Good
+  Customer → Very Best Customer) on a progress bar
 - **Inventory** — tracking of collected resources with per-contract progress and an in-game overlay
 
 ## Stack
@@ -51,6 +54,35 @@ git push origin v1.2.3
 
 For a release PR into `main`, open it with the release template
 (`?template=release.md` on the "compare" URL) to capture the intended version and post-merge steps.
+
+## If Windows blocks the app from running
+
+The app is **not code-signed** — a code-signing certificate is a paid, recurring cost, and
+Microsoft's own service (Azure Artifact Signing) is not available to solo developers outside the
+US/Canada. On most machines the app runs after the normal SmartScreen prompt (**More info → Run
+anyway**).
+
+On hardened setups Windows may **hard-block** it instead — typically **Smart App Control** or the
+Attack Surface Reduction rule *"Block executable files from running unless they meet a prevalence,
+age, or trusted list criterion."* Note that unblocking the file (`Unblock-File`, or the *Unblock*
+checkbox in file properties) only clears the download warning — it does **not** lift these blocks.
+
+If an **ASR rule** is blocking it, allow the app folder from an **elevated** PowerShell:
+
+```powershell
+# Allow the app folder (adjust the path to your install / extract location).
+# Installed build: %LocalAppData%\WikeloContractor ; portable: the folder you unzipped.
+Add-MpPreference -AttackSurfaceReductionOnlyExclusions "$env:LOCALAPPDATA\WikeloContractor"
+
+# See what is currently excluded:
+Get-MpPreference | Select-Object -ExpandProperty AttackSurfaceReductionOnlyExclusions
+```
+
+**Smart App Control** has no per-app allowance — it can only be turned off entirely (Settings →
+Privacy & security → Windows Security → App & browser control), which is a machine-wide change that
+cannot be re-enabled without reinstalling Windows. Do this only if you understand the trade-off.
+
+The proper fix is code signing; it is on the roadmap if the project obtains a certificate.
 
 ## Documentation
 

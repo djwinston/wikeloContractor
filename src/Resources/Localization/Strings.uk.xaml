@@ -8,6 +8,7 @@
   <sys:String x:Key="Nav_Catalog">Каталог</sys:String>
   <sys:String x:Key="Nav_Inventory">Інвентар</sys:String>
   <sys:String x:Key="Nav_Settings">Налаштування</sys:String>
+  <sys:String x:Key="Nav_About">Про застосунок</sys:String>
 
   <sys:String x:Key="Catalog_Title">Контракти Wikelo</sys:String>
   <sys:String x:Key="Catalog_Search">Пошук контрактів...</sys:String>
@@ -29,6 +30,15 @@
   <sys:String x:Key="Catalog_RateLimited_Title">Забагато запитів</sys:String>
   <sys:String x:Key="Catalog_RateLimited_Retry">API Star Citizen Wiki обмежує кількість запитів за хвилину. Завантаження продовжиться через {0} с.</sys:String>
   <sys:String x:Key="Catalog_RateLimited_Resuming">Відновлюємо завантаження...</sys:String>
+
+  <!-- Репутація Wikelo + виконання контрактів. Назви рангів — ігрові стендінги (англійською). -->
+  <sys:String x:Key="Reputation_Tier_New">New Customer</sys:String>
+  <sys:String x:Key="Reputation_Tier_VeryGood">Very Good Customer</sys:String>
+  <sys:String x:Key="Reputation_Tier_VeryBest">Very Best Customer</sys:String>
+  <sys:String x:Key="Reputation_Progress">{0} / {1} XP</sys:String>
+  <sys:String x:Key="Reputation_Max">{0} XP · Макс. ранг</sys:String>
+  <sys:String x:Key="Contract_MarkDone">Позначити виконаним</sys:String>
+  <sys:String x:Key="Contract_Completed">Виконано</sys:String>
 
   <sys:String x:Key="Details_Back">Назад до каталогу</sys:String>
   <sys:String x:Key="Details_OnceOnly">Одноразовий контракт</sys:String>

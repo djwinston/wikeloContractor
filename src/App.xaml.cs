@@ -36,6 +36,9 @@ public partial class App
             _ = services.AddSingleton<IImageCacheService>(_ => new ImageCacheService(new System.Net.Http.HttpClient()));
             _ = services.AddSingleton<IImageOverrideService, ImageOverrideService>();
 
+            // Completed contracts + accumulated Wikelo reputation.
+            _ = services.AddSingleton<ICompletionService, CompletionService>();
+
             // Self-update (Velopack). No-op in a dev run; drives Settings' "Check for updates".
             _ = services.AddSingleton<IAppUpdateService, AppUpdateService>();
 
@@ -52,6 +55,8 @@ public partial class App
             _ = services.AddSingleton<ViewModels.InventoryViewModel>();
             _ = services.AddSingleton<Views.Pages.SettingsPage>();
             _ = services.AddSingleton<ViewModels.SettingsViewModel>();
+            _ = services.AddSingleton<Views.Pages.AboutPage>();
+            _ = services.AddSingleton<ViewModels.AboutViewModel>();
         })
         .Build();
 

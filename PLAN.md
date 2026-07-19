@@ -63,14 +63,34 @@ Reference (what already exists): https://wikelotrades.com , community Excel spre
       manufacturer, item stats (rarity/resistances/temperature) or vehicle stats
       (cargo/crew/HP/shields/speeds/MSRP + pledge link); back navigation via
       `NavigateWithHierarchy`. See `docs/api-item-fields.md` for what else the API offers
+- [x] Settings split into two nav pages: **Settings** (language, theme, catalog data) and **About**
+      (version, self-update, attribution, disclaimer) to keep each page focused
+- [ ] **In-app editor for `image-overrides.json`** (on consideration): WPF-UI ships no reusable
+      code-editor control (its gallery "Editor" is a rich-text demo window, "Monaco" a WebView2
+      embed), so a real JSON editor means Monaco (WebView2) or AvalonEdit. Would edit the `%AppData%`
+      user override layer (updates never touch it). Deferred
 - [x] Detail page refinements: large reward image (own decode resolution); ship loadout —
       weapons with kind labels ("Laser Repeater") and grades, loaded ordnance with signal
       types (CrossSection/IR/EM), core components incl. jump drive with grade/class; armor
       resistances as reduction percentages + radiation protection/scrub rate; paint rewards
       show no vehicle stats; search also matches reward names; per-contract multi-category
       set so mixed-reward contracts appear under every matching category filter
+- [x] Full-window reward image preview on the detail page (click a reward image → full-resolution
+      overlay; click anywhere or press Esc to close). Native-resolution decode variant added to the
+      `RewardPreview` attached-property loader
+- [x] First-load progress uses a `ProgressBar` (indeterminate) instead of a `ProgressRing`
+- [x] Wikelo reputation: mark a contract completed on the card and detail page (`ICompletionService`,
+      persisted to `completed.json` as UUID → earned reputation); accumulated total drives a rank
+      progress bar at the top of the catalog. Ranks: New Customer (0) → Very Good Customer (340) →
+      Very Best Customer (999) — thresholds are not in the API (`min_standing`/`rank_index` are null),
+      so they live in `Models/ReputationLevels`
 - [ ] "Tracked" flag on a contract (persisted)
 - [ ] Aggregation: combined resource list across all tracked contracts
+- [ ] **Readiness indicator (needs Inventory)**: on the catalog card and detail page, show whether a
+      contract is ready / partially ready to turn in, computed from the inventory. In the *Required
+      items* section each chip gets one of three colors — default (as now), full availability, and
+      partial availability — per resource vs. the inventory. The `ContractCardViewModel` wrapper is
+      the home for this computed state
 
 ## Phase 3 — Inventory
 
@@ -78,6 +98,9 @@ Reference (what already exists): https://wikelotrades.com , community Excel spre
 - [ ] UI: add/edit quantities, quick search by item name
 - [ ] Progress: "collected X of Y" for each tracked contract (inventory × requirements)
 - [ ] "Contract ready to turn in" indicator
+- [ ] When a contract is marked completed *and* inventory exists, show a resource-deduction
+      confirmation dialog (`ContentDialog`) listing the resources to be spent, and subtract those
+      quantities from the inventory on confirm
 
 ## Phase 4 — Overlay
 
