@@ -100,10 +100,10 @@ uses the first loadable one, keeping the rest available for manual selection lat
 - Wikelo-exclusive variants (e.g. "Asgard Wikelo War Special") have **no** wiki images —
   the UI falls back to a category placeholder icon.
 - `ImageOverrideService` merges **two** override files: the bundled
-  `src/Resources/image-overrides.json` (maintained in the repo, copied to the build output —
+  `src/Resources/img-catalog-overrides.json` (maintained in the repo, copied to the build output —
   shared defaults for every user; pre-seeded with placeholder entries for items without API
   images, inventory in `docs/reward-images.md`) and the user's
-  `%AppData%\WikeloContractor\image-overrides.json` (template auto-created), which wins per
+  `%AppData%\WikeloContractor\img-catalog-overrides.json` (template auto-created), which wins per
   key. Keys are item UUID **or** item name (case-insensitive); values are an image URL (or,
   in the user file, an absolute local path); empty values are ignored placeholders.
   Overrides win over API images and both files are re-read when they change on disk.

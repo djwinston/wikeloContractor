@@ -10,7 +10,9 @@ so fill in the intended version below and push it once merged.
 
 ## Highlights / changelog
 
-<!-- User-facing bullets that will inform the GitHub Release notes. -->
+<!-- Author-facing summary for reviewers. The published GitHub Release notes are NOT built from
+     this — release.yml generates them from the commit subjects and bodies in the tag range, so
+     write those bodies as user-facing text (they ship verbatim). -->
 
 -
 

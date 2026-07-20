@@ -3,7 +3,7 @@ using System.IO;
 namespace WikeloContractor.Services;
 
 /// <summary>
-/// Two-layer reward image overrides. The bundled file (<c>Resources/image-overrides.json</c>
+/// Two-layer reward image overrides. The bundled file (<c>Resources/img-catalog-overrides.json</c>
 /// next to the exe, maintained in the repository) ships shared defaults to every user; the
 /// user's file in <c>%AppData%</c> layers personal edits on top and wins per key. Both files
 /// are re-read lazily whenever they change on disk, so edits apply while the app is running
@@ -20,12 +20,17 @@ public sealed class ImageOverrideService : IImageOverrideService
         }
         """;
 
+    private const string _fileName = "img-catalog-overrides.json";
+
+    /// <summary>Name used before the img-*-overrides rename; adopted once so personal edits survive.</summary>
+    private const string _legacyFileName = "image-overrides.json";
+
     private readonly OverrideFileSet _files;
 
     public ImageOverrideService()
         : this(
-            Path.Combine(AppStorage.Root, "image-overrides.json"),
-            Path.Combine(AppContext.BaseDirectory, "Resources", "image-overrides.json"))
+            Path.Combine(AppStorage.Root, _fileName),
+            Path.Combine(AppContext.BaseDirectory, "Resources", _fileName))
     {
     }
 
@@ -33,9 +38,10 @@ public sealed class ImageOverrideService : IImageOverrideService
     internal ImageOverrideService(string userFilePath, string? bundledFilePath = null, TimeSpan? statInterval = null) =>
         _files = new OverrideFileSet(
             userFilePath,
-            bundledFilePath ?? Path.Combine(AppContext.BaseDirectory, "Resources", "image-overrides.json"),
+            bundledFilePath ?? Path.Combine(AppContext.BaseDirectory, "Resources", _fileName),
             statInterval ?? TimeSpan.FromSeconds(1),
-            _userTemplate);
+            _userTemplate,
+            _legacyFileName);
 
     // UUID beats name; within each, the user's file beats the bundled one.
     public string? GetOverride(string? itemUuid, string itemName) => _files.Get(itemUuid, itemName);

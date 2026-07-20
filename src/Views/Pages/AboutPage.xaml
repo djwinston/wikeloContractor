@@ -25,16 +25,14 @@
       FontWeight="DemiBold"
       Text="{DynamicResource Nav_About}" />
 
-    <Image
+    <!-- ui:Image rounds its own corners, so the width is free to change; a plain Image would
+         need a hardcoded Clip rect kept in sync with it. -->
+    <ui:Image
       Margin="0,24,0,0"
-      HorizontalAlignment="Left"
-      MaxWidth="360"
+      HorizontalAlignment="Stretch"
+      CornerRadius="8"
       Source="pack://application:,,,/Assets/about-hero.png"
-      Stretch="Uniform">
-      <Image.Clip>
-        <RectangleGeometry RadiusX="8" RadiusY="8" Rect="0,0,360,225" />
-      </Image.Clip>
-    </Image>
+      Stretch="Uniform" />
 
     <TextBlock
       Margin="0,12,0,0"

@@ -55,7 +55,7 @@ Reference (what already exists): https://wikelotrades.com , community Excel spre
       derived from reward item data via background enrichment) and by required resource
 - [x] Reward preview images in the list: URLs come free with enrichment (`images` in item
       detail), files cached once in `cache/images/` from external CDNs (no API rate-limit
-      impact), category icon fallback, custom overrides via `image-overrides.json`
+      impact), category icon fallback, custom overrides via `img-catalog-overrides.json`
       (two layers: bundled repo file with shared URLs — missing-image inventory in
       `docs/reward-images.md` — plus a personal `%AppData%` file that wins per key)
 - [x] Contract details page: click a card → full requirements (incl. SCU amounts and extra
@@ -65,7 +65,7 @@ Reference (what already exists): https://wikelotrades.com , community Excel spre
       `NavigateWithHierarchy`. See `docs/api-item-fields.md` for what else the API offers
 - [x] Settings split into two nav pages: **Settings** (language, theme, catalog data) and **About**
       (version, self-update, attribution, disclaimer) to keep each page focused
-- [ ] **In-app editor for `image-overrides.json`** (on consideration): WPF-UI ships no reusable
+- [ ] **In-app editor for `img-catalog-overrides.json`** (on consideration): WPF-UI ships no reusable
       code-editor control (its gallery "Editor" is a rich-text demo window, "Monaco" a WebView2
       embed), so a real JSON editor means Monaco (WebView2) or AvalonEdit. Would edit the `%AppData%`
       user override layer (updates never touch it). Deferred
@@ -99,8 +99,8 @@ Reference (what already exists): https://wikelotrades.com , community Excel spre
       auto-populated from every distinct required item across the catalog. Each item has a `+`/`−`
       counter. Items are grouped into categories via a keyword classifier
       (`Models/InventoryCategoryClassifier`, unit-tested) with a per-item image supplied through a
-      user-editable config (`inventory-image-overrides.json`, bundled + `%AppData%` layers) analogous
-      to `image-overrides.json`; the two-layer engine is shared as `Services/OverrideFileSet`
+      user-editable config (`img-inventory-overrides.json`, bundled + `%AppData%` layers) analogous
+      to `img-catalog-overrides.json`; the two-layer engine is shared as `Services/OverrideFileSet`
 - [x] UI: `+`/`−` quantity editing, quick search by item name, category section headers,
       category filter dropdown
 - [x] Progress + readiness: per-requirement availability coloring, "X / Y satisfied" count, and a
@@ -128,7 +128,7 @@ Reference (what already exists): https://wikelotrades.com , community Excel spre
       .NET 10 Desktop Runtime (`--framework net10.0-x64-desktop`) if missing. `VelopackApp.Run()`
       runs first in `App.OnStartup`; `Services/AppUpdateService` wraps `UpdateManager` (GitHub
       Releases feed) and drives a "Check for updates" row in Settings (no-op in a dev run).
-      GitHub Releases doubles as the update feed. Note: the shipped `image-overrides.json` lives in
+      GitHub Releases doubles as the update feed. Note: the shipped `img-catalog-overrides.json` lives in
       the install dir (replaced on update); persistent user edits go to the `%AppData%` layer.
 - [x] Versioning: SemVer with git tags (`vX.Y.Z`) on GitHub as the single source of truth;
       the tag version is injected into the build (`-p:Version=X.Y.Z`),

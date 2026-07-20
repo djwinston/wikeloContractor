@@ -1,5 +1,5 @@
 {
-  "$comment": "Shared reward images shipped with the app, for items the wiki does not cover (e.g. Wikelo-exclusive variants). Key: item UUID or item name (case-insensitive); value: image URL. An empty value is ignored - it is a placeholder waiting for a URL. The mapping UUID -> item/contract lives in docs/reward-images.md. A user local %AppData%\\WikeloContractor\\image-overrides.json takes precedence per key.",
+  "$comment": "Shared reward images shipped with the app, for items the wiki does not cover (e.g. Wikelo-exclusive variants). Key: item UUID or item name (case-insensitive); value: image URL. An empty value is ignored - it is a placeholder waiting for a URL. The mapping UUID -> item/contract lives in docs/reward-images.md. A user local %AppData%\\WikeloContractor\\img-catalog-overrides.json takes precedence per key.",
   "overrides": {
     "afae3e97-7f7e-45a3-9f3b-fe268479775b": "https://media.starcitizen.tools/1/13/Asgard_Wikelo.jpg",
     "48a46604-7786-44f5-9c22-fa298fad141e": "",

@@ -27,8 +27,8 @@
 
   <ItemGroup>
     <!-- Shipped image overrides: shared defaults maintained in the repository -->
-    <Content Include="Resources\image-overrides.json" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="Resources\inventory-image-overrides.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Resources\img-catalog-overrides.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Resources\img-inventory-overrides.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

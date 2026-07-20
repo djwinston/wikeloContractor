@@ -62,7 +62,7 @@ Each contract card shows a 64×64 preview left of the content, loaded asynchrono
 
 - Candidate order per reward: override → thumbnail → original; the first that downloads
   **and decodes** wins. Overrides are two-layered (`ImageOverrideService`): the bundled
-  `src/Resources/image-overrides.json` (in the repo, ships with the app — add shared image
+  `src/Resources/img-catalog-overrides.json` (in the repo, ships with the app — add shared image
   URLs there) plus the user's `%AppData%` file, which wins per key. A `.webp` thumbnail on a machine without the WebP codec fails decode
   and falls back to the original PNG automatically.
 - Bitmaps are decoded on a worker thread (`DecodePixelWidth=128`), frozen, and memoized for
@@ -71,7 +71,7 @@ Each contract card shows a 64×64 preview left of the content, loaded asynchrono
   `ICollectionView.Refresh` regenerates every card container on each search keystroke, and
   the memo turns those re-fires into a synchronous `Source` assignment — no placeholder
   flash, no repeated downloads or decode attempts. The memo key includes the override URL,
-  so editing `image-overrides.json` still takes effect on refresh; a failed URL is not
+  so editing `img-catalog-overrides.json` still takes effect on refresh; a failed URL is not
   retried until the app restarts.
 - After awaiting, the handler re-checks the attached value (`ReferenceEquals`) — the template
   may have been rebound while loading; stale results are dropped.
@@ -152,7 +152,7 @@ Categories come from `InventoryCategoryClassifier` (name-keyword rules; see `CLA
 icon per category from `InventoryCategoryToSymbolConverter`.
 
 Item **images** have no API source, so they load purely from a user-editable override config
-(`InventoryImageOverrideService` → `inventory-image-overrides.json`, bundled + `%AppData%` layers)
+(`InventoryImageOverrideService` → `img-inventory-overrides.json`, bundled + `%AppData%` layers)
 through the `helpers:InventoryPreview.ItemName` attached property — a simpler cousin of `RewardPreview`
 (override URL → disk cache → decode; category icon placeholder until it loads). The two-layer +
 hot-reload mechanics are shared with reward overrides via `Services/OverrideFileSet`.
@@ -173,10 +173,35 @@ it (the inventory is the source of truth — the user updates it manually). Dedu
 
 ## Adaptive app icon
 
-The window/taskbar icon follows the theme: light icon on the dark theme and vice versa.
-`MainWindow` subscribes to `ApplicationThemeManager.Changed`, swaps `TitleBarControl.Icon`
-and `Window.Icon` between `Assets/icon.png` (dark art) and `Assets/icon-light.png`,
-and unsubscribes in `OnClosed`. The exe's `app.ico` stays static (Explorer/shortcuts).
+`MainWindow.UpdateAppIcon` follows `ApplicationThemeManager.Changed` (unsubscribed in `OnClosed`)
+and feeds two surfaces from **different** assets — they are not interchangeable:
+
+- **Title bar** (`TitleBarControl.Icon`) — the vector mark from `Resources/BrandIcons.xaml`
+  (`AppMarkDark` / `AppMarkLight`), so it stays crisp at any DPI instead of downscaling a PNG.
+  Follows the **app** theme: this app paints that surface.
+- **Taskbar / Alt-Tab** (`Window.Icon`) — must stay a raster `BitmapImage` (WPF hands it to Win32
+  as an `HICON`). Follows the **Windows shell** theme, read from `SystemUsesLightTheme`.
+
+**The two themes are set independently, so they must not share one signal.** Windows 11 exposes
+`AppsUseLightTheme` and `SystemUsesLightTheme` separately, and this app's own theme setting
+(System/Light/Dark) is a third input. Driving the taskbar icon from the app theme puts the navy
+mark on a dark taskbar at a **1.2:1** contrast ratio whenever they disagree — effectively
+invisible. Picking per surface keeps both at ≥ 7:1.
+
+`SystemUsesLightTheme` changes do not raise `ApplicationThemeManager.Changed`, hence the extra
+`SystemEvents.UserPreferenceChanged` subscription (unsubscribed in `OnClosed` alongside the other).
+
+Every asset is a bare mark on transparency (no opaque plate), and the names describe the
+**artwork**, not the target theme: a dark surface takes the light (cyan) art, a light surface
+takes the dark (navy) art.
+
+Do not set an explicit size on the title bar `ImageIcon`: the `ui:TitleBar` template constrains
+its icon slot and clips anything larger flat at the top and bottom instead of scaling it.
+
+`Resources/BrandIcons.xaml` is a translation of `docs/brand/icon-vector-24.svg` (200 × 200
+viewBox) — WPF cannot load `.svg` itself, so the SVGs stay reference masters and are deliberately
+not csproj `<Resource>` entries. Re-export the rasters from them rather than upscaling PNGs.
+See `docs/brand/icon-spec.md` for which master feeds which `app.ico` frame.
 
 ## Localized strings with parameters
 

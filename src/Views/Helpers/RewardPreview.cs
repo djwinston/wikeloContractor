@@ -28,7 +28,7 @@ public static class RewardPreview
     /// Final result per candidate-URL list, including failures (null). Filter refreshes
     /// regenerate every card container, so this is the synchronous fast path that avoids
     /// re-running downloads, disk checks and decodes on each keystroke. The key includes
-    /// the override URL, so editing image-overrides.json still takes effect on refresh.
+    /// the override URL, so editing img-catalog-overrides.json still takes effect on refresh.
     /// </summary>
     private static readonly ConcurrentDictionary<string, ImageSource?> _resolved = new();
 

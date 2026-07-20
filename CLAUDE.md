@@ -32,6 +32,8 @@ TODO after first successful `dotnet restore`: pin exact package versions in the 
   (caching, version invalidation, enrichment, rate limiting, service events)
 - `docs/api-item-fields.md` — full field inventory of item/vehicle detail responses;
   consult before extending `RewardDetails` or the contract detail view
+- `docs/reward-images.md` / `docs/inventory-images.md` — which reward items and which required
+  items still need a manual image in the matching `Resources/img-*-overrides.json`
 - `docs/ui-notes.md` — before touching `src/Views/` or `src/ViewModels/`
   (WPF-UI pitfalls, status InfoBar pattern, adaptive icon, formatted localized strings)
 - `docs/testing.md` — before adding/changing tests in `tests/`
@@ -80,8 +82,11 @@ TODO after first successful `dotnet restore`: pin exact package versions in the 
     (`inventory.json`, name→count) is the second store on this shape
   - `Services/OverrideFileSet` — the reusable two-layer (bundled + `%AppData%`) key→value override
     engine with throttled hot-reload and a first-run user template. `ImageOverrideService` (reward
-    images) and `InventoryImageOverrideService` (inventory item images, `inventory-image-overrides.json`)
-    both delegate to it — a new user-editable override config wraps this, it does not re-implement it
+    images) and `InventoryImageOverrideService` (inventory item images, `img-inventory-overrides.json`)
+    both delegate to it — a new user-editable override config wraps this, it does not re-implement it.
+    It also handles one-time adoption of a pre-rename `%AppData%` user file (`legacyUserFilePath`),
+    so renaming an override config carries the user's edits over instead of orphaning them — reuse
+    that rather than hand-rolling a migration
   - `Models/InventoryCategoryClassifier.Classify(name, hasScu)` — the single home for the required-item
     → `InventoryCategory` mapping (ordered keyword rules, first match wins; unit-tested).
     `Models/InventoryCategoryDisplay.LabelKey` is its `XDisplay.LabelKey` companion
@@ -132,7 +137,7 @@ TODO after first successful `dotnet restore`: pin exact package versions in the 
   and is a no-op when `UpdateManager.IsInstalled` is false (dev runs), driving the Settings
   "Check for updates" row. Release build is **framework-dependent**; the installer bootstraps the
   .NET Desktop Runtime via `vpk pack --framework net10.0-x64-desktop`.
-- Keep `Resources/image-overrides.json` as loose `<Content>` (do **not** embed it): it ships in the
+- Keep `Resources/img-catalog-overrides.json` as loose `<Content>` (do **not** embed it): it ships in the
   install dir as the editable bundled-defaults layer. It is replaced on each Velopack update, so
   persistent personal edits belong in the `%AppData%` override file, which updates never touch.
 - CI/release live in `.github/workflows/`; merge gating (tests must pass, approvals) is configured
