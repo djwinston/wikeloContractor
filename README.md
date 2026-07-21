@@ -5,12 +5,13 @@
 Windows companion app for **Wikelo** trades in Star Citizen.
 
 - **Catalog** — all Wikelo contracts (data from the [Star Citizen Wiki API](https://api.star-citizen.wiki/)),
-  with a full-window preview for reward images
+  with a full-window preview for reward and item images; contracts that grant a crafting blueprint show it
+  (detail page section + a "BP:" chip on the card)
 - **Reputation** — mark contracts completed and track your Wikelo standing (New Customer → Very Good
   Customer → Very Best Customer) on a progress bar
-- **Inventory** — track collected resources with `+`/`−` counters, grouped by category; each contract
-  shows readiness (which required items you already have) and completing one deducts them
-  *(in-game overlay coming next)*
+- **Inventory** — track collected resources with an editable quantity box (type any value or step by one),
+  grouped by category; each contract shows readiness (which required items you already have) and completing
+  one deducts them *(in-game overlay coming next)*
 
 ## Stack
 

@@ -21,6 +21,7 @@
   <sys:String x:Key="Catalog_Cat_Armor">Броня</sys:String>
   <sys:String x:Key="Catalog_Cat_Other">Інше</sys:String>
   <sys:String x:Key="Catalog_ClearFilters">Скинути фільтри</sys:String>
+  <sys:String x:Key="Catalog_BlueprintAbbrev">BP</sys:String>
   <sys:String x:Key="Catalog_Empty">Жоден контракт не відповідає фільтрам.</sys:String>
   <sys:String x:Key="Catalog_LoadError_Title">Не вдалося завантажити контракти</sys:String>
   <sys:String x:Key="Catalog_LoadError_Message">Перевірте з'єднання з інтернетом і спробуйте ще раз.</sys:String>
@@ -52,6 +53,7 @@
   <sys:String x:Key="Details_Back">Назад до каталогу</sys:String>
   <sys:String x:Key="Details_OnceOnly">Одноразовий контракт</sys:String>
   <sys:String x:Key="Details_Prerequisites">Має пререквізити</sys:String>
+  <sys:String x:Key="Details_Blueprints">Креслення</sys:String>
   <sys:String x:Key="Details_OpenWiki">Відкрити на вікі</sys:String>
   <sys:String x:Key="Details_OpenPledge">Сторінка в pledge-магазині</sys:String>
   <sys:String x:Key="Details_Requirements">Потрібні предмети</sys:String>
@@ -78,8 +80,7 @@
   <sys:String x:Key="Inventory_Title">Мій інвентар</sys:String>
   <sys:String x:Key="Inventory_SearchPlaceholder">Пошук предметів…</sys:String>
   <sys:String x:Key="Inventory_Empty">Поки що порожньо — тут з'являться потрібні предмети з каталогу.</sys:String>
-  <sys:String x:Key="Inventory_Increment">Додати один</sys:String>
-  <sys:String x:Key="Inventory_Decrement">Прибрати один</sys:String>
+  <sys:String x:Key="Inventory_CountTooltip">Введіть кількість або скористайтеся стрілками вгору/вниз</sys:String>
   <sys:String x:Key="Inventory_Cat_OreMineral">Руди й мінерали</sys:String>
   <sys:String x:Key="Inventory_Cat_Armor">Броня</sys:String>
   <sys:String x:Key="Inventory_Cat_Weapon">Зброя</sys:String>

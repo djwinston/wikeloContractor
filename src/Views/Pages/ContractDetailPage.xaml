@@ -92,7 +92,7 @@
           Icon="{ui:SymbolIcon Checkmark24}" />
       </Grid>
 
-      <!-- Badges: category, reputation, flags, game version, wiki link -->
+      <!-- Badges: category, reputation, flags, wiki link -->
       <WrapPanel Margin="0,14,0,0">
         <Border
           Margin="0,0,8,6"
@@ -149,25 +149,21 @@
           <TextBlock FontSize="12" Text="{DynamicResource Details_Prerequisites}" />
         </Border>
 
-        <Border
-          Margin="0,0,8,6"
-          Padding="10,4"
-          Background="{DynamicResource ControlFillColorSecondaryBrush}"
-          CornerRadius="12"
-          Visibility="{Binding ViewModel.Contract.GameVersion, Converter={StaticResource NotNullToVisibility}}">
-          <TextBlock
-            FontSize="12"
-            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-            Text="{Binding ViewModel.Contract.GameVersion}" />
-        </Border>
-
+        <!-- HyperlinkButton hard-codes its text color via these theme keys and ignores Foreground,
+             so recolor it to the accent by overriding the keys locally (per state). -->
         <ui:HyperlinkButton
           Margin="0,0,0,6"
           Padding="10,2"
           Content="{DynamicResource Details_OpenWiki}"
           FontSize="12"
           NavigateUri="{Binding ViewModel.Contract.WebUrl}"
-          Visibility="{Binding ViewModel.Contract.WebUrl, Converter={StaticResource NotNullToVisibility}}" />
+          Visibility="{Binding ViewModel.Contract.WebUrl, Converter={StaticResource NotNullToVisibility}}">
+          <ui:HyperlinkButton.Resources>
+            <SolidColorBrush x:Key="HyperlinkButtonForeground" Color="{DynamicResource SystemAccentColorPrimary}" />
+            <SolidColorBrush x:Key="HyperlinkButtonForegroundPointerOver" Color="{DynamicResource SystemAccentColorSecondary}" />
+            <SolidColorBrush x:Key="HyperlinkButtonForegroundPressed" Color="{DynamicResource SystemAccentColorTertiary}" />
+          </ui:HyperlinkButton.Resources>
+        </ui:HyperlinkButton>
       </WrapPanel>
 
       <!-- Contract description -->
@@ -236,6 +232,47 @@
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
+
+      <!-- Blueprints granted on completion (crafting recipes / materials); hidden when none -->
+      <StackPanel Visibility="{Binding ViewModel.HasBlueprints, Converter={StaticResource BoolToVisibility}}">
+        <TextBlock
+          Margin="0,20,0,0"
+          FontSize="18"
+          FontWeight="SemiBold"
+          Text="{DynamicResource Details_Blueprints}" />
+        <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding ViewModel.Contract.Blueprints}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <!-- Solid blue fill (distinct from the gray requirement chips and accent reward pills);
+                   the Fluent "attention background" tint is too faint to read as a colored badge. -->
+              <Border
+                Margin="0,0,6,6"
+                Padding="10,5"
+                Background="{DynamicResource BlueprintChipBackgroundBrush}"
+                CornerRadius="10">
+                <StackPanel Orientation="Horizontal">
+                  <ui:SymbolIcon
+                    VerticalAlignment="Center"
+                    FontSize="14"
+                    Foreground="White"
+                    Symbol="Molecule24" />
+                  <TextBlock
+                    Margin="6,0,0,0"
+                    VerticalAlignment="Center"
+                    FontSize="13"
+                    Foreground="White"
+                    Text="{Binding Mode=OneWay}" />
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
 
       <!-- Rewards -->
       <TextBlock

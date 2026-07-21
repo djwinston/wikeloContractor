@@ -69,7 +69,6 @@ public sealed class ContractCatalogServiceTests : IDisposable
         OnceOnly = onceOnly,
         HaulingSummary = [new HaulingSummaryItemDto { Name = "Gold", MinAmount = 1, MaxAmount = 1 }],
         ReputationGained = [new ReputationGainedDto { Faction = "Wikelo Emporium", Scope = "Wikelo", Amount = 250 }],
-        GameVersion = "4.2.0",
     };
 
     [Fact]
@@ -230,6 +229,78 @@ public sealed class ContractCatalogServiceTests : IDisposable
         Assert.Equal("36 SCU", contract.Requirements[0].AmountLabel);
         Assert.Equal("Wikelo Favor", contract.Requirements[1].Name);
         Assert.Equal("1", contract.Requirements[1].AmountLabel);
+    }
+
+    [Fact]
+    public async Task Null_blueprints_do_not_abort_enrichment()
+    {
+        // The live API sends "blueprints": null for contracts without any (most of them);
+        // enrichment must still complete and leave the blueprint list empty.
+        var client = new FakeApiClient
+        {
+            Missions = [Mission("m1", "Armor exchange")],
+            MissionDetails = new()
+            {
+                ["m1"] = new MissionDetailDto
+                {
+                    Uuid = "m1",
+                    RewardItems = [new RewardItemDto { Name = "Testudo Helmet", Uuid = "item-1", Amount = 1 }],
+                    Blueprints = null,
+                },
+            },
+        };
+        var service = new ContractCatalogService(client, _cacheDirectory);
+
+        var enriched = new TaskCompletionSource();
+        service.CatalogUpdated += (_, _) => enriched.TrySetResult();
+
+        _ = await service.GetContractsAsync();
+        await enriched.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        var contract = Assert.Single(service.Current!.Contracts);
+        Assert.Single(contract.Rewards);
+        Assert.Empty(contract.Blueprints);
+    }
+
+    [Fact]
+    public async Task Enrichment_captures_distinct_blueprint_names_across_pools()
+    {
+        var client = new FakeApiClient
+        {
+            Missions = [Mission("m1", "Suit Up Take Off")],
+            MissionDetails = new()
+            {
+                ["m1"] = new MissionDetailDto
+                {
+                    Uuid = "m1",
+                    Blueprints =
+                    [
+                        new BlueprintPoolDto { Items = [new BlueprintItemDto { Name = "Tailwind Flight Suit Dominion Camo" }] },
+                        new BlueprintPoolDto
+                        {
+                            Items =
+                            [
+                                new BlueprintItemDto { Name = "Tailwind Flight Helmet Dominion Camo" },
+                                // Duplicate across pools collapses to one entry.
+                                new BlueprintItemDto { Name = "Tailwind Flight Suit Dominion Camo" },
+                            ],
+                        },
+                    ],
+                },
+            },
+        };
+        var service = new ContractCatalogService(client, _cacheDirectory);
+
+        var enriched = new TaskCompletionSource();
+        service.CatalogUpdated += (_, _) => enriched.TrySetResult();
+
+        _ = await service.GetContractsAsync();
+        await enriched.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        var contract = Assert.Single(service.Current!.Contracts);
+        Assert.Equal(
+            ["Tailwind Flight Suit Dominion Camo", "Tailwind Flight Helmet Dominion Camo"],
+            contract.Blueprints);
     }
 
     [Fact]

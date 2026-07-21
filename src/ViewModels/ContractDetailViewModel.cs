@@ -21,6 +21,7 @@ public partial class ContractDetailViewModel : ViewModel
     [NotifyPropertyChangedFor(nameof(CategoryLabel))]
     [NotifyPropertyChangedFor(nameof(IsCompleted))]
     [NotifyPropertyChangedFor(nameof(CompletedButtonLabel))]
+    [NotifyPropertyChangedFor(nameof(HasBlueprints))]
     private WikeloContract? _contract;
 
     private ContractReadiness _readiness = ContractReadiness.Empty;
@@ -54,6 +55,9 @@ public partial class ContractDetailViewModel : ViewModel
     /// <summary>Whether the full-window image preview overlay is showing.</summary>
     [ObservableProperty]
     private bool _isPreviewOpen;
+
+    /// <summary>Whether the contract grants any blueprints (drives the Blueprints section's visibility).</summary>
+    public bool HasBlueprints => Contract is { Blueprints.Count: > 0 };
 
     public bool IsCompleted => Contract is { } contract && _completionService.IsCompleted(contract.Uuid);
 

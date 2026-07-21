@@ -18,9 +18,9 @@ public sealed partial class ContractCatalogService : IContractCatalogService
     /// mission_giver instead of reputation_scope; v7: ship loadout — weapons,
     /// missiles, components; v8: gun kind labels and component grades; v9: nested
     /// port scan — guns/ordnance with signal types, jump drives; v10: multi-category
-    /// set per contract for the filter).
+    /// set per contract for the filter; v11: blueprint names granted on completion).
     /// </summary>
-    private const int _cacheSchemaVersion = 10;
+    private const int _cacheSchemaVersion = 11;
 
     /// <summary>How often the current game version is re-checked against the API.</summary>
     private static readonly TimeSpan _versionCheckInterval = TimeSpan.FromHours(12);
@@ -213,11 +213,21 @@ public sealed partial class ContractCatalogService : IContractCatalogService
         // 1. Mission details → reward items + full requirements (hauling orders).
         var rewardsByMission = new Dictionary<string, List<ContractReward>>();
         var requirementsByMission = new Dictionary<string, List<ContractRequirement>>();
+        var blueprintsByMission = new Dictionary<string, List<string>>();
         foreach (var contract in envelope.Contracts)
         {
             var detail = await WithRateLimitRetryAsync(() => _apiClient.GetMissionDetailAsync(contract.Uuid));
             rewardsByMission[contract.Uuid] = detail?.RewardItems
                 .Select(r => new ContractReward { Name = r.Name, ItemUuid = r.Uuid, Amount = r.Amount ?? 1 })
+                .ToList() ?? [];
+
+            // Flatten every pool's items to distinct blueprint names (a pool can list several).
+            // `blueprints` and its `items` arrive as JSON null when absent, so both need guarding.
+            blueprintsByMission[contract.Uuid] = detail?.Blueprints?
+                .SelectMany(p => p.Items ?? [])
+                .Select(i => i.Name)
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList() ?? [];
 
             // hauling_orders are richer than the list's hauling_summary: SCU amounts plus
@@ -314,6 +324,7 @@ public sealed partial class ContractCatalogService : IContractCatalogService
                     Categories = rewardCategories.Append(primary).Distinct().ToList(),
                     // Keep the summary-based requirements when the detail had no orders.
                     Requirements = requirements is { Count: > 0 } ? requirements : c.Requirements,
+                    Blueprints = blueprintsByMission.GetValueOrDefault(c.Uuid) ?? [],
                 };
             })
             .ToList();
@@ -464,7 +475,6 @@ public sealed partial class ContractCatalogService : IContractCatalogService
         ReputationAmount = mission.ReputationGained?.FirstOrDefault(r => r.Scope == "Wikelo")?.Amount
             ?? mission.ReputationAmount
             ?? 0,
-        GameVersion = mission.GameVersion,
         WebUrl = mission.WebUrl,
     };
 

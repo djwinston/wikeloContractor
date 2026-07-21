@@ -17,9 +17,17 @@ collects patterns and pitfalls discovered while building the UI.
   use the plain WPF `<ProgressBar>` (WPF-UI themes it via implicit styles). Likewise the gallery's
   "Editor" (a rich-text demo) and "Monaco" (a WebView2 embed) are sample *windows*, not reusable
   controls — there is no drop-in code-editor control.
-- **No `ui:NumberBox`/stepper for counters** — the inventory `+`/`−` counter is built from two
-  `ui:Button`s (`Subtract24` / `Add24`) around a `TextBlock`, each bound to a `[RelayCommand]` on the
-  item VM. There is no dedicated numeric control to reuse.
+- **`ui:NumberBox` is the numeric counter control** (WPF-UI 4.3 *does* ship it — an earlier note here
+  wrongly claimed it did not). The inventory row uses it with `SpinButtonPlacementMode="Inline"`,
+  `Minimum="0"`, `MaxDecimalPlaces="0"`, `SmallChange="1"` so the player can **type** a value directly
+  (scrips/favors run to 100s/1000s) or step by one. Its `Value` is a `double?`; two-way bound to the
+  VM's `int Count`, WPF's default numeric conversion bridges the two. Persistence is on `Count`'s
+  `partial void OnCountChanged` (clamps, then `IInventoryStore.SetCountAsync`) — not a command — so
+  typed edits and spin steps persist identically. **The `Value` binding must set
+  `UpdateSourceTrigger=PropertyChanged`** — without it the source (`Count`) commits only on focus
+  loss, so the inline +/- spin buttons appear to do nothing (they change `Value` programmatically but
+  never reach the VM until the box is blurred). The store de-dups no-op writes, so committing on every
+  change is cheap.
 - **Overlay scrollbars overlap content** — WPF-UI restyles `ScrollViewer` with a thin overlay
   scrollbar drawn at the right edge *on top of* the content (not in its own column), so cards/buttons
   under it get clipped. Fix: give the **scrolled content** a right `Margin` (~16) so the scrollbar sits
@@ -29,6 +37,11 @@ collects patterns and pitfalls discovered while building the UI.
   → `MessageBoxResult` — no `ContentDialogService`/dialog-host wiring needed. Alias it
   (`using UiMessageBox = Wpf.Ui.Controls.MessageBox;`) to avoid the clash with the global-using
   `System.Windows.MessageBox`. Set `Owner = Application.Current.MainWindow` to center it.
+- **`ui:HyperlinkButton` ignores `Foreground`** — its template hard-codes the text color to the theme
+  keys `HyperlinkButtonForeground` / `…PointerOver` / `…Pressed`. To recolor it (e.g. the detail page's
+  accent "Open on the wiki" link) override those keys **locally** in the button's `.Resources`, not via
+  the `Foreground` property. It navigates natively through `NavigateUri` (no command needed); a plain
+  `ui:Button` would need a launch command instead.
 
 ## Status surface pattern (CatalogPage)
 
@@ -105,6 +118,17 @@ mounts, missile count) and Components (power plant, shields, coolers, quantum dr
 Paint-category contracts suppress all three chip groups: a paint reward is a full vehicle
 variant record in the API, but its stats belong to the vehicle, not the paint.
 
+Blueprints granted on completion (`Contract.Blueprints`, from mission-detail `blueprints[]`;
+only ~5 contracts have any) get their own section **above Rewards**: a `Details_Blueprints`
+heading (same 18 px SemiBold style as Requirements/Rewards) plus one `Molecule24` name-only pill
+per entry, the whole `StackPanel` gated on `ViewModel.HasBlueprints`. The catalog card shows the
+same list compactly **after the reward pills** as "BP: <name>" chips (`Catalog_BlueprintAbbrev` =
+"BP"; an empty `ItemsControl` source renders nothing, so no visibility flag there). Blueprint
+names are English game data; only the heading and the "BP" abbreviation are localized. Both badge
+kinds use a **fixed** `#0067C0` blue fill with fixed `White` text (not a theme brush): the Fluent
+`SystemFillColorAttentionBackground` tint is too faint to read as a colored badge on a dark card, and
+because the fill is fixed, the foreground is fixed too so contrast holds (~5.7:1) in either theme.
+
 The detail image is decoded at a higher resolution than the 64 px list thumbnail:
 `RewardPreview` keys its decode/result memos by decode width (128 list / 640 detail), so the
 same URL yields cached bitmaps of different sizes. The full-window preview (below) adds a third
@@ -122,6 +146,14 @@ higher Z-order, semi-transparent `#CC000000`) whose `Visibility` binds `IsPrevie
 overlay and a page-level `Esc` `KeyBinding` both call `ClosePreview`. The overlay `Image` uses the
 `RewardPreview.PreviewReward` attached property (the native-resolution variant). `OnContractChanged`
 closes any open preview when the shown contract changes.
+
+**`InventoryPage` reuses the same overlay pattern** for item images: the page root wraps its content
+`Grid` plus a sibling `#CC000000` overlay bound to `InventoryViewModel.IsPreviewOpen`; the row `Image`
+carries `Cursor="Hand"` + a `MouseBinding` to `OpenPreview(Name)`, the overlay/`Esc` call
+`ClosePreview`, and the overlay `Image` uses `InventoryPreview.PreviewItemName` (native-resolution,
+unmemoized). Because a null-`Source` `Image` is not hit-tested, only rows that actually have an
+override image are clickable — no empty-overlay no-op is needed. `BuildItems` closes any open preview
+on rebuild.
 
 ## Contract completion & Wikelo reputation
 
@@ -144,8 +176,8 @@ Rank names stay English in both dictionaries (game standings); the surrounding t
 
 The **Inventory page** is the second data-driven list. Its items are auto-derived from every distinct
 required-item name across the catalog (`InventoryViewModel` flattens `Contract.Requirements`), each
-wrapped in an `InventoryItemViewModel` with a persisted `+`/`−` counter (`IInventoryStore` →
-`inventory.json`). Items are grouped into category sections via a `ListCollectionView` with a
+wrapped in an `InventoryItemViewModel` with a persisted editable `ui:NumberBox` counter
+(`IInventoryStore` → `inventory.json`; type a value or step by one). Items are grouped into category sections via a `ListCollectionView` with a
 `PropertyGroupDescription` on `CategoryLabel` (`GroupStyle` renders the headers) plus a `Filter`
 combining the search box and a category dropdown — the same collection-view idiom as the catalog.
 Categories come from `InventoryCategoryClassifier` (name-keyword rules; see `CLAUDE.md`), the placeholder
@@ -155,7 +187,9 @@ Item **images** have no API source, so they load purely from a user-editable ove
 (`InventoryImageOverrideService` → `img-inventory-overrides.json`, bundled + `%AppData%` layers)
 through the `helpers:InventoryPreview.ItemName` attached property — a simpler cousin of `RewardPreview`
 (override URL → disk cache → decode; category icon placeholder until it loads). The two-layer +
-hot-reload mechanics are shared with reward overrides via `Services/OverrideFileSet`.
+hot-reload mechanics are shared with reward overrides via `Services/OverrideFileSet`. Clicking a row
+image that has one opens a full-window preview (`InventoryPreview.PreviewItemName`; see the overlay
+pattern below).
 
 **Readiness** compares requirements against inventory counts (`Models/InventoryReadiness`). On the
 catalog card and detail page, each requirement chip is colored by `AvailabilityToBrushConverter`

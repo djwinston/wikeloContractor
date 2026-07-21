@@ -78,6 +78,12 @@ Reference (what already exists): https://wikelotrades.com , community Excel spre
 - [x] Full-window reward image preview on the detail page (click a reward image → full-resolution
       overlay; click anywhere or press Esc to close). Native-resolution decode variant added to the
       `RewardPreview` attached-property loader
+- [x] Blueprints granted on completion (crafting recipes/materials from mission-detail `blueprints[]`,
+      captured into `WikeloContract.Blueprints` at cache schema v11): the detail page shows a
+      **Blueprints** section above Rewards; catalog cards show a compact "BP: <name>" chip after the
+      reward pills (fixed blue fill). Only ~5 contracts have any (e.g. the "Metamaterial Test #NNN"
+      craft chain). Note: the API sends `"blueprints": null` when absent, which overwrites a non-null
+      DTO initializer — the parse guards with `?.`/`?? []` (see `docs/data-pipeline.md`)
 - [x] First-load progress uses a `ProgressBar` (indeterminate) instead of a `ProgressRing`
 - [x] Wikelo reputation: mark a contract completed on the card and detail page (`ICompletionService`,
       persisted to `completed.json` as UUID → earned reputation); accumulated total drives a rank
@@ -101,8 +107,14 @@ Reference (what already exists): https://wikelotrades.com , community Excel spre
       (`Models/InventoryCategoryClassifier`, unit-tested) with a per-item image supplied through a
       user-editable config (`img-inventory-overrides.json`, bundled + `%AppData%` layers) analogous
       to `img-catalog-overrides.json`; the two-layer engine is shared as `Services/OverrideFileSet`
-- [x] UI: `+`/`−` quantity editing, quick search by item name, category section headers,
-      category filter dropdown
+- [x] UI: quantity editing via an editable `ui:NumberBox` (type any value — scrips/favors run to
+      100s/1000s — or step by one; binding uses `UpdateSourceTrigger=PropertyChanged` so the spin
+      buttons commit immediately), quick search by item name, category section headers, category
+      filter dropdown
+- [x] Full-window item image preview (click a row image that has one → full-resolution overlay; click
+      anywhere or press Esc to close), reusing the detail page's overlay pattern via a native-resolution
+      `InventoryPreview.PreviewItemName` attached-property variant. Only rows with an override image are
+      clickable (a null-`Source` `Image` is not hit-tested)
 - [x] Progress + readiness: per-requirement availability coloring, "X / Y satisfied" count, and a
       "Contract ready to turn in" indicator on the catalog card and detail page (see Phase 2 entry)
 - [x] Marking a contract completed is gated on readiness (`IsReady`); confirming a dialog deducts the
@@ -110,6 +122,24 @@ Reference (what already exists): https://wikelotrades.com , community Excel spre
       spent items are **not** restored) listing what was deducted. Shared flow lives in
       `ViewModels/ContractCompletionInteraction` (WPF-UI `MessageBox`), called by both the catalog card
       and the detail page; the completion toggle disables until the contract is ready
+
+## Phase 3.5 — Resource sourcing ("where to find")
+
+A small in-app **reference / mini-wiki scoped to the inventory items** — *where to obtain each resource*.
+Not a shop database: the SC Wiki `shops` data is almost always empty for our items, so it is not a viable
+primary source.
+
+- [ ] New nav page **after Inventory**, over the same item set as the inventory (distinct required items,
+      shared `Models/InventoryCategoryClassifier`, grouped list with search + category filter, per-item image).
+- [ ] Per resource, surface **acquisition info**: authored sourcing notes (mining / salvage / how it is
+      crafted), a link to the wiki (`web_url`) when available, and a link / deep-link into the community
+      search tool **cstone Finder** (https://finder.cstone.space/). Investigate whether Finder supports a
+      per-item query/deep-link so a row can open its results directly.
+- [ ] **Delivery — decide the mix**: (a) curated notes in a **bundled + `%AppData%` override config**
+      (same two-layer `Services/OverrideFileSet` pattern as the image overrides), keyed by item name, so
+      notes are authored, shipped, and personally extendable; and/or (b) **embed an external tool** (e.g.
+      cstone Finder) via **WebView2** (`Microsoft.Web.WebView2` + Evergreen runtime). Keep it lightweight —
+      a reference, not a live database.
 
 ## Phase 4 — Overlay
 

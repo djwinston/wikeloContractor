@@ -73,6 +73,15 @@ $d.data[0].PSObject.Properties.Name                            # field inventory
 - Detail `hauling_orders` also list entries the list-level `hauling_summary` omits:
   "Wikelo Favor" (41 of 55 contracts) and vehicles to hand over — treat orders as the
   authoritative requirements source.
+- Mission detail `blueprints[]` (crafting recipes/materials granted on completion): only
+  **5 of 88** contracts have them. Each pool has `drop_chance_percent` + `items[]` (`name`,
+  `web_blueprint_link`). Two are a "Metamaterial Test #NNN" crafting chain (a #146 gate → Wolf
+  L-22 / Drake Clipper; the Clipper drops a dangling #152 with no current consumer, likely a
+  future contract); the other three are self-referential camo-gear blueprints (drop == reward).
+  Captured as flat distinct names in `WikeloContract.Blueprints`.
+- Per-mission `game_version` is **not** an "available from" version — it is uniform across all
+  contracts (= current LIVE build snapshot), so it is not captured. The data-snapshot version
+  comes from `GET /api/game-versions` (`is_default` entry) instead.
 - `GET /api/items/{uuid}` transparently returns **vehicle records** for vehicle UUIDs:
   `type` becomes a localized object (or is absent) and flags `is_spaceship` / `is_vehicle` /
   `is_gravlev` / `is_power_suit` appear. For regular items `type` is a string

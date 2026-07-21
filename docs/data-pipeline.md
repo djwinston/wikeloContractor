@@ -83,6 +83,16 @@ MSRP + pledge URL). The full field inventory of those responses — including ev
 do **not** store yet — is documented in `docs/api-item-fields.md`; extending it is
 parse-only (no extra API calls), just bump the cache schema version.
 
+Enrichment also flattens the mission-detail `blueprints[]` pools into distinct blueprint names
+per contract (`WikeloContract.Blueprints`; crafting recipes/materials — only ~5 contracts have
+any), added at cache schema **v11**. Gotcha: the API sends an explicit `"blueprints": null`
+(and `"items": null`) for contracts without any, and `System.Text.Json` **overwrites** a
+non-null `= []` initializer with that null — so the DTO collections are nullable and the LINQ
+guards with `?.` / `?? []`. An unguarded `detail?.Blueprints.SelectMany(...)` throws an NRE on
+the first null and, because enrichment swallows its exceptions, silently leaves the whole
+catalog un-enriched (no rewards/images/categories) — verify enrichment against **live** data,
+not just stubbed lists, when touching mission-detail parsing.
+
 ## Reward preview images
 
 Item/vehicle detail responses always carry an `images` array (no `include` param), so image

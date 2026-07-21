@@ -24,6 +24,11 @@
     <converters:PresenceToVisibilityConverter x:Key="NullToVisibility" Invert="True" />
   </Page.Resources>
 
+  <Page.InputBindings>
+    <KeyBinding Key="Escape" Command="{Binding ViewModel.ClosePreviewCommand}" />
+  </Page.InputBindings>
+
+  <Grid>
   <Grid Margin="42,24,42,0">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" />
@@ -132,8 +137,17 @@
                   <Image
                     x:Name="PreviewImage"
                     helpers:InventoryPreview.ItemName="{Binding Name}"
+                    Cursor="Hand"
                     RenderOptions.BitmapScalingMode="HighQuality"
-                    Stretch="Uniform" />
+                    Stretch="Uniform">
+                    <!-- A null-Source image is not hit-tested, so imageless rows are not clickable -->
+                    <Image.InputBindings>
+                      <MouseBinding
+                        Command="{Binding ViewModel.OpenPreviewCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                        CommandParameter="{Binding Name}"
+                        MouseAction="LeftClick" />
+                    </Image.InputBindings>
+                  </Image>
                 </Grid>
 
                 <!-- Name -->
@@ -146,35 +160,44 @@
                   TextTrimming="CharacterEllipsis"
                   TextWrapping="Wrap" />
 
-                <!-- Counter: - N + -->
-                <StackPanel
+                <!-- Editable counter: type a value directly (e.g. 100 / 1000) or step with the spin buttons -->
+                <ui:NumberBox
                   Grid.Column="2"
+                  MinWidth="140"
                   VerticalAlignment="Center"
-                  Orientation="Horizontal">
-                  <ui:Button
-                    Padding="8,4"
-                    Command="{Binding DecrementCommand}"
-                    Icon="{ui:SymbolIcon Subtract24}"
-                    ToolTip="{DynamicResource Inventory_Decrement}" />
-                  <TextBlock
-                    MinWidth="40"
-                    Margin="10,0"
-                    VerticalAlignment="Center"
-                    FontSize="18"
-                    FontWeight="SemiBold"
-                    Text="{Binding Count}"
-                    TextAlignment="Center" />
-                  <ui:Button
-                    Padding="8,4"
-                    Command="{Binding IncrementCommand}"
-                    Icon="{ui:SymbolIcon Add24}"
-                    ToolTip="{DynamicResource Inventory_Increment}" />
-                </StackPanel>
+                  ClearButtonEnabled="False"
+                  MaxDecimalPlaces="0"
+                  Minimum="0"
+                  SmallChange="1"
+                  SpinButtonPlacementMode="Inline"
+                  ToolTip="{DynamicResource Inventory_CountTooltip}"
+                  Value="{Binding Count, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
               </Grid>
             </Border>
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
     </ScrollViewer>
+  </Grid>
+
+    <!-- Full-window item image preview; click anywhere or press Esc to close -->
+    <Grid
+      Background="#CC000000"
+      Visibility="{Binding ViewModel.IsPreviewOpen, Converter={StaticResource BoolToVisibility}}">
+      <Grid.InputBindings>
+        <MouseBinding Command="{Binding ViewModel.ClosePreviewCommand}" MouseAction="LeftClick" />
+      </Grid.InputBindings>
+      <Image
+        Margin="60"
+        helpers:InventoryPreview.PreviewItemName="{Binding ViewModel.PreviewItemName}"
+        RenderOptions.BitmapScalingMode="HighQuality"
+        Stretch="Uniform" />
+      <ui:Button
+        Margin="0,24,24,0"
+        HorizontalAlignment="Right"
+        VerticalAlignment="Top"
+        Command="{Binding ViewModel.ClosePreviewCommand}"
+        Icon="{ui:SymbolIcon Dismiss24}" />
+    </Grid>
   </Grid>
 </Page>

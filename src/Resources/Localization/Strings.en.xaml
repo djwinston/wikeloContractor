@@ -21,6 +21,7 @@
   <sys:String x:Key="Catalog_Cat_Armor">Armor</sys:String>
   <sys:String x:Key="Catalog_Cat_Other">Other</sys:String>
   <sys:String x:Key="Catalog_ClearFilters">Clear filters</sys:String>
+  <sys:String x:Key="Catalog_BlueprintAbbrev">BP</sys:String>
   <sys:String x:Key="Catalog_Empty">No contracts match the filters.</sys:String>
   <sys:String x:Key="Catalog_LoadError_Title">Failed to load contracts</sys:String>
   <sys:String x:Key="Catalog_LoadError_Message">Check your internet connection and try again.</sys:String>
@@ -52,6 +53,7 @@
   <sys:String x:Key="Details_Back">Back to the catalog</sys:String>
   <sys:String x:Key="Details_OnceOnly">One-time contract</sys:String>
   <sys:String x:Key="Details_Prerequisites">Has prerequisites</sys:String>
+  <sys:String x:Key="Details_Blueprints">Blueprints</sys:String>
   <sys:String x:Key="Details_OpenWiki">Open on the wiki</sys:String>
   <sys:String x:Key="Details_OpenPledge">Pledge store page</sys:String>
   <sys:String x:Key="Details_Requirements">Required items</sys:String>
@@ -78,8 +80,7 @@
   <sys:String x:Key="Inventory_Title">My Inventory</sys:String>
   <sys:String x:Key="Inventory_SearchPlaceholder">Search items…</sys:String>
   <sys:String x:Key="Inventory_Empty">No items yet — required items from the catalog will appear here.</sys:String>
-  <sys:String x:Key="Inventory_Increment">Add one</sys:String>
-  <sys:String x:Key="Inventory_Decrement">Remove one</sys:String>
+  <sys:String x:Key="Inventory_CountTooltip">Type a quantity or use the up/down arrows</sys:String>
   <sys:String x:Key="Inventory_Cat_OreMineral">Ores &amp; minerals</sys:String>
   <sys:String x:Key="Inventory_Cat_Armor">Armor</sys:String>
   <sys:String x:Key="Inventory_Cat_Weapon">Weapons</sys:String>

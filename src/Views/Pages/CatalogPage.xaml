@@ -365,6 +365,31 @@
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
+
+              <!-- Blueprints granted, abbreviated (after the rewards); empty source renders nothing -->
+              <ItemsControl ItemsSource="{Binding Contract.Blueprints}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <!-- Solid blue fill so the BP chip reads as a distinct color, not the gray default -->
+                    <Border
+                      Margin="0,0,6,6"
+                      Padding="8,3"
+                      Background="{DynamicResource BlueprintChipBackgroundBrush}"
+                      CornerRadius="10">
+                      <TextBlock FontSize="12" Foreground="White">
+                        <Run
+                          FontWeight="SemiBold"
+                          Text="{DynamicResource Catalog_BlueprintAbbrev}" /><Run Text=": " /><Run Text="{Binding Mode=OneWay}" />
+                      </TextBlock>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
               </StackPanel>
             </Grid>
             </Border>

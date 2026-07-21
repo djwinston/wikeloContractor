@@ -66,7 +66,11 @@ public sealed record WikeloContract
     /// <summary>Wikelo Emporium reputation gained on completion.</summary>
     public int ReputationAmount { get; init; }
 
-    public string? GameVersion { get; init; }
+    /// <summary>
+    /// Blueprint (crafting recipe / material) names granted on completion, e.g. "Metamaterial
+    /// Test #152". Empty for most contracts; a few vehicle/gear trades drop them.
+    /// </summary>
+    public IReadOnlyList<string> Blueprints { get; init; } = [];
 
     public string? WebUrl { get; init; }
 }

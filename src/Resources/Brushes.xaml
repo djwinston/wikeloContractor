@@ -1,0 +1,10 @@
+<ResourceDictionary
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Blueprint chip fill: a fixed, solid blue chosen to read as a distinct color, deliberately
+       NOT the theme accent (reward pills use the accent). Shared by the catalog card BP chip and
+       the detail page Blueprints section so the two never drift. White foreground on top. -->
+  <SolidColorBrush x:Key="BlueprintChipBackgroundBrush" Color="#0067C0" />
+
+</ResourceDictionary>
