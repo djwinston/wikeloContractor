@@ -39,6 +39,34 @@ Every `CatalogLoadResult` carries a single mutually-exclusive `CatalogStatus`
 (`Online` / `Offline` / `RateLimited`), decided once by the service. The UI maps that one
 value to badges/InfoBars, so offline and rate-limited can never be reported together.
 
+## Sync state (completeness — a second, orthogonal axis)
+
+`CatalogStatus` answers *how fresh* the data is. It cannot answer *how complete* it is: the
+catalog is served `Online` the moment the mission list lands, minutes before enrichment fills in
+rewards, categories and the real requirement lists. That gap is what `CatalogSyncState`
+(`Services/CatalogSyncState.cs`, exposed as `IContractCatalogService.SyncState` +
+`SyncStateChanged`) makes visible — do **not** add a fourth `CatalogStatus` value for it, the two
+axes combine (`Online` *and* syncing is the normal case).
+
+- `Phase` (`Idle` / `Contracts` / `Rewards`) plus a per-phase `Completed`/`Total`. The total is
+  per-phase on purpose: the reward count is unknown until every mission detail has been read, so
+  one global total would have to be invented. The gun-name pass that follows classification is a
+  short unreported tail — its keys are derived from the pass before it.
+- Set **synchronously** in `StartEnrichmentIfNeeded` before the work is queued, so a caller that
+  has just awaited `GetContractsAsync` never observes a briefly-complete catalog.
+- Cleared in the `finally` of the enrichment task, so both the success and abort paths reset it —
+  enrichment swallows its exceptions, so a reset that lived only on the success path would let an
+  aborted run block the UI until restart. `CatalogUpdated` is then raised **outside** that guarded
+  region, which fixes the ordering in two ways: `SyncState` is already `Idle`, so a subscriber told
+  "complete data is available" never still sees a syncing catalog; and the `Interlocked` run guard
+  is already released, so a subscriber that reacts by forcing a refresh can start the *next*
+  enrichment instead of being turned away by the run it is reacting to (a real race the E2E sync
+  scenarios exercise — see `docs/testing.md`).
+- While syncing the UI blocks the catalog (filters disabled, overlay over the list) and withholds
+  the completion toggle. That last one is not cosmetic: `ContractCompletionInteraction` deducts
+  `contract.Requirements`, which mid-sync is still the `hauling_summary` fallback — no SCU
+  amounts, missing entries — so completing then removes the wrong amounts, irreversibly.
+
 ## Background enrichment
 
 The missions list has no rewards; those need per-mission detail calls (~88) plus item
@@ -83,6 +111,16 @@ MSRP + pledge URL). The full field inventory of those responses — including ev
 do **not** store yet — is documented in `docs/api-item-fields.md`; extending it is
 parse-only (no extra API calls), just bump the cache schema version.
 
+Enrichment also flattens the mission-detail `blueprints[]` pools into distinct blueprint names
+per contract (`WikeloContract.Blueprints`; crafting recipes/materials — only ~5 contracts have
+any), added at cache schema **v11**. Gotcha: the API sends an explicit `"blueprints": null`
+(and `"items": null`) for contracts without any, and `System.Text.Json` **overwrites** a
+non-null `= []` initializer with that null — so the DTO collections are nullable and the LINQ
+guards with `?.` / `?? []`. An unguarded `detail?.Blueprints.SelectMany(...)` throws an NRE on
+the first null and, because enrichment swallows its exceptions, silently leaves the whole
+catalog un-enriched (no rewards/images/categories) — verify enrichment against **live** data,
+not just stubbed lists, when touching mission-detail parsing.
+
 ## Reward preview images
 
 Item/vehicle detail responses always carry an `images` array (no `include` param), so image
@@ -100,10 +138,10 @@ uses the first loadable one, keeping the rest available for manual selection lat
 - Wikelo-exclusive variants (e.g. "Asgard Wikelo War Special") have **no** wiki images —
   the UI falls back to a category placeholder icon.
 - `ImageOverrideService` merges **two** override files: the bundled
-  `src/Resources/image-overrides.json` (maintained in the repo, copied to the build output —
+  `src/Resources/img-catalog-overrides.json` (maintained in the repo, copied to the build output —
   shared defaults for every user; pre-seeded with placeholder entries for items without API
   images, inventory in `docs/reward-images.md`) and the user's
-  `%AppData%\WikeloContractor\image-overrides.json` (template auto-created), which wins per
+  `%AppData%\WikeloContractor\img-catalog-overrides.json` (template auto-created), which wins per
   key. Keys are item UUID **or** item name (case-insensitive); values are an image URL (or,
   in the user file, an absolute local path); empty values are ignored placeholders.
   Overrides win over API images and both files are re-read when they change on disk.
@@ -129,8 +167,9 @@ Both service events may fire on background threads — always `Dispatcher.Invoke
 
 | Event | Payload | Raised when |
 |---|---|---|
-| `CatalogUpdated` | — | enrichment finished, `Current` has fresh data |
+| `CatalogUpdated` | — | enrichment finished, `Current` has fresh data (`SyncState` is already `Idle`) |
 | `RateLimitChanged` | — | rate-limit window opened (or a call was attempted while the gate is closed); read `RateLimitedUntil` for the deadline |
+| `SyncStateChanged` | — | enrichment started, advanced or ended (including on abort); read `SyncState` |
 
 ## Politeness rules (non-negotiable)
 

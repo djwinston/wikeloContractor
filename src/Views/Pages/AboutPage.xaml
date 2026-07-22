@@ -19,35 +19,90 @@
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
   </Page.Resources>
 
-  <StackPanel Margin="42,24" MaxWidth="600" HorizontalAlignment="Left">
+  <StackPanel
+    MaxWidth="620"
+    Margin="{StaticResource SpacingPagePadding}"
+    HorizontalAlignment="Left">
     <TextBlock
-      FontSize="28"
-      FontWeight="DemiBold"
+      FontSize="{StaticResource FontSizeTitle}"
+      FontWeight="Bold"
       Text="{DynamicResource Nav_About}" />
 
-    <Image
-      Margin="0,24,0,0"
-      HorizontalAlignment="Left"
-      MaxWidth="360"
-      Source="pack://application:,,,/Assets/about-hero.png"
-      Stretch="Uniform">
-      <Image.Clip>
-        <RectangleGeometry RadiusX="8" RadiusY="8" Rect="0,0,360,225" />
-      </Image.Clip>
-    </Image>
+    <!-- Brand hero. Composed here rather than shipped as a bitmap: the design calls for a light
+         panel in the light theme and a dark one in the dark theme, so a single PNG cannot serve
+         both, and two PNGs would need a runtime image swap. Built from the theme-swapped gradient
+         plus the vector mark, it is theme-correct by construction, sharp at any DPI, and picks up
+         new artwork automatically when BrandIcons.xaml is regenerated. -->
+    <Border
+      Height="290"
+      Margin="0,18,0,0"
+      Background="{DynamicResource AboutHeroBackgroundBrush}"
+      BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+      BorderThickness="1"
+      CornerRadius="12">
+      <StackPanel VerticalAlignment="Center">
+        <Border
+          Width="92"
+          Height="92"
+          Background="{DynamicResource ChipRewardBackgroundBrush}"
+          BorderBrush="{DynamicResource AccentFillColorDefaultBrush}"
+          BorderThickness="2"
+          CornerRadius="46">
+          <Image
+            Width="46"
+            Height="46"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Source="{DynamicResource AppMarkThemed}" />
+        </Border>
+        <TextBlock
+          Margin="0,14,0,0"
+          HorizontalAlignment="Center"
+          FontSize="30"
+          FontWeight="ExtraBold"
+          Text="{DynamicResource App_Name}" />
+        <TextBlock
+          Margin="0,8,0,0"
+          HorizontalAlignment="Center"
+          FontFamily="{StaticResource MonoFontFamily}"
+          FontSize="10"
+          FontWeight="SemiBold"
+          Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
+          Text="{DynamicResource About_Tagline}" />
+      </StackPanel>
+    </Border>
 
     <TextBlock
-      Margin="0,12,0,0"
+      Margin="0,18,0,0"
+      FontSize="{StaticResource FontSizeBody}"
       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
       Text="{DynamicResource Settings_About}"
       TextWrapping="Wrap" />
 
-    <StackPanel Margin="0,8,0,0" Orientation="Horizontal">
-      <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="{DynamicResource Settings_AppVersion}" />
+    <StackPanel Margin="0,14,0,0" Orientation="Horizontal">
+      <TextBlock
+        FontSize="{StaticResource FontSizeBody}"
+        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+        Text="{DynamicResource Settings_AppVersion}" />
       <TextBlock
         Margin="6,0,0,0"
-        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+        FontSize="{StaticResource FontSizeBody}"
+        FontWeight="SemiBold"
         Text="{Binding ViewModel.AppVersion, Mode=OneWay}" />
+    </StackPanel>
+
+    <!-- Tech stack. The technology names are proper nouns (like item/ship names) and stay English;
+         only the label is localized. -->
+    <StackPanel Margin="0,6,0,0" Orientation="Horizontal">
+      <TextBlock
+        FontSize="{StaticResource FontSizeBody}"
+        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+        Text="{DynamicResource Settings_BuiltWith}" />
+      <TextBlock
+        Margin="6,0,0,0"
+        FontSize="{StaticResource FontSizeBody}"
+        FontWeight="SemiBold"
+        Text=".NET 10  ·  C#  ·  WPF  ·  WPF-UI (Fluent)" />
     </StackPanel>
 
     <!-- Self-update (Velopack): manual check + restart-to-apply -->
@@ -79,15 +134,22 @@
 
     <!-- Required credit per Star Citizen Wiki API terms of use -->
     <TextBlock
-      Margin="0,12,0,0"
+      Margin="0,20,0,0"
+      FontSize="{StaticResource FontSizeCaption}"
       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
       TextWrapping="Wrap">
       <Run Text="{DynamicResource Settings_Attribution}" />
-      <Hyperlink NavigateUri="https://api.star-citizen.wiki" RequestNavigate="OnAttributionLinkNavigate">api.star-citizen.wiki</Hyperlink>
+      <!-- An inline Hyperlink keeps WPF's stock blue, which is near-invisible on the dark theme's
+           surface; the theme's accent-text brush is the themed equivalent. -->
+      <Hyperlink
+        Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
+        NavigateUri="https://api.star-citizen.wiki"
+        RequestNavigate="OnAttributionLinkNavigate">api.star-citizen.wiki</Hyperlink>
     </TextBlock>
 
     <TextBlock
-      Margin="0,8,0,0"
+      Margin="0,10,0,0"
+      FontSize="{StaticResource FontSizeCaption}"
       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
       Text="{DynamicResource Settings_Disclaimer}"
       TextWrapping="Wrap" />

@@ -1,0 +1,85 @@
+<!--
+  Vector app mark for the in-app title bar, so it stays crisp at any DPI instead of downscaling a
+  PNG. Geometry is the "mid" master (docs/brand/master-{ondark,onlight}-mid.svg): the full-bleed
+  rounded tile plus the "W" stroke, with the full composition's faint inner border and the dot over
+  the W dropped — neither resolves at the 16 logical px the ui:TitleBar icon slot renders at.
+
+  A DrawingImage sizes to its drawing bounds and has no viewBox, so every element must stay inside
+  the 0,0,200,200 tile. The W stroke's round caps (half of thickness 19 ≈ 9.5) stay well within it.
+
+  Key names describe the ARTWORK / target surface, matching Assets/icon.png and icon-light.png and
+  the code that consumes them (MainWindow.UpdateAppIcon, ApplicationHostService.ApplyThemedMark):
+  AppMarkDark is the dark-tile mark for LIGHT surfaces (= master-onlight), AppMarkLight the
+  cyan-tile mark for DARK surfaces (= master-ondark). See docs/brand/icon-spec.md.
+-->
+<ResourceDictionary
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Dark-tile mark, for light surfaces (master-onlight-mid) -->
+  <DrawingImage x:Key="AppMarkDark">
+    <DrawingImage.Drawing>
+      <DrawingGroup>
+        <GeometryDrawing>
+          <GeometryDrawing.Geometry>
+            <RectangleGeometry RadiusX="46" RadiusY="46" Rect="0,0,200,200" />
+          </GeometryDrawing.Geometry>
+          <GeometryDrawing.Brush>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="0.45,1">
+              <GradientStop Offset="0" Color="#0F2F3C" />
+              <GradientStop Offset="0.65" Color="#0B141B" />
+            </LinearGradientBrush>
+          </GeometryDrawing.Brush>
+        </GeometryDrawing>
+
+        <GeometryDrawing Geometry="M52,66 L82,140 L100,96 L118,140 L148,66">
+          <GeometryDrawing.Pen>
+            <Pen
+              EndLineCap="Round"
+              LineJoin="Round"
+              StartLineCap="Round"
+              Thickness="19">
+              <Pen.Brush>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                  <GradientStop Offset="0" Color="#9AF0FF" />
+                  <GradientStop Offset="1" Color="#22B7DC" />
+                </LinearGradientBrush>
+              </Pen.Brush>
+            </Pen>
+          </GeometryDrawing.Pen>
+        </GeometryDrawing>
+      </DrawingGroup>
+    </DrawingImage.Drawing>
+  </DrawingImage>
+
+  <!-- Cyan-tile mark, for dark surfaces (master-ondark-mid) -->
+  <DrawingImage x:Key="AppMarkLight">
+    <DrawingImage.Drawing>
+      <DrawingGroup>
+        <GeometryDrawing>
+          <GeometryDrawing.Geometry>
+            <RectangleGeometry RadiusX="46" RadiusY="46" Rect="0,0,200,200" />
+          </GeometryDrawing.Geometry>
+          <GeometryDrawing.Brush>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="0.45,1">
+              <GradientStop Offset="0" Color="#8FF0FF" />
+              <GradientStop Offset="0.65" Color="#2FD0EE" />
+            </LinearGradientBrush>
+          </GeometryDrawing.Brush>
+        </GeometryDrawing>
+
+        <GeometryDrawing Geometry="M52,66 L82,140 L100,96 L118,140 L148,66">
+          <GeometryDrawing.Pen>
+            <Pen
+              Brush="#0A1B24"
+              EndLineCap="Round"
+              LineJoin="Round"
+              StartLineCap="Round"
+              Thickness="19" />
+          </GeometryDrawing.Pen>
+        </GeometryDrawing>
+      </DrawingGroup>
+    </DrawingImage.Drawing>
+  </DrawingImage>
+
+</ResourceDictionary>

@@ -20,8 +20,13 @@ public partial class SettingsViewModel : ViewModel
     [ObservableProperty]
     private int _themeIndex;
 
+    /// <summary>
+    /// The API's full version string, build number included (e.g. "4.9.0-LIVE.12232306"). Shown
+    /// only here, labelled as the API version: the build tracks API data revisions rather than game
+    /// patches, so the catalog and detail headers drop it (see <see cref="GameVersionDisplay"/>).
+    /// </summary>
     [ObservableProperty]
-    private string? _dataGameVersion;
+    private string? _dataApiVersion;
 
     [ObservableProperty]
     private string? _dataLastSync;
@@ -88,7 +93,7 @@ public partial class SettingsViewModel : ViewModel
 
     private void ApplyCatalogState(CatalogLoadResult? result)
     {
-        DataGameVersion = result?.GameVersion;
+        DataApiVersion = result?.GameVersion;
         DataLastSync = result?.FetchedAt.ToLocalTime().ToString("g");
     }
 
@@ -130,9 +135,9 @@ public partial class SettingsViewModel : ViewModel
         }
 
         var theme = (AppTheme)value;
-        ApplicationHostService.ApplyTheme(theme);
-
         _settingsService.Current.Theme = theme;
+
+        ApplicationHostService.ApplyTheme(theme);
         _ = _settingsService.SaveAsync();
     }
 }

@@ -1,0 +1,34 @@
+# Line endings are decided here, not by each clone's core.autocrlf.
+#
+# Without this file the behaviour depends on a local Git setting: a tool that writes LF (sed,
+# a script, an editor on another machine) makes Git announce "LF will be replaced by CRLF the
+# next time Git touches it", and whether that is even a problem varies per developer.
+#
+# Text is stored as LF in the repository and checked out as CRLF. That matches .editorconfig
+# (end_of_line = crlf) and the Windows-only target — net10.0-windows / WPF, CI on windows-latest
+# — so eol=crlf is deliberate rather than platform-dependent: a clone on any OS gets CRLF.
+* text=auto eol=crlf
+
+# Shell scripts must keep LF or they fail to run, including under Git Bash on Windows.
+*.sh text eol=lf
+
+# Better hunk headers: Git shows the enclosing type/method instead of a random brace.
+*.cs diff=csharp
+
+# Binaries — never normalised, never diffed as text. .svg is intentionally absent: it is XML,
+# and the brand masters under docs/brand/ are worth diffing.
+*.png binary
+*.ico binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.zip binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.dll binary
+*.exe binary
+*.pdb binary
+*.snk binary

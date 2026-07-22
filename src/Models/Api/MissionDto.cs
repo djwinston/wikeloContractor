@@ -50,9 +50,6 @@ public sealed class MissionDto
     [JsonPropertyName("reputation_amount")]
     public int? ReputationAmount { get; set; }
 
-    [JsonPropertyName("game_version")]
-    public string? GameVersion { get; set; }
-
     [JsonPropertyName("web_url")]
     public string? WebUrl { get; set; }
 }
@@ -111,6 +108,25 @@ public sealed class MissionDetailDto
 
     [JsonPropertyName("hauling_orders")]
     public List<HaulingOrderDto> HaulingOrders { get; set; } = [];
+
+    // Blueprint pools granted on completion (crafting recipes / materials, e.g. "Metamaterial
+    // Test #152"). The API sends an explicit JSON `null` for contracts without any (most of
+    // them), so this must stay nullable — a non-null initializer would be overwritten with null.
+    [JsonPropertyName("blueprints")]
+    public List<BlueprintPoolDto>? Blueprints { get; set; }
+}
+
+/// <summary>One blueprint drop pool of a mission; only its granted item names are captured.</summary>
+public sealed class BlueprintPoolDto
+{
+    [JsonPropertyName("items")]
+    public List<BlueprintItemDto>? Items { get; set; }
+}
+
+public sealed class BlueprintItemDto
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
 }
 
 /// <summary>

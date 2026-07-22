@@ -2,8 +2,8 @@ namespace WikeloContractor.Services;
 
 /// <summary>
 /// Replacement images for reward items, merged from two files: the bundled
-/// <c>Resources/image-overrides.json</c> (shipped with the app, maintained in the repo)
-/// and the user's <c>%AppData%\WikeloContractor\image-overrides.json</c>, which wins per
+/// <c>Resources/img-catalog-overrides.json</c> (shipped with the app, maintained in the repo)
+/// and the user's <c>%AppData%\WikeloContractor\img-catalog-overrides.json</c>, which wins per
 /// key. Covers items the wiki has no image for (e.g. Wikelo-exclusive variants).
 /// </summary>
 public interface IImageOverrideService

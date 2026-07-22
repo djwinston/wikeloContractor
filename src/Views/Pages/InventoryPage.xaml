@@ -22,9 +22,15 @@
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
     <converters:InventoryCategoryToSymbolConverter x:Key="CategoryToSymbol" />
     <converters:PresenceToVisibilityConverter x:Key="NullToVisibility" Invert="True" />
+    <converters:ToUpperConverter x:Key="ToUpper" />
   </Page.Resources>
 
-  <Grid Margin="42,24,42,0">
+  <Page.InputBindings>
+    <KeyBinding Key="Escape" Command="{Binding ViewModel.ClosePreviewCommand}" />
+  </Page.InputBindings>
+
+  <Grid>
+  <Grid Margin="{StaticResource SpacingPagePadding}">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" />
       <RowDefinition Height="Auto" />
@@ -35,12 +41,12 @@
     <!-- Header -->
     <TextBlock
       Grid.Row="0"
-      FontSize="28"
-      FontWeight="DemiBold"
+      FontSize="{StaticResource FontSizeTitle}"
+      FontWeight="Bold"
       Text="{DynamicResource Inventory_Title}" />
 
     <!-- Search + category filter -->
-    <Grid Grid.Row="1" Margin="0,12,0,0">
+    <Grid Grid.Row="1" Margin="0,16,0,0">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="Auto" />
@@ -92,11 +98,11 @@
             <GroupStyle.HeaderTemplate>
               <DataTemplate>
                 <TextBlock
-                  Margin="0,16,0,4"
-                  FontSize="16"
-                  FontWeight="SemiBold"
+                  Margin="0,18,0,11"
+                  FontSize="12"
+                  FontWeight="Bold"
                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                  Text="{Binding Name}" />
+                  Text="{Binding Name, Converter={StaticResource ToUpper}}" />
               </DataTemplate>
             </GroupStyle.HeaderTemplate>
           </GroupStyle>
@@ -104,10 +110,12 @@
         <ItemsControl.ItemTemplate>
           <DataTemplate>
             <Border
-              Margin="0,4"
+              Margin="0,0,0,9"
               Padding="16,12"
-              Background="{DynamicResource ControlFillColorDefaultBrush}"
-              CornerRadius="8">
+              Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+              BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+              BorderThickness="1"
+              CornerRadius="{StaticResource RadiusCard}">
               <Grid>
                 <Grid.ColumnDefinitions>
                   <ColumnDefinition Width="Auto" />
@@ -116,65 +124,112 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Item image: category icon until the configured image loads -->
-                <Grid
+                <Border
                   Grid.Column="0"
-                  Width="64"
-                  Height="64"
-                  Margin="0,0,14,0"
-                  VerticalAlignment="Center">
-                  <ui:SymbolIcon
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    FontSize="32"
-                    Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                    Symbol="{Binding Category, Converter={StaticResource CategoryToSymbol}}"
-                    Visibility="{Binding Source, ElementName=PreviewImage, Converter={StaticResource NullToVisibility}}" />
-                  <Image
-                    x:Name="PreviewImage"
-                    helpers:InventoryPreview.ItemName="{Binding Name}"
-                    RenderOptions.BitmapScalingMode="HighQuality"
-                    Stretch="Uniform" />
-                </Grid>
+                  Width="{StaticResource SizeInventoryThumb}"
+                  Height="{StaticResource SizeInventoryThumb}"
+                  Margin="0,0,15,0"
+                  VerticalAlignment="Center"
+                  Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                  CornerRadius="8">
+                  <!-- Border does not clip to its corner radius; without this the artwork renders
+                       square corners over the rounded thumb (same as the catalog row). -->
+                  <Grid>
+                    <Grid.Clip>
+                      <RectangleGeometry
+                        RadiusX="8"
+                        RadiusY="8"
+                        Rect="0,0,46,46" />
+                    </Grid.Clip>
+                    <ui:SymbolIcon
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"
+                      FontSize="20"
+                      Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                      Symbol="{Binding Category, Converter={StaticResource CategoryToSymbol}}"
+                      Visibility="{Binding Source, ElementName=PreviewImage, Converter={StaticResource NullToVisibility}}" />
+                    <Image
+                      x:Name="PreviewImage"
+                      helpers:InventoryPreview.ItemName="{Binding Name}"
+                      Cursor="Hand"
+                      RenderOptions.BitmapScalingMode="HighQuality"
+                      Stretch="Uniform">
+                      <!-- A null-Source image is not hit-tested, so imageless rows are not clickable -->
+                      <Image.InputBindings>
+                        <MouseBinding
+                          Command="{Binding ViewModel.OpenPreviewCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                          CommandParameter="{Binding Name}"
+                          MouseAction="LeftClick" />
+                      </Image.InputBindings>
+                    </Image>
+                  </Grid>
+                </Border>
 
                 <!-- Name -->
                 <TextBlock
                   Grid.Column="1"
                   VerticalAlignment="Center"
-                  FontSize="16"
+                  FontSize="{StaticResource FontSizeBodyStrong}"
                   FontWeight="SemiBold"
                   Text="{Binding Name}"
                   TextTrimming="CharacterEllipsis"
                   TextWrapping="Wrap" />
 
-                <!-- Counter: - N + -->
-                <StackPanel
+                <!-- Editable counter: type a value directly (e.g. 100 / 1000) or step with the spin
+                     buttons. Mono, because it is a quantity. An empty stock (0) is muted so a
+                     glance down the list reads as "what do I still need". -->
+                <ui:NumberBox
                   Grid.Column="2"
+                  Width="110"
+                  Margin="15,0,0,0"
                   VerticalAlignment="Center"
-                  Orientation="Horizontal">
-                  <ui:Button
-                    Padding="8,4"
-                    Command="{Binding DecrementCommand}"
-                    Icon="{ui:SymbolIcon Subtract24}"
-                    ToolTip="{DynamicResource Inventory_Decrement}" />
-                  <TextBlock
-                    MinWidth="40"
-                    Margin="10,0"
-                    VerticalAlignment="Center"
-                    FontSize="18"
-                    FontWeight="SemiBold"
-                    Text="{Binding Count}"
-                    TextAlignment="Center" />
-                  <ui:Button
-                    Padding="8,4"
-                    Command="{Binding IncrementCommand}"
-                    Icon="{ui:SymbolIcon Add24}"
-                    ToolTip="{DynamicResource Inventory_Increment}" />
-                </StackPanel>
+                  ClearButtonEnabled="False"
+                  FontFamily="{StaticResource MonoFontFamily}"
+                  MaxDecimalPlaces="0"
+                  Minimum="0"
+                  SmallChange="1"
+                  SpinButtonPlacementMode="Inline"
+                  ToolTip="{DynamicResource Inventory_CountTooltip}"
+                  Value="{Binding Count, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                  <ui:NumberBox.Style>
+                    <Style BasedOn="{StaticResource {x:Type ui:NumberBox}}" TargetType="ui:NumberBox">
+                      <Style.Triggers>
+                        <!-- Secondary, not tertiary: tertiary on the light theme's white row is
+                             effectively invisible, and an unreadable count is worse than a weak
+                             empty/non-empty contrast. -->
+                        <DataTrigger Binding="{Binding Count}" Value="0">
+                          <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </ui:NumberBox.Style>
+                </ui:NumberBox>
               </Grid>
             </Border>
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
     </ScrollViewer>
+  </Grid>
+
+    <!-- Full-window item image preview; click anywhere or press Esc to close -->
+    <Grid
+      Background="#CC000000"
+      Visibility="{Binding ViewModel.IsPreviewOpen, Converter={StaticResource BoolToVisibility}}">
+      <Grid.InputBindings>
+        <MouseBinding Command="{Binding ViewModel.ClosePreviewCommand}" MouseAction="LeftClick" />
+      </Grid.InputBindings>
+      <Image
+        Margin="60"
+        helpers:InventoryPreview.PreviewItemName="{Binding ViewModel.PreviewItemName}"
+        RenderOptions.BitmapScalingMode="HighQuality"
+        Stretch="Uniform" />
+      <ui:Button
+        Margin="0,24,24,0"
+        HorizontalAlignment="Right"
+        VerticalAlignment="Top"
+        Command="{Binding ViewModel.ClosePreviewCommand}"
+        Icon="{ui:SymbolIcon Dismiss24}" />
+    </Grid>
   </Grid>
 </Page>

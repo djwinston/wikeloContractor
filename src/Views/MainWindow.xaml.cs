@@ -1,4 +1,6 @@
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Microsoft.Win32;
 using Wpf.Ui;
 using Wpf.Ui.Abstractions;
 using Wpf.Ui.Appearance;
@@ -13,6 +15,13 @@ public partial class MainWindow : INavigationWindow
 {
     public MainWindowViewModel ViewModel { get; }
 
+    /// <summary>Last (app theme, shell-light) pair the icons were built for; skips redundant rebuilds.</summary>
+    private (ApplicationTheme Theme, bool ShellLight)? _appliedIconState;
+
+    /// <summary>Frozen taskbar bitmaps, decoded once per art (navy on a light shell, cyan on a dark one).</summary>
+    private BitmapImage? _taskbarLightShellIcon;
+    private BitmapImage? _taskbarDarkShellIcon;
+
     public MainWindow(
         MainWindowViewModel viewModel,
         INavigationService navigationService,
@@ -21,10 +30,14 @@ public partial class MainWindow : INavigationWindow
         ViewModel = viewModel;
         DataContext = this;
 
-        // Watch the system theme only when the user selected "System"
+        // Watch the system theme only when the user selected "System".
+        // updateAccents MUST stay false: it defaults to true, and then every system theme
+        // evaluation re-derives the accent from the Windows accent colour, silently replacing the
+        // brand accent ApplicationHostService.ApplyTheme just installed. Same reason ApplyTheme
+        // passes updateAccent: false to ApplicationThemeManager.Apply.
         if (settingsService.Current.Theme == AppTheme.System)
         {
-            SystemThemeWatcher.Watch(this);
+            SystemThemeWatcher.Watch(this, WindowBackdropType.Mica, updateAccents: false);
         }
 
         InitializeComponent();
@@ -33,22 +46,96 @@ public partial class MainWindow : INavigationWindow
 
         UpdateAppIcon(ApplicationThemeManager.GetAppTheme());
         ApplicationThemeManager.Changed += OnThemeChanged;
+        SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
     }
 
+    /// <summary>
+    /// The WPF-UI theme changed. Our brand layer is not its business, so re-apply it or the dark
+    /// chip tints, blueprint role and completed-row wash stay on a light surface.
+    /// The <c>systemAccent</c> argument is deliberately ignored — the app always uses the brand one.
+    /// </summary>
     private void OnThemeChanged(ApplicationTheme currentApplicationTheme, System.Windows.Media.Color systemAccent) =>
-        UpdateAppIcon(currentApplicationTheme);
+        ReapplyBrandLayer(currentApplicationTheme);
 
-    /// <summary>Light icon on the dark theme and vice versa, so it stays visible on the title bar and taskbar.</summary>
+    /// <summary>Windows theme changes do not raise <see cref="ApplicationThemeManager.Changed"/>.</summary>
+    private void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
+    {
+        if (e.Category == UserPreferenceCategory.General)
+        {
+            Dispatcher.Invoke(() => ReapplyBrandLayer(ApplicationThemeManager.GetAppTheme()));
+        }
+    }
+
+    /// <summary>
+    /// Re-applies our theme-dependent layer after the WPF-UI theme changed underneath us.
+    /// <para>
+    /// Deliberately driven from BOTH <see cref="OnThemeChanged"/> and
+    /// <see cref="OnUserPreferenceChanged"/>: a Windows light/dark flip notifies the
+    /// <c>SystemThemeWatcher</c> and this window through the same OS message, and their order is
+    /// not guaranteed. Whichever fires second sees the settled theme and corrects the layer, so
+    /// the palette cannot end up stale. Both calls are idempotent.
+    /// </para>
+    /// </summary>
+    private void ReapplyBrandLayer(ApplicationTheme applied)
+    {
+        ApplicationHostService.ApplyBrandLayer(applied);
+        UpdateAppIcon(applied);
+    }
+
+    /// <summary>
+    /// Keeps the app mark readable. The two surfaces differ in both asset kind and in which theme
+    /// decides: the title bar sits on a surface this app paints, while the taskbar sits on one
+    /// Windows paints, and the two themes are set independently.
+    /// </summary>
     private void UpdateAppIcon(ApplicationTheme theme)
     {
-        var iconUri = theme == ApplicationTheme.Dark
-            ? new Uri("pack://application:,,,/Assets/icon-light.png")
-            : new Uri("pack://application:,,,/Assets/icon.png");
+        // General preference changes fire often (accent colour, cursor, …); rebuild only when a
+        // signal an icon actually depends on has changed, so the PNG decode below is not repeated.
+        var shellLight = IsWindowsShellLight();
+        if (_appliedIconState == (theme, shellLight))
+        {
+            return;
+        }
 
-        var image = new BitmapImage(iconUri);
-        TitleBarControl.Icon = new ImageIcon { Source = image };
-        Icon = image;
+        _appliedIconState = (theme, shellLight);
+
+        // Title bar: the vector mark, crisp at any DPI. Follows the app's own theme.
+        // Do not set an explicit size: the ui:TitleBar template constrains its icon slot, and
+        // anything larger is clipped flat top and bottom rather than scaled.
+        var markKey = theme == ApplicationTheme.Dark ? "AppMarkLight" : "AppMarkDark";
+        TitleBarControl.Icon = new ImageIcon { Source = (ImageSource)Application.Current.Resources[markKey] };
+
+        // Taskbar/Alt-Tab: must stay a raster bitmap, WPF hands it to Win32 as an HICON. Follows
+        // the Windows theme — picking by app theme puts the navy mark on a dark taskbar at a 1.2:1
+        // contrast ratio whenever the two disagree.
+        Icon = shellLight
+            ? TaskbarIcon(ref _taskbarLightShellIcon, "icon.png")
+            : TaskbarIcon(ref _taskbarDarkShellIcon, "icon-light.png");
     }
+
+    /// <summary>Decodes a taskbar bitmap once and freezes it; later calls reuse the cached instance.</summary>
+    private static BitmapImage TaskbarIcon(ref BitmapImage? cache, string assetFile)
+    {
+        if (cache is null)
+        {
+            var icon = new BitmapImage(new Uri($"pack://application:,,,/Assets/{assetFile}"));
+            icon.Freeze();
+            cache = icon;
+        }
+
+        return cache;
+    }
+
+    /// <summary>
+    /// Reads the taskbar/Start theme. This is <c>SystemUsesLightTheme</c>, a separate setting from
+    /// the <c>AppsUseLightTheme</c> value that drives app surfaces. Defaults to dark, the Windows 11
+    /// default, when the value is missing.
+    /// </summary>
+    private static bool IsWindowsShellLight() =>
+        Registry.GetValue(
+            @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+            "SystemUsesLightTheme",
+            0) is int value && value != 0;
 
     public INavigationView GetNavigation() => RootNavigation;
 
@@ -69,6 +156,7 @@ public partial class MainWindow : INavigationWindow
     protected override void OnClosed(EventArgs e)
     {
         ApplicationThemeManager.Changed -= OnThemeChanged;
+        SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
         base.OnClosed(e);
 
         // Closing the main window shuts down the application

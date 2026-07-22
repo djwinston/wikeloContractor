@@ -21,15 +21,21 @@
   <sys:String x:Key="Catalog_Cat_Armor">Броня</sys:String>
   <sys:String x:Key="Catalog_Cat_Other">Інше</sys:String>
   <sys:String x:Key="Catalog_ClearFilters">Скинути фільтри</sys:String>
+  <sys:String x:Key="Catalog_BlueprintAbbrev">BP</sys:String>
   <sys:String x:Key="Catalog_Empty">Жоден контракт не відповідає фільтрам.</sys:String>
   <sys:String x:Key="Catalog_LoadError_Title">Не вдалося завантажити контракти</sys:String>
   <sys:String x:Key="Catalog_LoadError_Message">Перевірте з'єднання з інтернетом і спробуйте ще раз.</sys:String>
   <sys:String x:Key="Catalog_Offline_Title">Офлайн-дані</sys:String>
   <sys:String x:Key="Catalog_Offline_Message">Не вдалося оновити каталог — показано раніше кешовані контракти.</sys:String>
   <sys:String x:Key="Catalog_Loading">Завантаження каталогу контрактів...</sys:String>
+  <sys:String x:Key="Catalog_Syncing_Title">Синхронізація даних каталогу</sys:String>
+  <sys:String x:Key="Catalog_Syncing_Hint">Завантажуємо дані контрактів зі Star Citizen Wiki API. Застосунок заблоковано до завершення, щоб ніщо не діяло на неповних даних.</sys:String>
+  <sys:String x:Key="Catalog_Syncing_Contracts">Завантаження деталей контрактів — {0} з {1}</sys:String>
+  <sys:String x:Key="Catalog_Syncing_Rewards">Завантаження винагород — {0} з {1}</sys:String>
   <sys:String x:Key="Catalog_RateLimited_Title">Забагато запитів</sys:String>
   <sys:String x:Key="Catalog_RateLimited_Retry">API Star Citizen Wiki обмежує кількість запитів за хвилину. Завантаження продовжиться через {0} с.</sys:String>
   <sys:String x:Key="Catalog_RateLimited_Resuming">Відновлюємо завантаження...</sys:String>
+  <sys:String x:Key="Catalog_RateLimited_Exhausted">API досі обмежує запити. Показано кешовані контракти — спробуйте Налаштування → Перевірити оновлення за кілька хвилин.</sys:String>
 
   <!-- Репутація Wikelo + виконання контрактів. Назви рангів — ігрові стендінги (англійською). -->
   <sys:String x:Key="Reputation_Tier_New">New Customer</sys:String>
@@ -37,10 +43,15 @@
   <sys:String x:Key="Reputation_Tier_VeryBest">Very Best Customer</sys:String>
   <sys:String x:Key="Reputation_Progress">{0} / {1} XP</sys:String>
   <sys:String x:Key="Reputation_Max">{0} XP · Макс. ранг</sys:String>
-  <sys:String x:Key="Contract_MarkDone">Позначити виконаним</sys:String>
+  <sys:String x:Key="Contract_MarkDone">Позначити</sys:String>
   <sys:String x:Key="Contract_Completed">Виконано</sys:String>
   <sys:String x:Key="Contract_Ready">Готово до здачі</sys:String>
+  <sys:String x:Key="Contract_ReadyBadge">Готово</sys:String>
   <sys:String x:Key="Contract_ReadinessTooltip">Потрібні предмети, які вже є у вашому інвентарі</sys:String>
+  <sys:String x:Key="Contract_Reopen">Відкрити знову</sys:String>
+  <sys:String x:Key="Catalog_RewardsLabel">НАГОРОДИ</sys:String>
+  <!-- {0} is the reputation the contract awards; the UI calls it XP (see docs/design-system.md) -->
+  <sys:String x:Key="Catalog_XpBadge">+{0} XP</sys:String>
   <sys:String x:Key="Dialog_Cancel">Скасувати</sys:String>
   <sys:String x:Key="Complete_Dialog_Title">Виконати контракт?</sys:String>
   <sys:String x:Key="Complete_Dialog_Message">Ці предмети буде списано з вашого інвентарю:</sys:String>
@@ -52,23 +63,34 @@
   <sys:String x:Key="Details_Back">Назад до каталогу</sys:String>
   <sys:String x:Key="Details_OnceOnly">Одноразовий контракт</sys:String>
   <sys:String x:Key="Details_Prerequisites">Має пререквізити</sys:String>
+  <sys:String x:Key="Details_Blueprints">Креслення</sys:String>
   <sys:String x:Key="Details_OpenWiki">Відкрити на вікі</sys:String>
   <sys:String x:Key="Details_OpenPledge">Сторінка в pledge-магазині</sys:String>
   <sys:String x:Key="Details_Requirements">Потрібні предмети</sys:String>
   <sys:String x:Key="Details_Rewards">Нагороди</sys:String>
   <sys:String x:Key="Details_RewardsPending">Деталі нагород ще завантажуються — загляньте за мить.</sys:String>
-  <sys:String x:Key="Details_Stat_Cargo">Вантаж: {0} SCU</sys:String>
-  <sys:String x:Key="Details_Stat_Crew">Екіпаж: {0}</sys:String>
-  <sys:String x:Key="Details_Stat_Health">Міцність корпуса: {0}</sys:String>
-  <sys:String x:Key="Details_Stat_Shields">Щити: {0}</sys:String>
-  <sys:String x:Key="Details_Stat_Speed">Швидкість (SCM/макс): {0} / {1} м/с</sys:String>
-  <sys:String x:Key="Details_Stat_Msrp">MSRP: ${0}</sys:String>
-  <sys:String x:Key="Details_Stat_Temperature">Температура: {0}…{1} °C</sys:String>
-  <sys:String x:Key="Details_Stat_Radiation">Радіаційний захист: {0}</sys:String>
-  <sys:String x:Key="Details_Stat_RadiationScrub">Швидкість виведення радіації: {0}</sys:String>
+  <!-- Reward stat labels (design 1c). Values with units are composed in code and kept English. -->
+  <sys:String x:Key="Details_StatLabel_Cargo">Вантаж</sys:String>
+  <sys:String x:Key="Details_StatLabel_Crew">Екіпаж</sys:String>
+  <sys:String x:Key="Details_StatLabel_Hull">Корпус HP</sys:String>
+  <sys:String x:Key="Details_StatLabel_Shields">Щити</sys:String>
+  <sys:String x:Key="Details_StatLabel_Speed">Швидкість</sys:String>
+  <sys:String x:Key="Details_StatLabel_Msrp">MSRP</sys:String>
+  <sys:String x:Key="Details_StatLabel_Temp">Темп. °C</sys:String>
+  <sys:String x:Key="Details_StatLabel_Radiation">Радіація</sys:String>
+  <sys:String x:Key="Details_StatLabel_RadiationScrub">Виведення рад.</sys:String>
+  <!-- Типи ушкоджень (сітка статів броні) -->
+  <sys:String x:Key="Damage_Impact">Удар</sys:String>
+  <sys:String x:Key="Damage_Physical">Фізичний</sys:String>
+  <sys:String x:Key="Damage_Energy">Енергія</sys:String>
+  <sys:String x:Key="Damage_Distortion">Спотворення</sys:String>
+  <sys:String x:Key="Damage_Thermal">Термічний</sys:String>
+  <sys:String x:Key="Damage_Biochem">Біохім</sys:String>
+  <sys:String x:Key="Damage_Stun">Оглушення</sys:String>
   <sys:String x:Key="Details_Stat_Missiles">Ракети × {0}</sys:String>
-  <sys:String x:Key="Details_Loadout_Weapons">Озброєння</sys:String>
-  <sys:String x:Key="Details_Loadout_Components">Модулі</sys:String>
+  <!-- Overline labels: uppercase in the resource because WPF has no text-transform -->
+  <sys:String x:Key="Details_Loadout_Weapons">ОЗБРОЄННЯ</sys:String>
+  <sys:String x:Key="Details_Loadout_Components">МОДУЛІ</sys:String>
   <sys:String x:Key="Details_Comp_PowerPlant">Енергоустановка</sys:String>
   <sys:String x:Key="Details_Comp_Shield">Щит</sys:String>
   <sys:String x:Key="Details_Comp_Cooler">Охолоджувач</sys:String>
@@ -78,8 +100,7 @@
   <sys:String x:Key="Inventory_Title">Мій інвентар</sys:String>
   <sys:String x:Key="Inventory_SearchPlaceholder">Пошук предметів…</sys:String>
   <sys:String x:Key="Inventory_Empty">Поки що порожньо — тут з'являться потрібні предмети з каталогу.</sys:String>
-  <sys:String x:Key="Inventory_Increment">Додати один</sys:String>
-  <sys:String x:Key="Inventory_Decrement">Прибрати один</sys:String>
+  <sys:String x:Key="Inventory_CountTooltip">Введіть кількість або скористайтеся стрілками вгору/вниз</sys:String>
   <sys:String x:Key="Inventory_Cat_OreMineral">Руди й мінерали</sys:String>
   <sys:String x:Key="Inventory_Cat_Armor">Броня</sys:String>
   <sys:String x:Key="Inventory_Cat_Weapon">Зброя</sys:String>
@@ -98,12 +119,17 @@
   <sys:String x:Key="Settings_Theme_Light">Світла</sys:String>
   <sys:String x:Key="Settings_Theme_Dark">Темна</sys:String>
   <sys:String x:Key="Settings_Data">Дані каталогу</sys:String>
-  <sys:String x:Key="Settings_Data_GameVersion">Версія гри:</sys:String>
+  <sys:String x:Key="Settings_Data_ApiVersion">Версія API:</sys:String>
   <sys:String x:Key="Settings_Data_LastSync">Остання синхронізація:</sys:String>
   <sys:String x:Key="Settings_Data_CheckNow">Перевірити оновлення</sys:String>
   <sys:String x:Key="Settings_Data_UpdateFailed">Не вдалося з'єднатися з API — показано кешовані дані. Спробуйте пізніше.</sys:String>
+  <!-- Product name: a brand, deliberately identical in both languages -->
+  <sys:String x:Key="App_Name">Wikelo Contractor</sys:String>
+  <!-- Hero overline; uppercase in the resource because WPF has no text-transform -->
+  <sys:String x:Key="About_Tagline">КАТАЛОГ КОНТРАКТІВ  ·  ІНВЕНТАР</sys:String>
   <sys:String x:Key="Settings_About">Wikelo Contractor — застосунок-помічник для угод Wikelo у Star Citizen.</sys:String>
   <sys:String x:Key="Settings_AppVersion">Версія застосунку:</sys:String>
+  <sys:String x:Key="Settings_BuiltWith">Створено на:</sys:String>
   <sys:String x:Key="Settings_AppUpdate">Оновлення застосунку</sys:String>
   <sys:String x:Key="Settings_AppUpdate_Check">Перевірити оновлення застосунку</sys:String>
   <sys:String x:Key="Settings_AppUpdate_Checking">Перевірка оновлень…</sys:String>

@@ -18,11 +18,25 @@ public interface IContractCatalogService
     event EventHandler? RateLimitChanged;
 
     /// <summary>
+    /// Raised (possibly on a background thread) whenever <see cref="SyncState"/> changes —
+    /// background enrichment starting, advancing, or ending (including on abort).
+    /// </summary>
+    event EventHandler? SyncStateChanged;
+
+    /// <summary>
     /// When set, all API calls are blocked until this moment (Retry-After + a safety margin);
     /// null when no rate-limit window is currently open. This is the single source of truth
     /// both pages drive their countdown from.
     /// </summary>
     DateTimeOffset? RateLimitedUntil { get; }
+
+    /// <summary>
+    /// Progress of background enrichment; <see cref="CatalogSyncState.Idle"/> when nothing runs.
+    /// The single source of truth for "the catalog data is still incomplete" — the UI blocks
+    /// category filtering and contract completion on it, because both read fields enrichment
+    /// has not filled in yet.
+    /// </summary>
+    CatalogSyncState SyncState { get; }
 
     /// <summary>
     /// Returns Wikelo contracts. The disk cache is invalidated only when a new LIVE game

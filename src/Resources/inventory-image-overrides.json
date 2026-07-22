@@ -1,5 +1,0 @@
-{
-  "$comment": "Shared inventory item images shipped with the app (bundled defaults). Key: required-item name (case-insensitive); value: image URL or absolute local file path. Personal edits go in %AppData%\\WikeloContractor\\inventory-image-overrides.json, which wins per key and is never touched by updates.",
-  "overrides": {
-  }
-}

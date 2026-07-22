@@ -5,6 +5,7 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:local="clr-namespace:WikeloContractor.Views.Pages"
+  xmlns:controls="clr-namespace:WikeloContractor.Views.Controls"
   xmlns:converters="clr-namespace:WikeloContractor.Views.Converters"
   xmlns:helpers="clr-namespace:WikeloContractor.Views.Helpers"
   xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
@@ -23,31 +24,33 @@
     <converters:CategoryToSymbolConverter x:Key="CategoryToSymbol" />
     <converters:PresenceToVisibilityConverter x:Key="NullToVisibility" Invert="True" />
     <converters:PresenceToVisibilityConverter x:Key="NotNullToVisibility" />
-    <converters:AvailabilityToBrushConverter x:Key="AvailabilityToBrush" />
+    <converters:ToUpperConverter x:Key="ToUpper" />
 
-    <!-- Shared look for the Stats/Weapons/Components chip lists on a reward card -->
+    <!-- Shared look for the Weapons/Components chip lists on a reward card -->
     <Style x:Key="ChipListStyle" TargetType="ItemsControl">
-      <Setter Property="ItemsPanel">
-        <Setter.Value>
-          <ItemsPanelTemplate>
-            <WrapPanel />
-          </ItemsPanelTemplate>
-        </Setter.Value>
-      </Setter>
+      <Setter Property="ItemsPanel" Value="{StaticResource ChipWrapPanel}" />
       <Setter Property="ItemTemplate">
         <Setter.Value>
           <DataTemplate>
-            <Border
-              Margin="0,0,6,6"
-              Padding="8,3"
+            <ContentControl
               Background="{DynamicResource ControlFillColorSecondaryBrush}"
-              CornerRadius="10">
-              <TextBlock FontSize="12" Text="{Binding}" />
-            </Border>
+              BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+              Style="{StaticResource ChipStyle}">
+              <TextBlock FontWeight="Medium" Text="{Binding}" />
+            </ContentControl>
           </DataTemplate>
         </Setter.Value>
       </Setter>
     </Style>
+
+    <!-- Section heading: Required items / Blueprints / Rewards -->
+    <Style x:Key="SectionHeadingStyle" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="{StaticResource FontSizeSubtitle}" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
   </Page.Resources>
 
   <Page.InputBindings>
@@ -56,16 +59,17 @@
 
   <Grid>
   <ScrollViewer
-    Margin="42,24,42,0"
+    Margin="{StaticResource SpacingPagePadding}"
     HorizontalScrollBarVisibility="Disabled"
     VerticalScrollBarVisibility="Auto">
     <StackPanel Margin="0,0,16,24">
 
-      <!-- Back + title + completed toggle -->
+      <!-- Back + title + version status + completed toggle -->
       <Grid>
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="Auto" />
           <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
           <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
 
@@ -75,99 +79,144 @@
           Command="{Binding ViewModel.GoBackCommand}"
           Icon="{ui:SymbolIcon ArrowLeft24}"
           ToolTip="{DynamicResource Details_Back}" />
-        <TextBlock
-          Grid.Column="1"
-          Margin="14,0,0,0"
-          VerticalAlignment="Center"
-          FontSize="28"
-          FontWeight="DemiBold"
-          Text="{Binding ViewModel.Contract.Title}"
-          TextWrapping="Wrap" />
-        <ui:Button
+
+        <!-- Title + completed marker inline, mirroring the catalog row's title line -->
+        <StackPanel Grid.Column="1" Margin="12,0,0,0" Orientation="Horizontal">
+          <TextBlock
+            VerticalAlignment="Center"
+            FontSize="{StaticResource FontSizeTitle}"
+            FontWeight="Bold"
+            Text="{Binding ViewModel.Contract.Title}"
+            TextWrapping="Wrap" />
+          <controls:StatusBadge
+            Margin="12,0,0,0"
+            Role="Success"
+            Symbol="Checkmark24"
+            Text="{DynamicResource Contract_Completed}"
+            Visibility="{Binding ViewModel.IsCompleted, Converter={StaticResource BoolToVisibility}}" />
+          <!-- Gathered but not turned in — caution role, a different state from completed. -->
+          <controls:StatusBadge
+            Margin="12,0,0,0"
+            Role="Caution"
+            Symbol="CheckmarkCircle24"
+            Text="{DynamicResource Contract_ReadyBadge}"
+            Visibility="{Binding ViewModel.ShowReadyBadge, Converter={StaticResource BoolToVisibility}}" />
+        </StackPanel>
+
+        <!-- Same sync line as the catalog header, so the version is visible without going back -->
+        <StackPanel
           Grid.Column="2"
-          Margin="14,0,0,0"
+          Margin="12,0,12,0"
+          VerticalAlignment="Center"
+          Orientation="Horizontal"
+          Visibility="{Binding ViewModel.IsSynced, Converter={StaticResource BoolToVisibility}}">
+          <ui:SymbolIcon
+            VerticalAlignment="Center"
+            FontSize="15"
+            Foreground="{DynamicResource SystemFillColorSuccessBrush}"
+            Symbol="CloudCheckmark16" />
+          <TextBlock
+            Margin="6,0,0,0"
+            Foreground="{DynamicResource SystemFillColorSuccessBrush}"
+            Style="{StaticResource MonoCaptionStyle}"
+            Text="{Binding ViewModel.GameVersion}" />
+        </StackPanel>
+
+        <ui:Button
+          Grid.Column="3"
+          Padding="14,8"
           VerticalAlignment="Center"
           Command="{Binding ViewModel.ToggleCompletedCommand}"
           Content="{Binding ViewModel.CompletedButtonLabel}"
-          Icon="{ui:SymbolIcon Checkmark24}" />
+          Visibility="{Binding ViewModel.ShowCompletionToggle, Converter={StaticResource BoolToVisibility}}">
+          <ui:Button.Style>
+            <Style BasedOn="{StaticResource {x:Type ui:Button}}" TargetType="ui:Button">
+              <Setter Property="Icon" Value="{ui:SymbolIcon Checkmark24}" />
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding ViewModel.IsCompleted, RelativeSource={RelativeSource AncestorType=Page}}" Value="True">
+                  <Setter Property="Icon" Value="{ui:SymbolIcon ArrowUndo24}" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </ui:Button.Style>
+        </ui:Button>
       </Grid>
 
-      <!-- Badges: category, reputation, flags, game version, wiki link -->
+      <!-- Badges: category, reputation, flags, wiki link -->
       <WrapPanel Margin="0,14,0,0">
-        <Border
-          Margin="0,0,8,6"
-          Padding="10,4"
+        <ContentControl
           Background="{DynamicResource ControlFillColorSecondaryBrush}"
-          CornerRadius="12"
+          BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+          Style="{StaticResource ChipStyle}"
           Visibility="{Binding ViewModel.CategoryLabel, Converter={StaticResource NotNullToVisibility}}">
           <StackPanel Orientation="Horizontal">
             <ui:SymbolIcon
               VerticalAlignment="Center"
-              FontSize="14"
+              FontSize="13"
               Symbol="{Binding ViewModel.Contract.Category, Converter={StaticResource CategoryToSymbol}}" />
             <TextBlock
               Margin="6,0,0,0"
               VerticalAlignment="Center"
-              FontSize="12"
+              FontWeight="Medium"
               Text="{Binding ViewModel.CategoryLabel}" />
           </StackPanel>
-        </Border>
+        </ContentControl>
 
-        <Border
-          Margin="0,0,8,6"
-          Padding="10,4"
+        <!-- XP the contract awards; caution role, matching the catalog row's badge -->
+        <ContentControl
+          Background="{DynamicResource ChipCautionBackgroundBrush}"
+          BorderBrush="{DynamicResource ChipCautionBorderBrush}"
+          Foreground="{DynamicResource XpBadgeForegroundBrush}"
+          Style="{StaticResource ChipStyle}">
+          <TextBlock FontWeight="SemiBold" Text="{Binding ViewModel.XpLabel}" />
+        </ContentControl>
+
+        <ContentControl
           Background="{DynamicResource ControlFillColorSecondaryBrush}"
-          CornerRadius="12">
+          BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+          Style="{StaticResource ChipStyle}"
+          Visibility="{Binding ViewModel.Contract.OnceOnly, Converter={StaticResource BoolToVisibility}}">
+          <TextBlock FontWeight="Medium" Text="{DynamicResource Details_OnceOnly}" />
+        </ContentControl>
+
+        <!-- Prerequisites carry the blueprint (purple) role in the design: like a schematic, this
+             says "there is something else to do first", not "here is an item". -->
+        <ContentControl
+          Background="{DynamicResource ChipBlueprintBackgroundBrush}"
+          BorderBrush="{DynamicResource ChipBlueprintBorderBrush}"
+          Foreground="{DynamicResource ChipBlueprintForegroundBrush}"
+          Style="{StaticResource ChipStyle}"
+          Visibility="{Binding ViewModel.Contract.HasPrerequisites, Converter={StaticResource BoolToVisibility}}">
           <StackPanel Orientation="Horizontal">
             <ui:SymbolIcon
               VerticalAlignment="Center"
-              FontSize="14"
-              Symbol="Star24" />
+              FontSize="13"
+              Symbol="Branch24" />
             <TextBlock
               Margin="6,0,0,0"
               VerticalAlignment="Center"
-              FontSize="12"
-              Text="{Binding ViewModel.Contract.ReputationAmount, StringFormat=+{0}}" />
+              FontWeight="Medium"
+              Text="{DynamicResource Details_Prerequisites}" />
           </StackPanel>
-        </Border>
+        </ContentControl>
 
-        <Border
-          Margin="0,0,8,6"
-          Padding="10,4"
-          Background="{DynamicResource ControlFillColorSecondaryBrush}"
-          CornerRadius="12"
-          Visibility="{Binding ViewModel.Contract.OnceOnly, Converter={StaticResource BoolToVisibility}}">
-          <TextBlock FontSize="12" Text="{DynamicResource Details_OnceOnly}" />
-        </Border>
-
-        <Border
-          Margin="0,0,8,6"
-          Padding="10,4"
-          Background="{DynamicResource ControlFillColorSecondaryBrush}"
-          CornerRadius="12"
-          Visibility="{Binding ViewModel.Contract.HasPrerequisites, Converter={StaticResource BoolToVisibility}}">
-          <TextBlock FontSize="12" Text="{DynamicResource Details_Prerequisites}" />
-        </Border>
-
-        <Border
-          Margin="0,0,8,6"
-          Padding="10,4"
-          Background="{DynamicResource ControlFillColorSecondaryBrush}"
-          CornerRadius="12"
-          Visibility="{Binding ViewModel.Contract.GameVersion, Converter={StaticResource NotNullToVisibility}}">
-          <TextBlock
-            FontSize="12"
-            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-            Text="{Binding ViewModel.Contract.GameVersion}" />
-        </Border>
-
+        <!-- HyperlinkButton hard-codes its text color via these theme keys and ignores Foreground,
+             so recolor it to the accent by overriding the keys locally (per state). -->
         <ui:HyperlinkButton
           Margin="0,0,0,6"
           Padding="10,2"
           Content="{DynamicResource Details_OpenWiki}"
           FontSize="12"
           NavigateUri="{Binding ViewModel.Contract.WebUrl}"
-          Visibility="{Binding ViewModel.Contract.WebUrl, Converter={StaticResource NotNullToVisibility}}" />
+          Visibility="{Binding ViewModel.Contract.WebUrl, Converter={StaticResource NotNullToVisibility}}">
+          <ui:HyperlinkButton.Resources>
+            <SolidColorBrush x:Key="HyperlinkButtonForeground" Color="{DynamicResource SystemAccentColorPrimary}" />
+            <SolidColorBrush x:Key="HyperlinkButtonForegroundPointerOver" Color="{DynamicResource SystemAccentColorSecondary}" />
+            <SolidColorBrush x:Key="HyperlinkButtonForegroundPressed" Color="{DynamicResource SystemAccentColorTertiary}" />
+          </ui:HyperlinkButton.Resources>
+        </ui:HyperlinkButton>
       </WrapPanel>
 
       <!-- Contract description -->
@@ -179,85 +228,94 @@
         Visibility="{Binding ViewModel.Contract.Description, Converter={StaticResource NotNullToVisibility}}" />
 
       <!-- Required items, colored by availability vs the inventory -->
-      <StackPanel Margin="0,24,0,0" Orientation="Horizontal">
+      <StackPanel
+        Margin="0,24,0,0"
+        Orientation="Horizontal"
+        ToolTip="{DynamicResource Contract_ReadinessTooltip}">
+        <TextBlock Style="{StaticResource SectionHeadingStyle}" Text="{DynamicResource Details_Requirements}" />
+        <!-- Progress bar + count are gathering state — hidden once completed (the items were spent,
+             so a bar there would be a lie); the COMPLETED badge by the title conveys the state. -->
+        <ProgressBar
+          Width="200"
+          Margin="12,0,0,0"
+          Style="{StaticResource ReadinessBarStyle}"
+          Value="{Binding ViewModel.ReadinessFraction, Mode=OneWay}"
+          Visibility="{Binding ViewModel.ShowReadiness, Converter={StaticResource BoolToVisibility}}" />
         <TextBlock
-          FontSize="18"
-          FontWeight="SemiBold"
-          Text="{DynamicResource Details_Requirements}" />
-        <StackPanel
-          Orientation="Horizontal"
-          Visibility="{Binding ViewModel.ShowReadiness, Converter={StaticResource BoolToVisibility}}">
-          <Border
-            Margin="12,0,0,0"
-            Padding="8,2"
-            VerticalAlignment="Center"
-            Background="{DynamicResource SystemFillColorSuccessBackgroundBrush}"
-            CornerRadius="10"
-            Visibility="{Binding ViewModel.IsReady, Converter={StaticResource BoolToVisibility}}">
-            <StackPanel Orientation="Horizontal">
-              <ui:SymbolIcon
-                VerticalAlignment="Center"
-                FontSize="14"
-                Foreground="{DynamicResource SystemFillColorSuccessBrush}"
-                Symbol="CheckmarkCircle24" />
-              <TextBlock
-                Margin="6,0,0,0"
-                VerticalAlignment="Center"
-                FontSize="12"
-                Text="{DynamicResource Contract_Ready}" />
-            </StackPanel>
-          </Border>
-          <TextBlock
-            Margin="12,0,0,0"
-            VerticalAlignment="Center"
-            FontSize="13"
-            Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-            Text="{Binding ViewModel.ReadinessLabel}"
-            ToolTip="{DynamicResource Contract_ReadinessTooltip}" />
-        </StackPanel>
+          Margin="12,0,0,0"
+          Style="{StaticResource MonoCaptionStyle}"
+          Text="{Binding ViewModel.ReadinessLabel}"
+          Visibility="{Binding ViewModel.ShowReadiness, Converter={StaticResource BoolToVisibility}}" />
       </StackPanel>
-      <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding ViewModel.RequirementChips}">
-        <ItemsControl.ItemsPanel>
-          <ItemsPanelTemplate>
-            <WrapPanel />
-          </ItemsPanelTemplate>
-        </ItemsControl.ItemsPanel>
-        <ItemsControl.ItemTemplate>
-          <DataTemplate>
-            <Border
-              Margin="0,0,6,6"
-              Padding="10,5"
-              Background="{Binding Availability, Converter={StaticResource AvailabilityToBrush}}"
-              CornerRadius="10">
-              <TextBlock FontSize="13">
-                <Run Text="{Binding Name, Mode=OneWay}" /><Run Text=" × " /><Run FontWeight="SemiBold" Text="{Binding AmountLabel, Mode=OneWay}" />
-              </TextBlock>
-            </Border>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
+      <ItemsControl
+        Margin="0,11,0,0"
+        ItemsPanel="{StaticResource ChipWrapPanel}"
+        ItemsSource="{Binding ViewModel.RequirementChips}"
+        ItemTemplate="{StaticResource RequirementChipTemplate}" />
+
+      <!-- Blueprints granted on completion (crafting recipes / materials); hidden when none -->
+      <StackPanel Visibility="{Binding ViewModel.HasBlueprints, Converter={StaticResource BoolToVisibility}}">
+        <TextBlock
+          Margin="0,22,0,0"
+          Style="{StaticResource SectionHeadingStyle}"
+          Text="{DynamicResource Details_Blueprints}" />
+        <ItemsControl
+          Margin="0,11,0,0"
+          ItemsPanel="{StaticResource ChipWrapPanel}"
+          ItemsSource="{Binding ViewModel.Contract.Blueprints}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <ContentControl Style="{StaticResource BlueprintChipStyle}" FontWeight="SemiBold">
+                <StackPanel Orientation="Horizontal">
+                  <ui:SymbolIcon
+                    VerticalAlignment="Center"
+                    FontSize="13"
+                    Symbol="Molecule24" />
+                  <TextBlock
+                    Margin="6,0,0,0"
+                    VerticalAlignment="Center"
+                    Text="{Binding Mode=OneWay}" />
+                </StackPanel>
+              </ContentControl>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
 
       <!-- Rewards -->
       <TextBlock
-        Margin="0,20,0,0"
-        FontSize="18"
-        FontWeight="SemiBold"
+        Margin="0,22,0,0"
+        Style="{StaticResource SectionHeadingStyle}"
         Text="{DynamicResource Details_Rewards}" />
 
       <TextBlock
-        Margin="0,10,0,0"
+        Margin="0,11,0,0"
         Foreground="{DynamicResource TextFillColorSecondaryBrush}"
         Text="{DynamicResource Details_RewardsPending}"
         Visibility="{Binding ViewModel.IsRewardsPending, Converter={StaticResource BoolToVisibility}}" />
 
-      <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding ViewModel.Rewards}">
+      <ItemsControl Margin="0,11,0,0" ItemsSource="{Binding ViewModel.Rewards}">
         <ItemsControl.ItemTemplate>
           <DataTemplate>
+            <!-- Reward panel: the default card stroke normally, turning green once the contract is
+                 completed (same success accent as the completed catalog row) — the border is the
+                 payoff cue, not a permanent cyan frame. -->
             <Border
               Margin="0,0,0,10"
-              Padding="16,14"
-              Background="{DynamicResource ControlFillColorDefaultBrush}"
-              CornerRadius="8">
+              Padding="16"
+              Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+              BorderThickness="1"
+              CornerRadius="12">
+              <Border.Style>
+                <Style TargetType="Border">
+                  <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding ViewModel.IsCompleted, RelativeSource={RelativeSource AncestorType=Page}}" Value="True">
+                      <Setter Property="BorderBrush" Value="{DynamicResource CompletedRowAccentBrush}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Border.Style>
               <Grid>
                 <Grid.ColumnDefinitions>
                   <ColumnDefinition Width="Auto" />
@@ -267,9 +325,9 @@
                 <!-- Reward image with a gift placeholder -->
                 <Grid
                   Grid.Column="0"
-                  Width="260"
-                  Height="180"
-                  Margin="0,0,18,0"
+                  Width="240"
+                  Height="168"
+                  Margin="0,0,16,0"
                   VerticalAlignment="Top">
                   <ui:SymbolIcon
                     HorizontalAlignment="Center"
@@ -294,53 +352,87 @@
                 </Grid>
 
                 <StackPanel Grid.Column="1">
+                  <!-- Header + rarity badge (design 1c: rarity is its own tag, not in the subheader) -->
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock
+                      VerticalAlignment="Center"
+                      FontSize="{StaticResource FontSizeBodyStrong}"
+                      FontWeight="Bold"
+                      Text="{Binding Header}"
+                      TextWrapping="Wrap" />
+                    <ContentControl
+                      Margin="8,0,0,0"
+                      Content="{Binding Rarity, Converter={StaticResource ToUpper}}"
+                      Style="{StaticResource TagStyle}"
+                      Visibility="{Binding Rarity, Converter={StaticResource NotNullToVisibility}}" />
+                  </StackPanel>
                   <TextBlock
-                    FontSize="16"
-                    FontWeight="SemiBold"
-                    Text="{Binding Header}"
-                    TextWrapping="Wrap" />
-                  <TextBlock
-                    Margin="0,2,0,0"
-                    FontSize="12"
+                    Margin="0,3,0,0"
+                    FontFamily="{StaticResource MonoFontFamily}"
+                    FontSize="{StaticResource FontSizeCaption}"
                     Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                     Text="{Binding SubHeader}"
                     TextWrapping="Wrap"
                     Visibility="{Binding SubHeader, Converter={StaticResource NotNullToVisibility}}" />
 
-                  <!-- Stat chips -->
+                  <!-- Stat grid (design 1c): mono uppercase label over the value, aligned in columns
+                       that wrap; damage resistances carry the success (green) role, others neutral. -->
                   <ItemsControl
-                    Margin="0,8,0,0"
-                    ItemsSource="{Binding Stats}"
-                    Style="{StaticResource ChipListStyle}" />
+                    Margin="0,12,0,0"
+                    ItemsPanel="{StaticResource ChipWrapPanel}"
+                    ItemsSource="{Binding Stats}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <StackPanel MinWidth="118" Margin="0,0,22,9">
+                          <TextBlock
+                            HorizontalAlignment="Left"
+                            Style="{StaticResource OverlineTextStyle}"
+                            Text="{Binding Label, Converter={StaticResource ToUpper}}" />
+                          <TextBlock
+                            Margin="0,2,0,0"
+                            FontSize="{StaticResource FontSizeCaption}"
+                            FontWeight="SemiBold"
+                            Text="{Binding Value}">
+                            <TextBlock.Style>
+                              <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <Style.Triggers>
+                                  <DataTrigger Binding="{Binding Highlight}" Value="True">
+                                    <Setter Property="Foreground" Value="{DynamicResource ChipSuccessForegroundBrush}" />
+                                  </DataTrigger>
+                                </Style.Triggers>
+                              </Style>
+                            </TextBlock.Style>
+                          </TextBlock>
+                        </StackPanel>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
 
                   <!-- Ship loadout: installed weapons and core components -->
                   <TextBlock
-                    Margin="0,10,0,0"
-                    FontSize="13"
-                    FontWeight="SemiBold"
+                    Margin="0,8,0,7"
+                    Style="{StaticResource OverlineTextStyle}"
                     Text="{DynamicResource Details_Loadout_Weapons}"
                     Visibility="{Binding HasWeapons, Converter={StaticResource BoolToVisibility}}" />
                   <ItemsControl
-                    Margin="0,6,0,0"
                     ItemsSource="{Binding Weapons}"
                     Style="{StaticResource ChipListStyle}"
                     Visibility="{Binding HasWeapons, Converter={StaticResource BoolToVisibility}}" />
 
                   <TextBlock
-                    Margin="0,6,0,0"
-                    FontSize="13"
-                    FontWeight="SemiBold"
+                    Margin="0,8,0,7"
+                    Style="{StaticResource OverlineTextStyle}"
                     Text="{DynamicResource Details_Loadout_Components}"
                     Visibility="{Binding HasComponents, Converter={StaticResource BoolToVisibility}}" />
                   <ItemsControl
-                    Margin="0,6,0,0"
                     ItemsSource="{Binding Components}"
                     Style="{StaticResource ChipListStyle}"
                     Visibility="{Binding HasComponents, Converter={StaticResource BoolToVisibility}}" />
 
                   <TextBlock
-                    Margin="0,6,0,0"
-                    FontSize="12"
+                    Margin="0,8,0,0"
+                    FontSize="{StaticResource FontSizeCaption}"
                     Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                     Text="{Binding Description}"
                     TextWrapping="Wrap"

@@ -85,13 +85,48 @@ jobs:
           if ($env:PRERELEASE -eq 'true') { $uploadArgs += '--pre' }
           vpk @uploadArgs
 
-      - name: Fill release notes from merged PRs and commits
+      - name: Fill release notes from commit messages
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # vpk creates the release but leaves the body empty; GitHub's generate-notes API
-          # builds the "What's Changed" changelog (merged PRs since the previous tag).
-          $body = gh api "repos/$env:GITHUB_REPOSITORY/releases/generate-notes" -f tag_name=$env:TAG --jq '.body'
-          Set-Content -Path notes.md -Value $body
+          # vpk creates the release but leaves the body empty. GitHub's generate-notes API is
+          # deliberately not used: it lists merged *pull requests*, so a PR carrying three commits
+          # collapses to a single line and every commit body is lost. This builds the changelog
+          # from the commits themselves, subject as a heading and the full body underneath.
+          $prev = git describe --tags --abbrev=0 "$env:TAG^" 2>$null
+          $range = if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($prev)) { $env:TAG } else { "$prev..$env:TAG" }
+
+          $recSep = [char]0x1e
+          $fldSep = [char]0x1f
+          # --no-merges: a merge commit only repeats the PR title its branch commits already carry.
+          $raw = (git log --no-merges --reverse --pretty=format:"%s$fldSep%b$recSep" $range) -join "`n"
+
+          $out = [System.Collections.Generic.List[string]]::new()
+          $out.Add('## What''s Changed')
+          $out.Add('')
+
+          foreach ($rec in ($raw -split $recSep)) {
+            if ([string]::IsNullOrWhiteSpace($rec)) { continue }
+            $parts = $rec -split $fldSep, 2
+            $subject = $parts[0].Trim()
+            if (-not $subject) { continue }
+
+            $out.Add("### $subject")
+            $out.Add('')
+
+            if ($parts.Count -gt 1) {
+              $body = $parts[1] -split "`r?`n" | Where-Object {
+                $_ -notmatch '^\s*Co-[Aa]uthored-[Bb]y:' -and $_ -notmatch 'Generated with \[Claude Code\]'
+              }
+              # Trim blank lines around the block (Trim keeps interior blanks); skip an empty body.
+              $text = ($body -join "`n").Trim()
+              if ($text) {
+                $out.Add($text)
+                $out.Add('')
+              }
+            }
+          }
+
+          Set-Content -Path notes.md -Value ($out -join "`n") -Encoding utf8
           gh release edit $env:TAG --notes-file notes.md

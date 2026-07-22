@@ -1,0 +1,48 @@
+<ResourceDictionary
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+  <!-- Design-system typefaces — system fonts, deliberately not embedded: Segoe UI is the native
+       Fluent face (also WPF-UI's own default, so UI text needs no FontFamily at all) and Cascadia
+       Mono ships with Windows 11. Both avoid bundling a ~3 MB font into the binary. Cascadia Mono
+       falls back to Consolas, which is present on every Windows, on the off chance it is absent. -->
+  <FontFamily x:Key="AppFontFamily">Segoe UI</FontFamily>
+  <FontFamily x:Key="MonoFontFamily">Cascadia Mono, Consolas</FontFamily>
+
+  <!-- Type ramp (design system §02). Sizes only — weight is set per usage, because the same size
+       appears at different weights (e.g. body 13 regular vs. chip 11 medium). -->
+  <sys:Double x:Key="FontSizeTitle">24</sys:Double>
+  <sys:Double x:Key="FontSizeSubtitle">15</sys:Double>
+  <sys:Double x:Key="FontSizeBodyStrong">14</sys:Double>
+  <sys:Double x:Key="FontSizeBody">13</sys:Double>
+  <sys:Double x:Key="FontSizeCaption">11</sys:Double>
+  <sys:Double x:Key="FontSizeOverline">9</sys:Double>
+
+  <!-- Named text styles. These are the single home for the two recurring text roles; a page that
+       needs one applies the style rather than re-declaring the four setters (they used to be
+       duplicated per page, which is how they drift apart).
+
+       Overline: the small uppercase mono label (REWARDS, WEAPONS, category tags, badge text).
+       Secondary rather than tertiary — at 9 px the tertiary brush is effectively invisible on the
+       light theme's surface. -->
+  <Style x:Key="OverlineTextStyle" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+    <Setter Property="FontSize" Value="{StaticResource FontSizeOverline}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <!-- Mono caption: technical values read as data, not prose — readiness counts ("3 / 9"), the API
+       version, reputation progress. Callers override Foreground where the value carries a status
+       colour (e.g. the green version line). -->
+  <Style x:Key="MonoCaptionStyle" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+    <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+</ResourceDictionary>

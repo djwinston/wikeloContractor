@@ -33,6 +33,39 @@ public partial class RateLimitWatcher : ObservableObject
         _timer.Tick += (_, _) => Tick();
     }
 
+    /// <summary>Guards against re-announcing the same elapsed window on a later tick.</summary>
+    private bool _elapsedAnnounced;
+
+    /// <summary>
+    /// The wait is over and the gate is open again. Whoever owns loading (the catalog) subscribes
+    /// and actually refetches — the countdown promises "loading resumes", so something has to
+    /// resume it. Without this the message was a promise the app never kept: nothing retried, and
+    /// the bar sat on "Resuming loading..." until the user navigated away and back.
+    /// </summary>
+    public event EventHandler? WindowElapsed;
+
+    /// <summary>
+    /// Closes the countdown after a load that came back clean.
+    /// <para>
+    /// Needed because <see cref="IContractCatalogService.CatalogUpdated"/> — the only other thing
+    /// that closes this bar — fires at the *end of enrichment*. A successful retry over an
+    /// already-enriched cache never raises it, so the bar would stay open over healthy data.
+    /// </para>
+    /// </summary>
+    public void Dismiss()
+    {
+        _timer.Stop();
+        IsActive = false;
+    }
+
+    /// <summary>Auto-retrying gave up; the bar stays, pointing the user at the manual refresh.</summary>
+    public void ReportRetriesExhausted()
+    {
+        _timer.Stop();
+        IsActive = true;
+        Message = Localized.String("Catalog_RateLimited_Exhausted");
+    }
+
     private void OnRateLimitChanged(object? sender, EventArgs e) =>
         Application.Current.Dispatcher.Invoke(() =>
         {
@@ -41,6 +74,7 @@ public partial class RateLimitWatcher : ObservableObject
                 return;
             }
 
+            _elapsedAnnounced = false;
             IsActive = true;
             Tick();
             _timer.Start();
@@ -54,7 +88,7 @@ public partial class RateLimitWatcher : ObservableObject
             IsActive = false;
         });
 
-    /// <summary>Refreshes the countdown text; past zero switches to "resuming" until data arrives.</summary>
+    /// <summary>Refreshes the countdown text; past zero switches to "resuming" and asks for a retry.</summary>
     private void Tick()
     {
         var until = _catalogService.RateLimitedUntil;
@@ -65,11 +99,16 @@ public partial class RateLimitWatcher : ObservableObject
         if (secondsLeft > 0)
         {
             Message = Localized.Format("Catalog_RateLimited_Retry", secondsLeft);
+            return;
         }
-        else
+
+        _timer.Stop();
+        Message = Localized.String("Catalog_RateLimited_Resuming");
+
+        if (!_elapsedAnnounced)
         {
-            _timer.Stop();
-            Message = Localized.String("Catalog_RateLimited_Resuming");
+            _elapsedAnnounced = true;
+            WindowElapsed?.Invoke(this, EventArgs.Empty);
         }
     }
 }

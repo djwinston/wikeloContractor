@@ -14,7 +14,7 @@ public sealed class ImageOverrideServiceTests : IDisposable
     public ImageOverrideServiceTests()
     {
         _ = Directory.CreateDirectory(_directory);
-        _filePath = Path.Combine(_directory, "image-overrides.json");
+        _filePath = Path.Combine(_directory, "img-catalog-overrides.json");
     }
 
     public void Dispose()
@@ -37,6 +37,19 @@ public sealed class ImageOverrideServiceTests : IDisposable
         Assert.Null(service.GetOverride("uuid-1", "Testudo Helmet"));
         Assert.True(File.Exists(_filePath));
         Assert.Contains("\"overrides\"", File.ReadAllText(_filePath));
+    }
+
+    [Fact]
+    public void Pre_rename_user_file_is_adopted_instead_of_being_overwritten_by_the_template()
+    {
+        var legacyPath = Path.Combine(_directory, "image-overrides.json");
+        File.WriteAllText(legacyPath, """{ "overrides": { "uuid-1": "https://example.test/personal.png" } }""");
+
+        var service = new ImageOverrideService(_filePath);
+
+        Assert.Equal("https://example.test/personal.png", service.GetOverride("uuid-1", "Item"));
+        Assert.True(File.Exists(_filePath));
+        Assert.False(File.Exists(legacyPath));
     }
 
     [Fact]

@@ -32,14 +32,29 @@ internal sealed class OverrideFileSet
     /// <summary>Content written to the user file when it is missing (first run).</summary>
     private readonly string _userTemplate;
 
+    /// <summary>Pre-rename path of the user file, carried over once if it is still there.</summary>
+    private readonly string? _legacyUserFilePath;
+
     private DateTime _lastStatAtUtc = DateTime.MinValue;
 
-    public OverrideFileSet(string userFilePath, string? bundledFilePath, TimeSpan statInterval, string userTemplate)
+    /// <param name="legacyUserFileName">
+    /// Bare file name the user file used before a rename. Resolved against the user file's own
+    /// directory (the engine owns that path) and adopted once so personal edits survive the rename.
+    /// </param>
+    public OverrideFileSet(
+        string userFilePath,
+        string? bundledFilePath,
+        TimeSpan statInterval,
+        string userTemplate,
+        string? legacyUserFileName = null)
     {
         _user = new OverrideFile(userFilePath);
         _bundled = new OverrideFile(bundledFilePath ?? string.Empty);
         _statInterval = statInterval;
         _userTemplate = userTemplate;
+        _legacyUserFilePath = legacyUserFileName is null
+            ? null
+            : Path.Combine(Path.GetDirectoryName(userFilePath) ?? string.Empty, legacyUserFileName);
     }
 
     /// <summary>
@@ -76,7 +91,7 @@ internal sealed class OverrideFileSet
 
         _lastStatAtUtc = now;
 
-        if (!File.Exists(_user.Path))
+        if (!File.Exists(_user.Path) && !TryAdoptLegacyUserFile())
         {
             WriteUserTemplate();
         }
@@ -123,6 +138,28 @@ internal sealed class OverrideFileSet
         catch (Exception ex) when (ex is IOException or JsonException)
         {
             // Malformed or locked file — keep the previously loaded overrides.
+        }
+    }
+
+    /// <summary>
+    /// Moves a pre-rename user file to the current name, so personal edits made before the rename
+    /// keep working instead of being silently orphaned. Runs once: afterwards the new file exists.
+    /// </summary>
+    private bool TryAdoptLegacyUserFile()
+    {
+        if (_legacyUserFilePath is null || !File.Exists(_legacyUserFilePath))
+        {
+            return false;
+        }
+
+        try
+        {
+            File.Move(_legacyUserFilePath, _user.Path);
+            return true;
+        }
+        catch (IOException)
+        {
+            return false;
         }
     }
 

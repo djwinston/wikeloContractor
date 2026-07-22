@@ -18,9 +18,9 @@ public sealed partial class ContractCatalogService : IContractCatalogService
     /// mission_giver instead of reputation_scope; v7: ship loadout — weapons,
     /// missiles, components; v8: gun kind labels and component grades; v9: nested
     /// port scan — guns/ordnance with signal types, jump drives; v10: multi-category
-    /// set per contract for the filter).
+    /// set per contract for the filter; v11: blueprint names granted on completion).
     /// </summary>
-    private const int _cacheSchemaVersion = 10;
+    private const int _cacheSchemaVersion = 11;
 
     /// <summary>How often the current game version is re-checked against the API.</summary>
     private static readonly TimeSpan _versionCheckInterval = TimeSpan.FromHours(12);
@@ -42,10 +42,13 @@ public sealed partial class ContractCatalogService : IContractCatalogService
     ];
 
     /// <summary>Extra wait on top of Retry-After so the retry never lands a second too early.</summary>
-    private static readonly TimeSpan _rateLimitSafetyMargin = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan _defaultRateLimitSafetyMargin = TimeSpan.FromSeconds(5);
 
     private readonly IStarCitizenWikiClient _apiClient;
     private readonly string _cacheFilePath;
+
+    /// <summary>Extra wait on top of Retry-After; overridable so tests do not pay the real 5 s.</summary>
+    private readonly TimeSpan _rateLimitSafetyMargin;
 
     private CacheEnvelope? _envelope;
     private int _enrichmentRunning;
@@ -58,10 +61,14 @@ public sealed partial class ContractCatalogService : IContractCatalogService
     {
     }
 
-    /// <summary>Test seam: lets unit tests redirect the cache to a temp directory.</summary>
-    internal ContractCatalogService(IStarCitizenWikiClient apiClient, string cacheDirectory)
+    /// <summary>
+    /// Test seam: lets unit tests redirect the cache to a temp directory and shrink the
+    /// rate-limit safety margin, which otherwise costs every retry test 5 s of wall clock.
+    /// </summary>
+    internal ContractCatalogService(IStarCitizenWikiClient apiClient, string cacheDirectory, TimeSpan? rateLimitSafetyMargin = null)
     {
         _apiClient = apiClient;
+        _rateLimitSafetyMargin = rateLimitSafetyMargin ?? _defaultRateLimitSafetyMargin;
 
         _ = Directory.CreateDirectory(cacheDirectory);
         _cacheFilePath = Path.Combine(cacheDirectory, "contracts.json");
@@ -72,11 +79,16 @@ public sealed partial class ContractCatalogService : IContractCatalogService
     public DateTimeOffset? RateLimitedUntil =>
         _rateLimitedUntil > DateTimeOffset.UtcNow ? _rateLimitedUntil : null;
 
+    public CatalogSyncState SyncState { get; private set; } = CatalogSyncState.Idle;
+
     /// <summary>Raised (on a background thread) when catalog data changes after enrichment.</summary>
     public event EventHandler? CatalogUpdated;
 
     /// <summary>Raised (on a background thread) when the rate-limit window opens after an HTTP 429.</summary>
     public event EventHandler? RateLimitChanged;
+
+    /// <summary>Raised (on a background thread) when enrichment starts, advances or ends.</summary>
+    public event EventHandler? SyncStateChanged;
 
     public async Task<CatalogLoadResult> GetContractsAsync(bool forceRefresh = false, CancellationToken cancellationToken = default)
     {
@@ -185,11 +197,17 @@ public sealed partial class ContractCatalogService : IContractCatalogService
             return;
         }
 
+        // Published synchronously, before the work is queued, so a caller that has just awaited
+        // GetContractsAsync already sees the catalog as incomplete rather than briefly complete.
+        SetSyncState(new CatalogSyncState(CatalogSyncPhase.Contracts, 0, _envelope.Contracts.Count));
+
         _ = Task.Run(async () =>
         {
+            var completed = false;
             try
             {
                 await EnrichAsync();
+                completed = true;
             }
             catch (Exception)
             {
@@ -198,8 +216,28 @@ public sealed partial class ContractCatalogService : IContractCatalogService
             finally
             {
                 _ = Interlocked.Exchange(ref _enrichmentRunning, 0);
+
+                // Must be in the finally: this run swallows its exceptions, and an aborted run
+                // that left the state syncing would block the catalog until the app restarts.
+                SetSyncState(CatalogSyncState.Idle);
+            }
+
+            // Announce completion only after the guard above is released — so a CatalogUpdated
+            // subscriber that reacts by forcing a refresh can start the next enrichment instead of
+            // being turned away by a guard this same run has not yet dropped — and after the state
+            // is Idle, so it never observes the catalog as still syncing. An aborted run produced
+            // no new data, so it stays silent.
+            if (completed)
+            {
+                CatalogUpdated?.Invoke(this, EventArgs.Empty);
             }
         });
+    }
+
+    private void SetSyncState(CatalogSyncState state)
+    {
+        SyncState = state;
+        SyncStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private async Task EnrichAsync()
@@ -213,11 +251,22 @@ public sealed partial class ContractCatalogService : IContractCatalogService
         // 1. Mission details → reward items + full requirements (hauling orders).
         var rewardsByMission = new Dictionary<string, List<ContractReward>>();
         var requirementsByMission = new Dictionary<string, List<ContractRequirement>>();
+        var blueprintsByMission = new Dictionary<string, List<string>>();
+        var detailsDone = 0;
         foreach (var contract in envelope.Contracts)
         {
             var detail = await WithRateLimitRetryAsync(() => _apiClient.GetMissionDetailAsync(contract.Uuid));
             rewardsByMission[contract.Uuid] = detail?.RewardItems
                 .Select(r => new ContractReward { Name = r.Name, ItemUuid = r.Uuid, Amount = r.Amount ?? 1 })
+                .ToList() ?? [];
+
+            // Flatten every pool's items to distinct blueprint names (a pool can list several).
+            // `blueprints` and its `items` arrive as JSON null when absent, so both need guarding.
+            blueprintsByMission[contract.Uuid] = detail?.Blueprints?
+                .SelectMany(p => p.Items ?? [])
+                .Select(i => i.Name)
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList() ?? [];
 
             // hauling_orders are richer than the list's hauling_summary: SCU amounts plus
@@ -234,6 +283,7 @@ public sealed partial class ContractCatalogService : IContractCatalogService
                 })
                 .ToList() ?? [];
 
+            SetSyncState(new CatalogSyncState(CatalogSyncPhase.Contracts, ++detailsDone, envelope.Contracts.Count));
             await Task.Delay(_enrichmentDelay);
         }
 
@@ -245,7 +295,8 @@ public sealed partial class ContractCatalogService : IContractCatalogService
             .Select(uuid => uuid!)
             .Distinct();
 
-        var classifications = await LookupEachAsync<string, ItemClassification>(distinctItemUuids, uuid => _apiClient.GetItemClassificationAsync(uuid));
+        var classifications = await LookupEachAsync<string, ItemClassification>(
+            distinctItemUuids, uuid => _apiClient.GetItemClassificationAsync(uuid), reportAs: CatalogSyncPhase.Rewards);
 
         // 2.5. Fixed guns are listed by name only in vehicle records — look up each distinct
         // gun once for its kind label ("Laser Repeater"), size and grade, then patch the
@@ -314,6 +365,7 @@ public sealed partial class ContractCatalogService : IContractCatalogService
                     Categories = rewardCategories.Append(primary).Distinct().ToList(),
                     // Keep the summary-based requirements when the detail had no orders.
                     Requirements = requirements is { Count: > 0 } ? requirements : c.Requirements,
+                    Blueprints = blueprintsByMission.GetValueOrDefault(c.Uuid) ?? [],
                 };
             })
             .ToList();
@@ -322,19 +374,39 @@ public sealed partial class ContractCatalogService : IContractCatalogService
         await WriteCacheAsync(_envelope, CancellationToken.None);
 
         Current = FromEnvelope(_envelope, CatalogStatus.Online);
-        CatalogUpdated?.Invoke(this, EventArgs.Empty);
+
+        // Neither the state reset nor CatalogUpdated is raised here: the caller
+        // (StartEnrichmentIfNeeded) clears the sync state and announces completion once the run
+        // guard has been released, so that "complete data is available" and "ready to sync again"
+        // become true together. Doing it here would announce while the guard is still held.
     }
 
     /// <summary>
     /// Looks up one value per key through the rate-limit gate, politeness delay between
     /// calls; a failed lookup maps to null rather than aborting the rest of the batch.
     /// </summary>
+    /// <param name="reportAs">
+    /// When set, publishes sync progress under this phase. Only the reward classification pass
+    /// reports: the gun lookups that follow it are derived from its results, so their count is
+    /// unknown up front and they run as a short unreported tail.
+    /// </param>
     private async Task<Dictionary<TKey, TValue?>> LookupEachAsync<TKey, TValue>(
-        IEnumerable<TKey> keys, Func<TKey, Task<TValue?>> fetch, IEqualityComparer<TKey>? comparer = null)
+        IEnumerable<TKey> keys,
+        Func<TKey, Task<TValue?>> fetch,
+        IEqualityComparer<TKey>? comparer = null,
+        CatalogSyncPhase? reportAs = null)
         where TKey : notnull
     {
+        var pending = keys as IReadOnlyList<TKey> ?? keys.ToList();
         var result = new Dictionary<TKey, TValue?>(comparer);
-        foreach (var key in keys)
+        var done = 0;
+
+        if (reportAs is { } startPhase)
+        {
+            SetSyncState(new CatalogSyncState(startPhase, 0, pending.Count));
+        }
+
+        foreach (var key in pending)
         {
             try
             {
@@ -343,6 +415,11 @@ public sealed partial class ContractCatalogService : IContractCatalogService
             catch (Exception ex) when (ex is HttpRequestException or JsonException)
             {
                 result[key] = default;
+            }
+
+            if (reportAs is { } phase)
+            {
+                SetSyncState(new CatalogSyncState(phase, ++done, pending.Count));
             }
 
             await Task.Delay(_enrichmentDelay);
@@ -464,7 +541,6 @@ public sealed partial class ContractCatalogService : IContractCatalogService
         ReputationAmount = mission.ReputationGained?.FirstOrDefault(r => r.Scope == "Wikelo")?.Amount
             ?? mission.ReputationAmount
             ?? 0,
-        GameVersion = mission.GameVersion,
         WebUrl = mission.WebUrl,
     };
 

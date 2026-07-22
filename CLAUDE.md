@@ -29,9 +29,17 @@ TODO after first successful `dotnet restore`: pin exact package versions in the 
 ## Docs map — read before working on an area
 
 - `docs/data-pipeline.md` — before touching `src/Services/` or `src/Models/Api/`
-  (caching, version invalidation, enrichment, rate limiting, service events)
+  (caching, version invalidation, enrichment, rate limiting, service events, and the
+  **sync-state** axis: freshness `CatalogStatus` and completeness `CatalogSyncState` are
+  orthogonal — never merge them into one enum)
 - `docs/api-item-fields.md` — full field inventory of item/vehicle detail responses;
   consult before extending `RewardDetails` or the contract detail view
+- `docs/reward-images.md` / `docs/inventory-images.md` — which reward items and which required
+  items still need a manual image in the matching `Resources/img-*-overrides.json`
+- `docs/design-system.md` — **before touching any styling**: `src/Views/` or `src/Resources/`.
+  The rule is "the WPF-UI Fluent theme is the token layer" — never re-declare a theme brush, never
+  hardcode a hex. Covers the theme-swapped brand palette, embedded fonts, geometry scale, chips,
+  icon mapping, and which design file is the source of truth for each screen
 - `docs/ui-notes.md` — before touching `src/Views/` or `src/ViewModels/`
   (WPF-UI pitfalls, status InfoBar pattern, adaptive icon, formatted localized strings)
 - `docs/testing.md` — before adding/changing tests in `tests/`
@@ -80,8 +88,11 @@ TODO after first successful `dotnet restore`: pin exact package versions in the 
     (`inventory.json`, name→count) is the second store on this shape
   - `Services/OverrideFileSet` — the reusable two-layer (bundled + `%AppData%`) key→value override
     engine with throttled hot-reload and a first-run user template. `ImageOverrideService` (reward
-    images) and `InventoryImageOverrideService` (inventory item images, `inventory-image-overrides.json`)
-    both delegate to it — a new user-editable override config wraps this, it does not re-implement it
+    images) and `InventoryImageOverrideService` (inventory item images, `img-inventory-overrides.json`)
+    both delegate to it — a new user-editable override config wraps this, it does not re-implement it.
+    It also handles one-time adoption of a pre-rename `%AppData%` user file (`legacyUserFilePath`),
+    so renaming an override config carries the user's edits over instead of orphaning them — reuse
+    that rather than hand-rolling a migration
   - `Models/InventoryCategoryClassifier.Classify(name, hasScu)` — the single home for the required-item
     → `InventoryCategory` mapping (ordered keyword rules, first match wins; unit-tested).
     `Models/InventoryCategoryDisplay.LabelKey` is its `XDisplay.LabelKey` companion
@@ -104,12 +115,33 @@ TODO after first successful `dotnet restore`: pin exact package versions in the 
     (`ComposeStats`/`ComposeWeapons`/`ComposeComponents`/`FormatEntry`/`JoinNonEmpty`). Lives in
     the VM layer, not `Models/`, because it needs `Localized` (actual localized strings, not
     just a key) — see `docs/ui-notes.md` "Contract detail page"
+  - `Resources/Theme/Brand.{Dark,Light}.xaml` — the app-specific colours Fluent does not provide
+    (chip tints, blueprint role, XP badge, completed-row wash). Identical key sets, swapped as a
+    pair by `ApplicationHostService.ApplyTheme`; a key added to one MUST be added to the other —
+    with exactly one documented exception, the three light-theme legibility overrides that live
+    only in `Brand.Light.xaml` (see `docs/design-system.md`, "The one exception"). Do not add a
+    fourth override without measuring a real screenshot first.
+    `Resources/Typography.xaml` (fonts, type ramp, `OverlineTextStyle`/`MonoCaptionStyle`),
+    `Resources/Metrics.xaml` (radii/spacing/sizes) and `Resources/Chips.xaml` are the
+    theme-independent companions — see `docs/design-system.md`
+  - `Resources/Chips.xaml` — **anything two pages render the same way**: chrome styles
+    (`ChipStyle`, `BlueprintChipStyle`, `TagStyle`, `ReadinessBarStyle`) plus whole shared templates
+    (`RequirementChipTemplate`, `ChipWrapPanel`) and the `StatusBadge` default style. Re-declaring
+    one of these in a page's `Page.Resources` is a review finding — that is exactly the drift this
+    dictionary exists to stop
+  - `Views/Controls/StatusBadge` — the COMPLETED / READY badge (icon + label). A control, not
+    repeated markup; `Role` (`Success`/`Caution`) picks the whole brush set so the three brushes
+    cannot be mismatched. A new status marker adds a `Role`, it doesn't hand-roll a `Border`
   - `Views/Converters/` — one parameterized converter per concern
     (e.g. `PresenceToVisibilityConverter` with `Invert`), not inverse-twin classes
-  - `Views/Pages/ContractDetailPage.xaml` `ChipListStyle` resource — the WrapPanel/Border/
-    TextBlock chip look shared by every reward chip list (Stats/Weapons/Components); a new
-    chip list applies this `Style`, it doesn't redefine the template
+  - `Views/Pages/ContractDetailPage.xaml` `ChipListStyle` resource — the reward card's
+    Weapons/Components chip lists; page-local because only that page has them
   - `tests/Services/StubHandler` — shared HTTP stub for client tests
+  - `tests/E2E/ScriptedWikiApi` — the **only** `IStarCitizenWikiClient` fake, used by both the
+    service tests and the E2E scenarios (version bump, held enrichment, 429, offline). A second
+    fake for this interface is a review finding. `tests/E2E/WpfAppFixture` is the single real
+    WPF `Application` (STA, one per process) and `tests/E2E/CatalogHarness` assembles the app
+    graph over a temp directory — see `docs/testing.md` for the deadlock and dialog traps
 - **Don't repeat a condition across sibling properties/branches** — hoist it to one local
   or computed value first (e.g. a `showX` bool, an `EffectiveX` property on the model) and
   reference that everywhere, instead of writing the same ternary/guard two or three times.
@@ -132,7 +164,7 @@ TODO after first successful `dotnet restore`: pin exact package versions in the 
   and is a no-op when `UpdateManager.IsInstalled` is false (dev runs), driving the Settings
   "Check for updates" row. Release build is **framework-dependent**; the installer bootstraps the
   .NET Desktop Runtime via `vpk pack --framework net10.0-x64-desktop`.
-- Keep `Resources/image-overrides.json` as loose `<Content>` (do **not** embed it): it ships in the
+- Keep `Resources/img-catalog-overrides.json` as loose `<Content>` (do **not** embed it): it ships in the
   install dir as the editable bundled-defaults layer. It is replaced on each Velopack update, so
   persistent personal edits belong in the `%AppData%` override file, which updates never touch.
 - CI/release live in `.github/workflows/`; merge gating (tests must pass, approvals) is configured

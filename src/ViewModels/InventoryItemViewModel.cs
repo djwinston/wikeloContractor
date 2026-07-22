@@ -5,7 +5,8 @@ namespace WikeloContractor.ViewModels;
 
 /// <summary>
 /// One inventory row: a required item, its category, and the count the player holds. The count is
-/// backed by <see cref="IInventoryStore"/> and keyed by <see cref="Name"/>; the +/- commands persist it.
+/// backed by <see cref="IInventoryStore"/> and keyed by <see cref="Name"/>; every change to
+/// <see cref="Count"/> — a typed-in value or a spin step — is persisted.
 /// </summary>
 public partial class InventoryItemViewModel : ObservableObject
 {
@@ -32,15 +33,10 @@ public partial class InventoryItemViewModel : ObservableObject
     /// <summary>Re-reads the count after the store changed elsewhere (e.g. a future overlay).</summary>
     public void RefreshCount() => Count = _store.GetCount(Name);
 
-    [RelayCommand]
-    private Task Increment() => SetCountAsync(Count + 1);
-
-    [RelayCommand]
-    private Task Decrement() => SetCountAsync(Count - 1);
-
-    private Task SetCountAsync(int value)
-    {
-        Count = Math.Max(0, value);
-        return _store.SetCountAsync(Name, Count);
-    }
+    /// <summary>
+    /// Persist every count change, whether a direct edit (the NumberBox) or a spin step. The value
+    /// can't go negative — the NumberBox has <c>Minimum="0"</c> and <see cref="RefreshCount"/> reads
+    /// the store — and the store no-ops when nothing actually changed.
+    /// </summary>
+    partial void OnCountChanged(int value) => _ = _store.SetCountAsync(Name, value);
 }

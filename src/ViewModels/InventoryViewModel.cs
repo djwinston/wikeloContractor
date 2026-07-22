@@ -39,6 +39,14 @@ public partial class InventoryViewModel : ViewModel
     [ObservableProperty]
     private bool _isEmpty = true;
 
+    /// <summary>Item name whose image fills the full-window preview overlay; null when closed.</summary>
+    [ObservableProperty]
+    private string? _previewItemName;
+
+    /// <summary>Whether the full-window image preview overlay is showing.</summary>
+    [ObservableProperty]
+    private bool _isPreviewOpen;
+
     public InventoryViewModel(IContractCatalogService catalogService, IInventoryStore store)
     {
         _catalogService = catalogService;
@@ -88,6 +96,9 @@ public partial class InventoryViewModel : ViewModel
 
     private void BuildItems(IReadOnlyList<WikeloContract> contracts)
     {
+        // A rebuild may drop the previewed item; close the overlay so it can't linger.
+        IsPreviewOpen = false;
+
         _itemVms = contracts
             .SelectMany(c => c.Requirements)
             .GroupBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
@@ -122,4 +133,20 @@ public partial class InventoryViewModel : ViewModel
     }
 
     private void UpdateIsEmpty() => IsEmpty = Items is null || Items.IsEmpty;
+
+    /// <summary>Opens the full-window preview for an item's image; imageless names simply no-op.</summary>
+    [RelayCommand]
+    private void OpenPreview(string? name)
+    {
+        if (string.IsNullOrEmpty(name))
+        {
+            return;
+        }
+
+        PreviewItemName = name;
+        IsPreviewOpen = true;
+    }
+
+    [RelayCommand]
+    private void ClosePreview() => IsPreviewOpen = false;
 }

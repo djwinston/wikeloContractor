@@ -41,11 +41,11 @@
     <!-- Catalog data: game version, last sync, manual update fallback -->
     <TextBlock Margin="0,24,0,8" Text="{DynamicResource Settings_Data}" />
     <StackPanel Orientation="Horizontal">
-      <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="{DynamicResource Settings_Data_GameVersion}" />
+      <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="{DynamicResource Settings_Data_ApiVersion}" />
       <TextBlock
         Margin="6,0,0,0"
         Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-        Text="{Binding ViewModel.DataGameVersion}" />
+        Text="{Binding ViewModel.DataApiVersion}" />
     </StackPanel>
     <StackPanel Margin="0,4,0,0" Orientation="Horizontal">
       <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="{DynamicResource Settings_Data_LastSync}" />

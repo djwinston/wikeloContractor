@@ -2,50 +2,14 @@ using System.IO;
 using WikeloContractor.Models.Api;
 using WikeloContractor.Services;
 using WikeloContractor.Services.Api;
+using WikeloContractor.Tests.E2E;
 using Xunit;
+using static WikeloContractor.Tests.E2E.ScriptedWikiApi;
 
 namespace WikeloContractor.Tests.Services;
 
 public sealed class ContractCatalogServiceTests : IDisposable
 {
-    private sealed class FakeApiClient : IStarCitizenWikiClient
-    {
-        public Func<string> VersionResponder { get; set; } = () => "4.2.0-LIVE.111";
-
-        public List<MissionDto> Missions { get; set; } = [];
-
-        public int VersionCalls { get; private set; }
-
-        public int MissionsCalls { get; private set; }
-
-        public Task<string> GetCurrentGameVersionAsync(CancellationToken cancellationToken = default)
-        {
-            VersionCalls++;
-            return Task.FromResult(VersionResponder());
-        }
-
-        public Task<IReadOnlyList<MissionDto>> GetWikeloMissionsAsync(CancellationToken cancellationToken = default)
-        {
-            MissionsCalls++;
-            return Task.FromResult<IReadOnlyList<MissionDto>>(Missions);
-        }
-
-        public Dictionary<string, MissionDetailDto?> MissionDetails { get; set; } = [];
-
-        public Dictionary<string, ItemClassification?> Classifications { get; set; } = [];
-
-        public Task<MissionDetailDto?> GetMissionDetailAsync(string missionUuid, CancellationToken cancellationToken = default) =>
-            Task.FromResult(MissionDetails.GetValueOrDefault(missionUuid));
-
-        public Task<ItemClassification?> GetItemClassificationAsync(string itemUuid, CancellationToken cancellationToken = default) =>
-            Task.FromResult(Classifications.GetValueOrDefault(itemUuid));
-
-        public Dictionary<string, VehicleWeaponInfo?> WeaponInfo { get; set; } = new(StringComparer.OrdinalIgnoreCase);
-
-        public Task<VehicleWeaponInfo?> GetVehicleWeaponInfoAsync(string weaponName, CancellationToken cancellationToken = default) =>
-            Task.FromResult(WeaponInfo.GetValueOrDefault(weaponName));
-    }
-
     private readonly string _cacheDirectory = Path.Combine(
         Path.GetTempPath(), "WikeloContractorTests", Guid.NewGuid().ToString("N"));
 
@@ -61,21 +25,10 @@ public sealed class ContractCatalogServiceTests : IDisposable
         }
     }
 
-    private static MissionDto Mission(string uuid, string title, bool released = true, bool onceOnly = false) => new()
-    {
-        Uuid = uuid,
-        Title = title,
-        Released = released,
-        OnceOnly = onceOnly,
-        HaulingSummary = [new HaulingSummaryItemDto { Name = "Gold", MinAmount = 1, MaxAmount = 1 }],
-        ReputationGained = [new ReputationGainedDto { Faction = "Wikelo Emporium", Scope = "Wikelo", Amount = 250 }],
-        GameVersion = "4.2.0",
-    };
-
     [Fact]
     public async Task First_load_fetches_missions_and_filters_unreleased_placeholders()
     {
-        var client = new FakeApiClient
+        var client = new ScriptedWikiApi
         {
             Missions = [Mission("a", "Real contract"), Mission("b", "<= UNINITIALIZED =>", released: false)],
         };
@@ -93,10 +46,8 @@ public sealed class ContractCatalogServiceTests : IDisposable
     [Fact]
     public async Task Rate_limit_without_cache_propagates_and_reports_padded_wait()
     {
-        var client = new FakeApiClient
-        {
-            VersionResponder = () => throw new ApiRateLimitedException(TimeSpan.FromSeconds(30)),
-        };
+        var client = new ScriptedWikiApi();
+        client.AlwaysRateLimited(TimeSpan.FromSeconds(30));
         var service = new ContractCatalogService(client, _cacheDirectory);
 
         var raised = false;
@@ -115,10 +66,8 @@ public sealed class ContractCatalogServiceTests : IDisposable
     [Fact]
     public async Task While_rate_limit_window_is_open_no_api_call_is_made()
     {
-        var client = new FakeApiClient
-        {
-            VersionResponder = () => throw new ApiRateLimitedException(TimeSpan.FromSeconds(30)),
-        };
+        var client = new ScriptedWikiApi();
+        client.AlwaysRateLimited(TimeSpan.FromSeconds(30));
         var service = new ContractCatalogService(client, _cacheDirectory);
 
         _ = await Assert.ThrowsAsync<ApiRateLimitedException>(() => service.GetContractsAsync());
@@ -132,7 +81,7 @@ public sealed class ContractCatalogServiceTests : IDisposable
     [Fact]
     public async Task Rate_limited_refresh_serves_cache_and_flags_result()
     {
-        var client = new FakeApiClient { Missions = [Mission("a", "Real contract")] };
+        var client = new ScriptedWikiApi { Missions = [Mission("a", "Real contract")] };
         var service = new ContractCatalogService(client, _cacheDirectory);
 
         var enriched = new TaskCompletionSource();
@@ -142,7 +91,7 @@ public sealed class ContractCatalogServiceTests : IDisposable
         // Let background enrichment finish before the next assertions touch the cache.
         await enriched.Task.WaitAsync(TimeSpan.FromSeconds(10));
 
-        client.VersionResponder = () => throw new ApiRateLimitedException(null);
+        client.AlwaysRateLimited();
         var limited = await service.GetContractsAsync(forceRefresh: true);
 
         Assert.Equal(CatalogStatus.RateLimited, limited.Status);
@@ -160,7 +109,7 @@ public sealed class ContractCatalogServiceTests : IDisposable
     [Fact]
     public async Task Same_game_version_does_not_refetch_missions()
     {
-        var client = new FakeApiClient { Missions = [Mission("a", "Real contract")] };
+        var client = new ScriptedWikiApi { Missions = [Mission("a", "Real contract")] };
         var service = new ContractCatalogService(client, _cacheDirectory);
 
         _ = await service.GetContractsAsync();
@@ -173,7 +122,7 @@ public sealed class ContractCatalogServiceTests : IDisposable
     [Fact]
     public async Task Enrichment_attaches_item_images_to_rewards()
     {
-        var client = new FakeApiClient
+        var client = new ScriptedWikiApi
         {
             Missions = [Mission("m1", "Armor exchange")],
             MissionDetails = new()
@@ -233,12 +182,84 @@ public sealed class ContractCatalogServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Null_blueprints_do_not_abort_enrichment()
+    {
+        // The live API sends "blueprints": null for contracts without any (most of them);
+        // enrichment must still complete and leave the blueprint list empty.
+        var client = new ScriptedWikiApi
+        {
+            Missions = [Mission("m1", "Armor exchange")],
+            MissionDetails = new()
+            {
+                ["m1"] = new MissionDetailDto
+                {
+                    Uuid = "m1",
+                    RewardItems = [new RewardItemDto { Name = "Testudo Helmet", Uuid = "item-1", Amount = 1 }],
+                    Blueprints = null,
+                },
+            },
+        };
+        var service = new ContractCatalogService(client, _cacheDirectory);
+
+        var enriched = new TaskCompletionSource();
+        service.CatalogUpdated += (_, _) => enriched.TrySetResult();
+
+        _ = await service.GetContractsAsync();
+        await enriched.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        var contract = Assert.Single(service.Current!.Contracts);
+        Assert.Single(contract.Rewards);
+        Assert.Empty(contract.Blueprints);
+    }
+
+    [Fact]
+    public async Task Enrichment_captures_distinct_blueprint_names_across_pools()
+    {
+        var client = new ScriptedWikiApi
+        {
+            Missions = [Mission("m1", "Suit Up Take Off")],
+            MissionDetails = new()
+            {
+                ["m1"] = new MissionDetailDto
+                {
+                    Uuid = "m1",
+                    Blueprints =
+                    [
+                        new BlueprintPoolDto { Items = [new BlueprintItemDto { Name = "Tailwind Flight Suit Dominion Camo" }] },
+                        new BlueprintPoolDto
+                        {
+                            Items =
+                            [
+                                new BlueprintItemDto { Name = "Tailwind Flight Helmet Dominion Camo" },
+                                // Duplicate across pools collapses to one entry.
+                                new BlueprintItemDto { Name = "Tailwind Flight Suit Dominion Camo" },
+                            ],
+                        },
+                    ],
+                },
+            },
+        };
+        var service = new ContractCatalogService(client, _cacheDirectory);
+
+        var enriched = new TaskCompletionSource();
+        service.CatalogUpdated += (_, _) => enriched.TrySetResult();
+
+        _ = await service.GetContractsAsync();
+        await enriched.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        var contract = Assert.Single(service.Current!.Contracts);
+        Assert.Equal(
+            ["Tailwind Flight Suit Dominion Camo", "Tailwind Flight Helmet Dominion Camo"],
+            contract.Blueprints);
+    }
+
+    [Fact]
     public async Task Mission_without_reputation_maps_to_zero_amount()
     {
         var mission = Mission("idris", "Special Idris For Killing");
         mission.ReputationGained = null;
         mission.ReputationAmount = null;
-        var client = new FakeApiClient { Missions = [mission] };
+        var client = new ScriptedWikiApi { Missions = [mission] };
         var service = new ContractCatalogService(client, _cacheDirectory);
 
         var result = await service.GetContractsAsync();
@@ -250,7 +271,7 @@ public sealed class ContractCatalogServiceTests : IDisposable
     [Fact]
     public async Task Once_only_contract_is_categorized_as_other_regardless_of_rewards()
     {
-        var client = new FakeApiClient
+        var client = new ScriptedWikiApi
         {
             Missions = [Mission("m1", "Wikelo Arrive to System", onceOnly: true)],
             MissionDetails = new()
@@ -288,7 +309,7 @@ public sealed class ContractCatalogServiceTests : IDisposable
     [Fact]
     public async Task Enrichment_patches_gun_entries_with_looked_up_kind_and_grade()
     {
-        var client = new FakeApiClient
+        var client = new ScriptedWikiApi
         {
             Missions = [Mission("m1", "Ship trade")],
             MissionDetails = new()
@@ -355,7 +376,7 @@ public sealed class ContractCatalogServiceTests : IDisposable
             }
             """);
 
-        var client = new FakeApiClient { Missions = [Mission("a", "Real contract")] };
+        var client = new ScriptedWikiApi { Missions = [Mission("a", "Real contract")] };
         var service = new ContractCatalogService(client, _cacheDirectory);
 
         var result = await service.GetContractsAsync();
@@ -368,7 +389,7 @@ public sealed class ContractCatalogServiceTests : IDisposable
     [Fact]
     public async Task Current_schema_cache_is_reused_by_a_new_service_instance()
     {
-        var client = new FakeApiClient { Missions = [Mission("a", "Real contract")] };
+        var client = new ScriptedWikiApi { Missions = [Mission("a", "Real contract")] };
         var service = new ContractCatalogService(client, _cacheDirectory);
 
         var enriched = new TaskCompletionSource();
@@ -377,7 +398,7 @@ public sealed class ContractCatalogServiceTests : IDisposable
         await enriched.Task.WaitAsync(TimeSpan.FromSeconds(10));
 
         // Fresh instance over the same cache directory (new app run).
-        var secondClient = new FakeApiClient { Missions = [Mission("a", "Real contract")] };
+        var secondClient = new ScriptedWikiApi { Missions = [Mission("a", "Real contract")] };
         var secondService = new ContractCatalogService(secondClient, _cacheDirectory);
 
         var result = await secondService.GetContractsAsync();

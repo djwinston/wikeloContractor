@@ -37,7 +37,6 @@ public class StarCitizenWikiClientTests
                     { "faction": "Wikelo Emporium", "scope": "Wikelo", "amount": 250 }
                   ],
                   "reputation_amount": null,
-                  "game_version": "4.2.0",
                   "web_url": "https://example.test/mission"
                 }
               ],
