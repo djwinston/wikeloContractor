@@ -7,9 +7,14 @@ namespace WikeloContractor.Services;
 /// <inheritdoc cref="ICompletionService" />
 public sealed class CompletionService : ICompletionService
 {
-    private readonly string _filePath = Path.Combine(AppStorage.Root, "completed.json");
+    private readonly string _filePath;
 
     private CompletionStore _store = new();
+
+    public CompletionService() => _filePath = Path.Combine(AppStorage.Root, "completed.json");
+
+    /// <summary>Test seam: points the store at a temp file, mirroring <see cref="InventoryStore"/>.</summary>
+    internal CompletionService(string filePath) => _filePath = filePath;
 
     public event EventHandler? Changed;
 

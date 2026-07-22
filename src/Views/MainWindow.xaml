@@ -22,6 +22,10 @@
   WindowStartupLocation="CenterScreen"
   mc:Ignorable="d">
 
+  <ui:FluentWindow.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+  </ui:FluentWindow.Resources>
+
   <Grid>
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" />
@@ -34,10 +38,14 @@
       Title="{DynamicResource App_Title}"
       Grid.Row="0" />
 
+    <!-- Locked while catalog data is syncing: see MainWindowViewModel.IsNavigationEnabled for why
+         the whole shell is held rather than each page guarding itself. The TitleBar above is
+         outside this element, so closing the window is never blocked. -->
     <ui:NavigationView
       x:Name="RootNavigation"
       Grid.Row="1"
       IsBackButtonVisible="Collapsed"
+      IsEnabled="{Binding ViewModel.IsNavigationEnabled}"
       IsPaneToggleVisible="True"
       OpenPaneLength="160"
       PaneDisplayMode="Left">
@@ -65,5 +73,54 @@
       </ui:NavigationView.FooterMenuItems>
 
     </ui:NavigationView>
+
+    <!-- Sync lock. Same row as the NavigationView and declared after it, so it covers the whole
+         shell — nav pane included — while catalog data is incomplete. Placed here rather than on
+         the Catalog page because IsEnabled on the NavigationView cascades into its content: a
+         page-hosted overlay would be greyed out along with everything it is explaining.
+         Determinate: the service reports real per-phase counts. -->
+    <Border
+      Grid.Row="1"
+      Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+      Visibility="{Binding ViewModel.IsSyncing, Converter={StaticResource BoolToVisibility}}">
+      <StackPanel
+        MaxWidth="380"
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center">
+        <!-- WPF-UI's own spinner rather than a hand-rolled RotateTransform storyboard: a
+             Style-based one cannot work here (Storyboard.TargetName is rejected inside a Style),
+             and the control already owns its animation. Indeterminate because it says "working";
+             how far along we are is the determinate bar below, which has real counts. -->
+        <ui:ProgressRing
+          Width="42"
+          Height="42"
+          HorizontalAlignment="Center"
+          IsIndeterminate="True" />
+        <TextBlock
+          Margin="0,14,0,0"
+          HorizontalAlignment="Center"
+          FontSize="{StaticResource FontSizeSubtitle}"
+          FontWeight="SemiBold"
+          Text="{DynamicResource Catalog_Syncing_Title}" />
+        <TextBlock
+          Margin="0,8,0,0"
+          HorizontalAlignment="Center"
+          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+          Text="{DynamicResource Catalog_Syncing_Hint}"
+          TextAlignment="Center"
+          TextWrapping="Wrap" />
+        <ProgressBar
+          Height="{StaticResource SizeProgressBarHeight}"
+          Margin="0,20,0,0"
+          Maximum="1"
+          Minimum="0"
+          Value="{Binding ViewModel.SyncFraction, Mode=OneWay}" />
+        <TextBlock
+          Margin="0,10,0,0"
+          HorizontalAlignment="Center"
+          Style="{StaticResource MonoCaptionStyle}"
+          Text="{Binding ViewModel.SyncProgressText}" />
+      </StackPanel>
+    </Border>
   </Grid>
 </ui:FluentWindow>

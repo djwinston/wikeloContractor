@@ -1,0 +1,171 @@
+<ResourceDictionary
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="clr-namespace:WikeloContractor.Views.Controls"
+  xmlns:converters="clr-namespace:WikeloContractor.Views.Converters"
+  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+
+  <!-- Shared chip, tag and badge chrome, plus the templates whose *content* is identical across
+       pages. The rule: if two pages render the same thing, it belongs here; only genuinely
+       page-specific content (the blueprint chip reads "BP: name" in the catalog and shows an icon
+       on the detail page) stays inline and wraps itself in one of the chrome styles below.
+       Colours come from the swapped brand palette — see docs/design-system.md. -->
+
+  <converters:AvailabilityToBrushConverter x:Key="ChipAvailabilityToBrush" />
+
+  <!-- Solid-bordered chip: requirement / reward roles. Background, border and foreground are set
+       by the caller (they vary by availability), so this style only fixes the geometry. -->
+  <Style x:Key="ChipStyle" TargetType="ContentControl">
+    <Setter Property="Margin" Value="{StaticResource SpacingChipGap}" />
+    <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+    <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ContentControl">
+          <Border
+            Padding="9,4"
+            Background="{TemplateBinding Background}"
+            BorderBrush="{TemplateBinding BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="{StaticResource RadiusChip}"
+            SnapsToDevicePixels="True">
+            <ContentPresenter VerticalAlignment="Center" />
+          </Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Blueprint chip: solid purple outline. Same geometry as ChipStyle, but self-colouring from the
+       blueprint brand brushes (the purple hue is the schematic cue). -->
+  <Style x:Key="BlueprintChipStyle" TargetType="ContentControl">
+    <Setter Property="Margin" Value="{StaticResource SpacingChipGap}" />
+    <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+    <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+    <Setter Property="Foreground" Value="{DynamicResource ChipBlueprintForegroundBrush}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ContentControl">
+          <Border
+            Padding="9,4"
+            Background="{DynamicResource ChipBlueprintBackgroundBrush}"
+            BorderBrush="{DynamicResource ChipBlueprintBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="{StaticResource RadiusChip}"
+            SnapsToDevicePixels="True">
+            <ContentPresenter VerticalAlignment="Center" />
+          </Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Outline tag: the small uppercase marker that qualifies a title — the catalog row's contract
+       category and the detail page's reward rarity. Lighter than a chip (no fill, tighter padding).
+       Set Content to a plain string; the font/colour setters below inherit into the generated
+       TextBlock, so a caller needs one line, not a nested TextBlock. -->
+  <Style x:Key="TagStyle" TargetType="ContentControl">
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+    <Setter Property="FontSize" Value="{StaticResource FontSizeOverline}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ContentControl">
+          <Border
+            Padding="6,1"
+            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="{StaticResource RadiusTag}"
+            SnapsToDevicePixels="True">
+            <ContentPresenter VerticalAlignment="Center" />
+          </Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Default look for Views/Controls/StatusBadge (COMPLETED / READY). Role picks the brush set, so
+       a caller never hand-pairs three brushes and cannot mismatch them. -->
+  <Style TargetType="{x:Type controls:StatusBadge}">
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="{x:Type controls:StatusBadge}">
+          <Border
+            Padding="7,2"
+            Background="{TemplateBinding Background}"
+            BorderBrush="{TemplateBinding BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="{StaticResource RadiusBadge}"
+            SnapsToDevicePixels="True">
+            <StackPanel Orientation="Horizontal">
+              <ui:SymbolIcon
+                VerticalAlignment="Center"
+                FontSize="11"
+                Foreground="{TemplateBinding Foreground}"
+                Symbol="{TemplateBinding Symbol}" />
+              <TextBlock
+                Margin="4,0,0,0"
+                Foreground="{TemplateBinding Foreground}"
+                Style="{StaticResource OverlineTextStyle}"
+                Text="{TemplateBinding Text}" />
+            </StackPanel>
+          </Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+    <Style.Triggers>
+      <Trigger Property="Role" Value="Success">
+        <Setter Property="Background" Value="{DynamicResource ChipSuccessBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ChipSuccessBorderBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource ChipSuccessForegroundBrush}" />
+      </Trigger>
+      <Trigger Property="Role" Value="Caution">
+        <Setter Property="Background" Value="{DynamicResource ChipCautionBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ChipCautionBorderBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource ChipCautionForegroundBrush}" />
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+
+  <!-- Requirement chip: identical on the catalog row and the detail page (both bind a
+       ViewModels/RequirementChip list), so the whole template is shared, not just the chrome.
+       Availability drives all four brushes through the converter. -->
+  <DataTemplate x:Key="RequirementChipTemplate">
+    <ContentControl
+      Background="{Binding Availability, Converter={StaticResource ChipAvailabilityToBrush}, ConverterParameter=Background}"
+      BorderBrush="{Binding Availability, Converter={StaticResource ChipAvailabilityToBrush}, ConverterParameter=Border}"
+      Foreground="{Binding Availability, Converter={StaticResource ChipAvailabilityToBrush}, ConverterParameter=Foreground}"
+      Style="{StaticResource ChipStyle}">
+      <TextBlock FontWeight="Medium"><Run Text="{Binding Name, Mode=OneWay}" /><Run Text=" × " /><Run
+          FontWeight="Bold"
+          Foreground="{Binding Availability, Converter={StaticResource ChipAvailabilityToBrush}, ConverterParameter=Value}"
+          Text="{Binding AmountLabel, Mode=OneWay}" /></TextBlock>
+    </ContentControl>
+  </DataTemplate>
+
+  <!-- Wrapping chip list — the panel every chip ItemsControl uses. -->
+  <ItemsPanelTemplate x:Key="ChipWrapPanel">
+    <WrapPanel />
+  </ItemsPanelTemplate>
+
+  <!-- Readiness meter: how much of the requirement list the inventory covers. Width stays with the
+       caller (the catalog row gives it 360, the detail heading 200); everything else is fixed here
+       so the two bars cannot drift in height or scale.
+       BasedOn is mandatory: assigning a Style replaces the theme's implicit style outright, and
+       without it the bar silently falls back to the stock WPF template — square corners, bright
+       green fill — instead of the Fluent one. Resolves because App.xaml merges Chips.xaml after
+       WPF-UI's ControlsDictionary (StaticResource only looks backwards); see docs/design-system.md. -->
+  <Style
+    x:Key="ReadinessBarStyle"
+    BasedOn="{StaticResource {x:Type ProgressBar}}"
+    TargetType="ProgressBar">
+    <Setter Property="Height" Value="{StaticResource SizeProgressBarHeight}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Maximum" Value="1" />
+    <Setter Property="Minimum" Value="0" />
+  </Style>
+
+</ResourceDictionary>

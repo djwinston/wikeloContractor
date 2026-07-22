@@ -105,6 +105,27 @@ public static class ComponentTypeDisplay
     };
 }
 
+/// <summary>
+/// Maps an armor damage-resistance type (<c>damage_resistance_map</c> keys carried in
+/// <see cref="RewardDetails.DamageResistances"/>) to its localization key — the single home for the
+/// short display label, mirroring <see cref="ComponentTypeDisplay"/>. Unmapped types fall back to
+/// the raw API name.
+/// </summary>
+public static class DamageTypeDisplay
+{
+    public static string? LabelKey(string type) => type.ToLowerInvariant() switch
+    {
+        "impact" => "Damage_Impact",
+        "physical" => "Damage_Physical",
+        "energy" => "Damage_Energy",
+        "distortion" => "Damage_Distortion",
+        "thermal" => "Damage_Thermal",
+        "biochemical" or "biochem" => "Damage_Biochem",
+        "stun" => "Damage_Stun",
+        _ => null,
+    };
+}
+
 /// <summary>One installed component or weapon of a vehicle, grouped ("4 × CoverAll (S2, Military B)").</summary>
 public sealed record ShipLoadoutEntry
 {

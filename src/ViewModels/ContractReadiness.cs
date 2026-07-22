@@ -20,6 +20,9 @@ public sealed class ContractReadiness
         IsReady = total > 0 && satisfied == total;
         ShowReadiness = !isCompleted && total > 0;
         ReadinessLabel = $"{satisfied} / {total}";
+        // A completed contract reads as fully done regardless of what is left in the inventory —
+        // the items were spent on it, so a half-empty bar under a completed row would be a lie.
+        Fraction = isCompleted ? 1d : total > 0 ? (double)satisfied / total : 0d;
     }
 
     /// <summary>Requirement chips carrying per-item availability vs the inventory (drives chip color).</summary>
@@ -33,6 +36,9 @@ public sealed class ContractReadiness
 
     /// <summary>"3 / 5" — satisfied requirements out of total.</summary>
     public string ReadinessLabel { get; }
+
+    /// <summary>Satisfied share in [0, 1] for the row's ProgressBar (Maximum="1"); 1 when completed.</summary>
+    public double Fraction { get; }
 
     /// <summary>
     /// Composes the readiness for a contract's requirements against the inventory. Completed contracts

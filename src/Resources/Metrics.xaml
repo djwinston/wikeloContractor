@@ -1,0 +1,35 @@
+<ResourceDictionary
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+  <!-- Geometry scale (design system §03). Theme-independent: merged once, never swapped.
+       Use these instead of re-typing literals per page — a value that appears in two XAML files
+       belongs here. -->
+
+  <!-- Corner radii -->
+  <CornerRadius x:Key="RadiusTag">4</CornerRadius>
+  <CornerRadius x:Key="RadiusBadge">5</CornerRadius>
+  <CornerRadius x:Key="RadiusChip">6</CornerRadius>
+  <CornerRadius x:Key="RadiusControl">7</CornerRadius>
+  <CornerRadius x:Key="RadiusCard">10</CornerRadius>
+
+  <!-- Spacing. Chip gap is applied as a Thickness margin on the chip itself, hence the halved
+       right/bottom pairing used by the chip styles. -->
+  <Thickness x:Key="SpacingChipGap">0,0,6,6</Thickness>
+  <Thickness x:Key="SpacingRowPadding">0,15,0,15</Thickness>
+  <Thickness x:Key="SpacingCardPadding">14</Thickness>
+  <Thickness x:Key="SpacingPagePadding">26,20,26,20</Thickness>
+
+  <!-- Fixed sizes. Catalog thumb is larger than the design spec's 84×56 (user request): the real
+       rows are much taller than the mockup's (many requirement chips), leaving vertical whitespace
+       beside the thumb, so it is grown to 120×80 while keeping the 3:2 ratio. -->
+  <sys:Double x:Key="SizeCatalogThumbWidth">120</sys:Double>
+  <sys:Double x:Key="SizeCatalogThumbHeight">80</sys:Double>
+  <sys:Double x:Key="SizeInventoryThumb">46</sys:Double>
+  <sys:Double x:Key="SizeProgressBarHeight">6</sys:Double>
+  <sys:Double x:Key="SizeNavRailWidth">150</sys:Double>
+  <!-- Minimum interactive target (star toggle, icon buttons) -->
+  <sys:Double x:Key="SizeHitTarget">28</sys:Double>
+
+</ResourceDictionary>

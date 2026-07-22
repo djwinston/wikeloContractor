@@ -62,6 +62,12 @@ other; the backing `Status`/`HasLoadError` carry `[NotifyPropertyChangedFor]` fo
 The sync badge in the header (`IsSynced` → green `CloudCheckmark24`, `IsOffline` →
 caution `CloudOff24`) plus `GameVersion` text is the persistent counterpart.
 
+The catalog and contract-detail headers show the version **without** the API build number
+(`4.9.0-LIVE`), via `Models/GameVersionDisplay.WithoutBuild` — the single home for that formatting.
+The build counts API data revisions, not game patches, so beside a game version it reads as a patch
+number it is not. Settings keeps the full string, labelled **API version**
+(`SettingsViewModel.DataApiVersion`).
+
 The rate-limit countdown lives in a shared `RateLimitWatcher` (singleton in `ViewModels/`,
 injected into both `CatalogViewModel` and `SettingsViewModel`) so both pages show identical
 state. It subscribes to the service's `RateLimitChanged` event, reads the authoritative
@@ -225,17 +231,20 @@ invisible. Picking per surface keeps both at ≥ 7:1.
 `SystemUsesLightTheme` changes do not raise `ApplicationThemeManager.Changed`, hence the extra
 `SystemEvents.UserPreferenceChanged` subscription (unsubscribed in `OnClosed` alongside the other).
 
-Every asset is a bare mark on transparency (no opaque plate), and the names describe the
-**artwork**, not the target theme: a dark surface takes the light (cyan) art, a light surface
-takes the dark (navy) art.
+Each asset is a full-bleed rounded "W" tile (opaque tile, transparent corners), and the key names
+follow the surface it is drawn for: a dark surface takes the cyan-tile art (`AppMarkLight` /
+`icon-light.png`), a light surface the dark-tile art (`AppMarkDark` / `icon.png`). Driving either
+surface from the wrong theme drops the mark's contrast below AA.
 
 Do not set an explicit size on the title bar `ImageIcon`: the `ui:TitleBar` template constrains
 its icon slot and clips anything larger flat at the top and bottom instead of scaling it.
 
-`Resources/BrandIcons.xaml` is a translation of `docs/brand/icon-vector-24.svg` (200 × 200
-viewBox) — WPF cannot load `.svg` itself, so the SVGs stay reference masters and are deliberately
-not csproj `<Resource>` entries. Re-export the rasters from them rather than upscaling PNGs.
-See `docs/brand/icon-spec.md` for which master feeds which `app.ico` frame.
+`Resources/BrandIcons.xaml` is a hand-transcription of the **`mid`** masters
+(`docs/brand/master-{ondark,onlight}-mid.svg`, 200 × 200 viewBox) — WPF cannot load `.svg` itself,
+so the SVGs stay reference masters and are deliberately not csproj `<Resource>` entries. A colour
+or geometry change in the mid master must be copied into `BrandIcons.xaml` by hand. Re-export the
+rasters from the masters rather than upscaling PNGs. See `docs/brand/icon-spec.md` for which master
+feeds which `app.ico` frame.
 
 ## Localized strings with parameters
 

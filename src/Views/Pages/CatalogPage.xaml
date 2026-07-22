@@ -5,6 +5,7 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:local="clr-namespace:WikeloContractor.Views.Pages"
+  xmlns:controls="clr-namespace:WikeloContractor.Views.Controls"
   xmlns:converters="clr-namespace:WikeloContractor.Views.Converters"
   xmlns:helpers="clr-namespace:WikeloContractor.Views.Helpers"
   xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
@@ -22,10 +23,9 @@
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
     <converters:CategoryToSymbolConverter x:Key="CategoryToSymbol" />
     <converters:PresenceToVisibilityConverter x:Key="NullToVisibility" Invert="True" />
-    <converters:AvailabilityToBrushConverter x:Key="AvailabilityToBrush" />
   </Page.Resources>
 
-  <Grid Margin="42,24,42,0">
+  <Grid Margin="{StaticResource SpacingPagePadding}">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" />
       <RowDefinition Height="Auto" />
@@ -43,29 +43,34 @@
 
       <TextBlock
         Grid.Column="0"
-        FontSize="28"
-        FontWeight="DemiBold"
+        FontSize="{StaticResource FontSizeTitle}"
+        FontWeight="Bold"
         Text="{DynamicResource Catalog_Title}" />
 
-      <!-- Sync status badge: green check when data matches the current LIVE version -->
+      <!-- Sync status: green cloud-check when the data matches the current LIVE version. The
+           version itself is mono — it is a technical value, per docs/design-system.md. -->
       <StackPanel
         Grid.Column="1"
         VerticalAlignment="Center"
         Orientation="Horizontal">
         <ui:SymbolIcon
           VerticalAlignment="Center"
+          FontSize="15"
           Foreground="{DynamicResource SystemFillColorSuccessBrush}"
-          Symbol="CloudCheckmark24"
+          Symbol="CloudCheckmark16"
           Visibility="{Binding ViewModel.IsSynced, Converter={StaticResource BoolToVisibility}}" />
         <ui:SymbolIcon
           VerticalAlignment="Center"
+          FontSize="15"
           Foreground="{DynamicResource SystemFillColorCautionBrush}"
           Symbol="CloudOff24"
           Visibility="{Binding ViewModel.IsOffline, Converter={StaticResource BoolToVisibility}}" />
+        <!-- No syncing state here: the shell overlay covers this page whenever a sync is running,
+             so a badge for it could never be seen. See MainWindow.xaml. -->
         <TextBlock
           Margin="6,0,0,0"
-          VerticalAlignment="Center"
-          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+          Foreground="{DynamicResource SystemFillColorSuccessBrush}"
+          Style="{StaticResource MonoCaptionStyle}"
           Text="{Binding ViewModel.GameVersion}" />
       </StackPanel>
     </Grid>
@@ -73,40 +78,46 @@
     <!-- Wikelo reputation standing: rank + progress toward the next rank -->
     <Border
       Grid.Row="1"
-      Margin="0,12,0,0"
-      Padding="16,12"
-      Background="{DynamicResource ControlFillColorDefaultBrush}"
-      CornerRadius="8">
-      <StackPanel>
-        <Grid>
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
-          </Grid.ColumnDefinitions>
+      Margin="0,16,0,0"
+      Padding="16,11"
+      Background="{DynamicResource ReputationBannerBrush}"
+      BorderBrush="{DynamicResource AccentFillColorDefaultBrush}"
+      BorderThickness="2,0,0,0"
+      CornerRadius="0,8,8,0">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Grid.Column="0" Orientation="Horizontal">
           <ui:SymbolIcon
-            Grid.Column="0"
             VerticalAlignment="Center"
-            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+            FontSize="15"
             Symbol="Trophy24" />
           <TextBlock
-            Grid.Column="1"
             Margin="8,0,0,0"
             VerticalAlignment="Center"
+            FontSize="{StaticResource FontSizeBody}"
             FontWeight="SemiBold"
             Text="{Binding ViewModel.Reputation.TierLabel}" />
-          <TextBlock
-            Grid.Column="2"
-            VerticalAlignment="Center"
-            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-            Text="{Binding ViewModel.Reputation.ProgressText}" />
-        </Grid>
+        </StackPanel>
+
         <ProgressBar
-          Margin="0,10,0,0"
+          Grid.Column="1"
+          Height="5"
+          Margin="16,0"
+          VerticalAlignment="Center"
           Maximum="1"
           Minimum="0"
           Value="{Binding ViewModel.Reputation.Fraction, Mode=OneWay}" />
-      </StackPanel>
+
+        <TextBlock
+          Grid.Column="2"
+          Style="{StaticResource MonoCaptionStyle}"
+          Text="{Binding ViewModel.Reputation.ProgressText}" />
+      </Grid>
     </Border>
 
     <!-- Filters: search, reward category, required resource -->
@@ -203,199 +214,210 @@
       <ItemsControl Margin="0,0,16,0" ItemsSource="{Binding ViewModel.Contracts}">
         <ItemsControl.ItemTemplate>
           <DataTemplate>
-            <Border
-              Margin="0,4"
-              Padding="16,12"
-              Background="{DynamicResource ControlFillColorDefaultBrush}"
-              CornerRadius="8"
-              Cursor="Hand">
-              <Border.InputBindings>
-                <MouseBinding
-                  Command="{Binding ViewModel.OpenDetailsCommand, RelativeSource={RelativeSource AncestorType=Page}}"
-                  CommandParameter="{Binding Contract}"
-                  MouseAction="LeftClick" />
-              </Border.InputBindings>
-            <Grid>
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-              </Grid.ColumnDefinitions>
+            <!-- Outer border draws only the hairline row divider (design 3a/3b: rows are separated
+                 by a rule, not by card chrome). The completed state lives on the inner border so
+                 its left accent and wash do not fight the divider's thickness. -->
+            <Border BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="0,1,0,0">
+              <Border Cursor="Hand">
+                <Border.Style>
+                  <Style TargetType="Border">
+                    <Setter Property="CornerRadius" Value="0,8,8,0" />
+                    <!-- Reserve the 2 px left accent in every row (transparent until completed) plus
+                         a 12 px inset before the thumb. Completed state then only swaps colours — no
+                         layout shift, and nothing sits in negative-margin space (the earlier
+                         Margin="-12,0" pushed the accent into the gutter, where the ScrollViewer
+                         clipped it, so it never showed). -->
+                    <Setter Property="BorderThickness" Value="2,0,0,0" />
+                    <Setter Property="BorderBrush" Value="Transparent" />
+                    <Setter Property="Padding" Value="12,15" />
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding IsCompleted}" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource CompletedRowWashBrush}" />
+                        <Setter Property="BorderBrush" Value="{DynamicResource CompletedRowAccentBrush}" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </Border.Style>
+                <Border.InputBindings>
+                  <MouseBinding
+                    Command="{Binding ViewModel.OpenDetailsCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                    CommandParameter="{Binding Contract}"
+                    MouseAction="LeftClick" />
+                </Border.InputBindings>
 
-              <!-- Reward preview: image from the disk cache, category icon until it loads -->
-              <Grid
-                Grid.Column="0"
-                Width="64"
-                Height="64"
-                Margin="0,0,14,0"
-                VerticalAlignment="Center">
-                <ui:SymbolIcon
-                  HorizontalAlignment="Center"
-                  VerticalAlignment="Center"
-                  FontSize="32"
-                  Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                  Symbol="{Binding Contract.Category, Converter={StaticResource CategoryToSymbol}}"
-                  Visibility="{Binding Source, ElementName=PreviewImage, Converter={StaticResource NullToVisibility}}" />
-                <Image
-                  x:Name="PreviewImage"
-                  helpers:RewardPreview.Contract="{Binding Contract}"
-                  RenderOptions.BitmapScalingMode="HighQuality"
-                  Stretch="Uniform" />
-              </Grid>
-
-              <StackPanel Grid.Column="1">
-              <Grid>
-                <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="*" />
-                  <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <!-- Title, prefixed by a green check when the contract is completed -->
-                <Grid Grid.Column="0">
+                <Grid>
                   <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                   </Grid.ColumnDefinitions>
-                  <ui:SymbolIcon
+
+                  <!-- Reward preview: image from the disk cache, category icon until it loads -->
+                  <Border
                     Grid.Column="0"
-                    Margin="0,0,6,0"
-                    VerticalAlignment="Center"
-                    Foreground="{DynamicResource SystemFillColorSuccessBrush}"
-                    Symbol="CheckmarkCircle24"
-                    Visibility="{Binding IsCompleted, Converter={StaticResource BoolToVisibility}}" />
-                  <TextBlock
-                    Grid.Column="1"
-                    VerticalAlignment="Center"
-                    FontSize="16"
-                    FontWeight="SemiBold"
-                    Text="{Binding Contract.Title}"
-                    TextTrimming="CharacterEllipsis" />
+                    Width="{StaticResource SizeCatalogThumbWidth}"
+                    Height="{StaticResource SizeCatalogThumbHeight}"
+                    Margin="0,0,14,0"
+                    VerticalAlignment="Top"
+                    Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                    CornerRadius="8">
+                    <!-- A Border does not clip its child to the corner radius (ClipToBounds only
+                         clips to the rectangle), so the artwork needs an explicit rounded clip or
+                         it renders square corners over the rounded thumb. -->
+                    <Grid>
+                      <Grid.Clip>
+                        <RectangleGeometry
+                          RadiusX="8"
+                          RadiusY="8"
+                          Rect="0,0,120,80" />
+                      </Grid.Clip>
+                      <ui:SymbolIcon
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        FontSize="24"
+                        Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                        Symbol="{Binding Contract.Category, Converter={StaticResource CategoryToSymbol}}"
+                        Visibility="{Binding Source, ElementName=PreviewImage, Converter={StaticResource NullToVisibility}}" />
+                      <Image
+                        x:Name="PreviewImage"
+                        helpers:RewardPreview.Contract="{Binding Contract}"
+                        RenderOptions.BitmapScalingMode="HighQuality"
+                        Stretch="Uniform" />
+                    </Grid>
+                  </Border>
+
+                  <StackPanel Grid.Column="1">
+                    <!-- Title line: name, category tag, completed marker -->
+                    <StackPanel Margin="0,0,0,8" Orientation="Horizontal">
+                      <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="{StaticResource FontSizeSubtitle}"
+                        FontWeight="SemiBold"
+                        Text="{Binding Contract.Title}"
+                        TextTrimming="CharacterEllipsis" />
+                      <ContentControl
+                        Margin="9,0,0,0"
+                        Content="{Binding CategoryLabel}"
+                        Style="{StaticResource TagStyle}" />
+                      <controls:StatusBadge
+                        Margin="9,0,0,0"
+                        Role="Success"
+                        Symbol="Checkmark24"
+                        Text="{DynamicResource Contract_Completed}"
+                        Visibility="{Binding IsCompleted, Converter={StaticResource BoolToVisibility}}" />
+                      <!-- Everything gathered but not yet turned in — caution role, so it reads as
+                           a different state from the green completed badge. -->
+                      <controls:StatusBadge
+                        Margin="9,0,0,0"
+                        Role="Caution"
+                        Symbol="CheckmarkCircle24"
+                        Text="{DynamicResource Contract_ReadyBadge}"
+                        Visibility="{Binding ShowReadyBadge, Converter={StaticResource BoolToVisibility}}" />
+                    </StackPanel>
+
+                    <!-- Readiness: how much of the requirement list the inventory already covers.
+                         Hidden once completed — the items were spent, so the bar is meaningless. -->
+                    <StackPanel
+                      Margin="0,0,0,10"
+                      Orientation="Horizontal"
+                      ToolTip="{DynamicResource Contract_ReadinessTooltip}"
+                      Visibility="{Binding ShowReadiness, Converter={StaticResource BoolToVisibility}}">
+                      <ProgressBar
+                        Width="360"
+                        Style="{StaticResource ReadinessBarStyle}"
+                        Value="{Binding ReadinessFraction, Mode=OneWay}" />
+                      <TextBlock
+                        Margin="10,0,0,0"
+                        Style="{StaticResource MonoCaptionStyle}"
+                        Text="{Binding ReadinessLabel}" />
+                    </StackPanel>
+
+                    <!-- Required items, colored by availability vs the inventory. Chips wrap;
+                         they are never trimmed, so a 20-requirement contract makes a tall row. -->
+                    <ItemsControl
+                      Margin="0,0,0,3"
+                      ItemsPanel="{StaticResource ChipWrapPanel}"
+                      ItemsSource="{Binding RequirementChips}"
+                      ItemTemplate="{StaticResource RequirementChipTemplate}" />
+
+                    <!-- Rewards and blueprints share one line, behind a REWARDS label -->
+                    <WrapPanel>
+                      <TextBlock
+                        Margin="0,0,8,6"
+                        Style="{StaticResource OverlineTextStyle}"
+                        Text="{DynamicResource Catalog_RewardsLabel}" />
+                      <ItemsControl ItemsPanel="{StaticResource ChipWrapPanel}" ItemsSource="{Binding Contract.Rewards}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate>
+                            <ContentControl
+                              Background="{DynamicResource ChipRewardBackgroundBrush}"
+                              BorderBrush="{DynamicResource ChipRewardBorderBrush}"
+                              Foreground="{DynamicResource ChipRewardForegroundBrush}"
+                              Style="{StaticResource ChipStyle}">
+                              <TextBlock FontWeight="Medium" Text="{Binding Name}" />
+                            </ContentControl>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+
+                      <!-- Blueprints granted, abbreviated; an empty source renders nothing -->
+                      <ItemsControl ItemsPanel="{StaticResource ChipWrapPanel}" ItemsSource="{Binding Contract.Blueprints}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate>
+                            <ContentControl Style="{StaticResource BlueprintChipStyle}">
+                              <TextBlock FontWeight="SemiBold"><Run Text="{DynamicResource Catalog_BlueprintAbbrev}" /><Run Text=" · " /><Run Text="{Binding Mode=OneWay}" /></TextBlock>
+                            </ContentControl>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </WrapPanel>
+                  </StackPanel>
+
+                  <!-- XP awarded + the completion toggle, centred against the row -->
+                  <StackPanel
+                    Grid.Column="2"
+                    Margin="14,0,0,0"
+                    VerticalAlignment="Center">
+                    <TextBlock
+                      Margin="0,0,0,10"
+                      HorizontalAlignment="Right"
+                      FontSize="{StaticResource FontSizeBody}"
+                      FontWeight="SemiBold"
+                      Foreground="{DynamicResource XpBadgeForegroundBrush}"
+                      Text="{Binding XpLabel}" />
+                    <!-- Compact ghost toggle, per design 3a: 6/12 padding, thin outline, small
+                         SemiBold caption, muted text; a hollow circle for "not done yet" (the
+                         checkmark is reserved for the COMPLETED badge) flipping to an undo arrow. -->
+                    <ui:Button
+                      HorizontalAlignment="Right"
+                      Padding="12,6"
+                      Appearance="Secondary"
+                      FontSize="{StaticResource FontSizeCaption}"
+                      FontWeight="SemiBold"
+                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                      Command="{Binding ToggleCompletedCommand}"
+                      Visibility="{Binding ShowCompletionToggle, Converter={StaticResource BoolToVisibility}}">
+                      <ui:Button.Style>
+                        <Style BasedOn="{StaticResource {x:Type ui:Button}}" TargetType="ui:Button">
+                          <Setter Property="Content" Value="{DynamicResource Contract_MarkDone}" />
+                          <Setter Property="Icon" Value="{ui:SymbolIcon Circle24}" />
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsCompleted}" Value="True">
+                              <Setter Property="Content" Value="{DynamicResource Contract_Reopen}" />
+                              <Setter Property="Icon" Value="{ui:SymbolIcon ArrowUndo24}" />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </ui:Button.Style>
+                    </ui:Button>
+                  </StackPanel>
                 </Grid>
-
-                <!-- Reputation gained + completed toggle -->
-                <StackPanel
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  Orientation="Horizontal">
-                  <ui:SymbolIcon
-                    VerticalAlignment="Center"
-                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                    Symbol="Star24" />
-                  <TextBlock
-                    Margin="4,0,0,0"
-                    VerticalAlignment="Center"
-                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                    Text="{Binding Contract.ReputationAmount, StringFormat=+{0}}" />
-                  <ui:Button
-                    Margin="12,0,0,0"
-                    Padding="8,4"
-                    Command="{Binding ToggleCompletedCommand}"
-                    Icon="{ui:SymbolIcon Checkmark24}"
-                    ToolTip="{DynamicResource Contract_MarkDone}" />
-                </StackPanel>
-              </Grid>
-
-              <!-- Required items, colored by availability vs the inventory -->
-              <StackPanel
-                Margin="0,8,0,0"
-                Orientation="Horizontal"
-                Visibility="{Binding ShowReadiness, Converter={StaticResource BoolToVisibility}}">
-                <ui:SymbolIcon
-                  VerticalAlignment="Center"
-                  FontSize="14"
-                  Foreground="{DynamicResource SystemFillColorSuccessBrush}"
-                  Symbol="CheckmarkCircle24"
-                  ToolTip="{DynamicResource Contract_Ready}"
-                  Visibility="{Binding IsReady, Converter={StaticResource BoolToVisibility}}" />
-                <TextBlock
-                  Margin="6,0,0,0"
-                  VerticalAlignment="Center"
-                  FontSize="12"
-                  Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                  Text="{Binding ReadinessLabel}"
-                  ToolTip="{DynamicResource Contract_ReadinessTooltip}" />
-              </StackPanel>
-              <ItemsControl Margin="0,6,0,0" ItemsSource="{Binding RequirementChips}">
-                <ItemsControl.ItemsPanel>
-                  <ItemsPanelTemplate>
-                    <WrapPanel />
-                  </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate>
-                    <Border
-                      Margin="0,0,6,6"
-                      Padding="8,3"
-                      Background="{Binding Availability, Converter={StaticResource AvailabilityToBrush}}"
-                      CornerRadius="10">
-                      <TextBlock FontSize="12">
-                        <Run Text="{Binding Name, Mode=OneWay}" /><Run Text=" × " /><Run Text="{Binding AmountLabel, Mode=OneWay}" />
-                      </TextBlock>
-                    </Border>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-
-              <!-- Rewards (filled by background enrichment) -->
-              <ItemsControl ItemsSource="{Binding Contract.Rewards}">
-                <ItemsControl.ItemsPanel>
-                  <ItemsPanelTemplate>
-                    <WrapPanel />
-                  </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate>
-                    <Border
-                      Margin="0,0,6,6"
-                      Padding="8,3"
-                      Background="{DynamicResource AccentFillColorDefaultBrush}"
-                      CornerRadius="10">
-                      <StackPanel Orientation="Horizontal">
-                        <ui:SymbolIcon
-                          VerticalAlignment="Center"
-                          FontSize="12"
-                          Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}"
-                          Symbol="Gift24" />
-                        <TextBlock
-                          Margin="4,0,0,0"
-                          FontSize="12"
-                          Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}"
-                          Text="{Binding Name}" />
-                      </StackPanel>
-                    </Border>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-
-              <!-- Blueprints granted, abbreviated (after the rewards); empty source renders nothing -->
-              <ItemsControl ItemsSource="{Binding Contract.Blueprints}">
-                <ItemsControl.ItemsPanel>
-                  <ItemsPanelTemplate>
-                    <WrapPanel />
-                  </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate>
-                    <!-- Solid blue fill so the BP chip reads as a distinct color, not the gray default -->
-                    <Border
-                      Margin="0,0,6,6"
-                      Padding="8,3"
-                      Background="{DynamicResource BlueprintChipBackgroundBrush}"
-                      CornerRadius="10">
-                      <TextBlock FontSize="12" Foreground="White">
-                        <Run
-                          FontWeight="SemiBold"
-                          Text="{DynamicResource Catalog_BlueprintAbbrev}" /><Run Text=": " /><Run Text="{Binding Mode=OneWay}" />
-                      </TextBlock>
-                    </Border>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-              </StackPanel>
-            </Grid>
+              </Border>
             </Border>
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
     </ScrollViewer>
+
   </Grid>
 </Page>

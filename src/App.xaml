@@ -12,7 +12,12 @@
         <ui:ThemesDictionary Theme="Dark" />
         <ui:ControlsDictionary />
         <ResourceDictionary Source="pack://application:,,,/Resources/BrandIcons.xaml" />
-        <ResourceDictionary Source="pack://application:,,,/Resources/Brushes.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/Resources/Typography.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/Resources/Metrics.xaml" />
+        <!-- Default brand palette; ApplicationHostService.ApplyTheme swaps this dictionary at
+             runtime, paired with the WPF-UI theme above -->
+        <ResourceDictionary Source="pack://application:,,,/Resources/Theme/Brand.Dark.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/Resources/Chips.xaml" />
         <!-- Default language; LocalizationService swaps this dictionary at runtime -->
         <ResourceDictionary Source="pack://application:,,,/Resources/Localization/Strings.en.xaml" />
       </ResourceDictionary.MergedDictionaries>

@@ -30,10 +30,14 @@ public partial class MainWindow : INavigationWindow
         ViewModel = viewModel;
         DataContext = this;
 
-        // Watch the system theme only when the user selected "System"
+        // Watch the system theme only when the user selected "System".
+        // updateAccents MUST stay false: it defaults to true, and then every system theme
+        // evaluation re-derives the accent from the Windows accent colour, silently replacing the
+        // brand accent ApplicationHostService.ApplyTheme just installed. Same reason ApplyTheme
+        // passes updateAccent: false to ApplicationThemeManager.Apply.
         if (settingsService.Current.Theme == AppTheme.System)
         {
-            SystemThemeWatcher.Watch(this);
+            SystemThemeWatcher.Watch(this, WindowBackdropType.Mica, updateAccents: false);
         }
 
         InitializeComponent();
@@ -45,16 +49,37 @@ public partial class MainWindow : INavigationWindow
         SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
     }
 
+    /// <summary>
+    /// The WPF-UI theme changed. Our brand layer is not its business, so re-apply it or the dark
+    /// chip tints, blueprint role and completed-row wash stay on a light surface.
+    /// The <c>systemAccent</c> argument is deliberately ignored — the app always uses the brand one.
+    /// </summary>
     private void OnThemeChanged(ApplicationTheme currentApplicationTheme, System.Windows.Media.Color systemAccent) =>
-        UpdateAppIcon(currentApplicationTheme);
+        ReapplyBrandLayer(currentApplicationTheme);
 
     /// <summary>Windows theme changes do not raise <see cref="ApplicationThemeManager.Changed"/>.</summary>
     private void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
     {
         if (e.Category == UserPreferenceCategory.General)
         {
-            Dispatcher.Invoke(() => UpdateAppIcon(ApplicationThemeManager.GetAppTheme()));
+            Dispatcher.Invoke(() => ReapplyBrandLayer(ApplicationThemeManager.GetAppTheme()));
         }
+    }
+
+    /// <summary>
+    /// Re-applies our theme-dependent layer after the WPF-UI theme changed underneath us.
+    /// <para>
+    /// Deliberately driven from BOTH <see cref="OnThemeChanged"/> and
+    /// <see cref="OnUserPreferenceChanged"/>: a Windows light/dark flip notifies the
+    /// <c>SystemThemeWatcher</c> and this window through the same OS message, and their order is
+    /// not guaranteed. Whichever fires second sees the settled theme and corrects the layer, so
+    /// the palette cannot end up stale. Both calls are idempotent.
+    /// </para>
+    /// </summary>
+    private void ReapplyBrandLayer(ApplicationTheme applied)
+    {
+        ApplicationHostService.ApplyBrandLayer(applied);
+        UpdateAppIcon(applied);
     }
 
     /// <summary>

@@ -28,9 +28,14 @@
   <sys:String x:Key="Catalog_Offline_Title">Offline data</sys:String>
   <sys:String x:Key="Catalog_Offline_Message">Could not refresh the catalog — showing previously cached contracts.</sys:String>
   <sys:String x:Key="Catalog_Loading">Loading the contract catalog...</sys:String>
+  <sys:String x:Key="Catalog_Syncing_Title">Syncing catalog data</sys:String>
+  <sys:String x:Key="Catalog_Syncing_Hint">Fetching contract data from the Star Citizen Wiki API. The app stays locked until this finishes, so nothing acts on half-loaded data.</sys:String>
+  <sys:String x:Key="Catalog_Syncing_Contracts">Loading contract details — {0} of {1}</sys:String>
+  <sys:String x:Key="Catalog_Syncing_Rewards">Loading rewards — {0} of {1}</sys:String>
   <sys:String x:Key="Catalog_RateLimited_Title">Too many requests</sys:String>
   <sys:String x:Key="Catalog_RateLimited_Retry">The Star Citizen Wiki API allows a limited number of requests per minute. Loading resumes in {0} s.</sys:String>
   <sys:String x:Key="Catalog_RateLimited_Resuming">Resuming loading...</sys:String>
+  <sys:String x:Key="Catalog_RateLimited_Exhausted">The API is still limiting requests. Showing cached contracts — try Settings → Check for updates in a few minutes.</sys:String>
 
   <!-- Wikelo reputation standing + contract completion. Rank names are game standings (English). -->
   <sys:String x:Key="Reputation_Tier_New">New Customer</sys:String>
@@ -38,10 +43,15 @@
   <sys:String x:Key="Reputation_Tier_VeryBest">Very Best Customer</sys:String>
   <sys:String x:Key="Reputation_Progress">{0} / {1} XP</sys:String>
   <sys:String x:Key="Reputation_Max">{0} XP · Max rank</sys:String>
-  <sys:String x:Key="Contract_MarkDone">Mark completed</sys:String>
+  <sys:String x:Key="Contract_MarkDone">Mark done</sys:String>
   <sys:String x:Key="Contract_Completed">Completed</sys:String>
   <sys:String x:Key="Contract_Ready">Ready to turn in</sys:String>
+  <sys:String x:Key="Contract_ReadyBadge">Ready</sys:String>
   <sys:String x:Key="Contract_ReadinessTooltip">Required items you already have in your inventory</sys:String>
+  <sys:String x:Key="Contract_Reopen">Reopen</sys:String>
+  <sys:String x:Key="Catalog_RewardsLabel">REWARDS</sys:String>
+  <!-- {0} is the reputation the contract awards; the UI calls it XP (see docs/design-system.md) -->
+  <sys:String x:Key="Catalog_XpBadge">+{0} XP</sys:String>
   <sys:String x:Key="Dialog_Cancel">Cancel</sys:String>
   <sys:String x:Key="Complete_Dialog_Title">Complete contract?</sys:String>
   <sys:String x:Key="Complete_Dialog_Message">These items will be deducted from your inventory:</sys:String>
@@ -59,18 +69,29 @@
   <sys:String x:Key="Details_Requirements">Required items</sys:String>
   <sys:String x:Key="Details_Rewards">Rewards</sys:String>
   <sys:String x:Key="Details_RewardsPending">Reward details are still loading — check back in a moment.</sys:String>
-  <sys:String x:Key="Details_Stat_Cargo">Cargo: {0} SCU</sys:String>
-  <sys:String x:Key="Details_Stat_Crew">Crew: {0}</sys:String>
-  <sys:String x:Key="Details_Stat_Health">Hull HP: {0}</sys:String>
-  <sys:String x:Key="Details_Stat_Shields">Shields: {0}</sys:String>
-  <sys:String x:Key="Details_Stat_Speed">Speed (SCM/max): {0} / {1} m/s</sys:String>
-  <sys:String x:Key="Details_Stat_Msrp">MSRP: ${0}</sys:String>
-  <sys:String x:Key="Details_Stat_Temperature">Temperature: {0}…{1} °C</sys:String>
-  <sys:String x:Key="Details_Stat_Radiation">Radiation protection: {0}</sys:String>
-  <sys:String x:Key="Details_Stat_RadiationScrub">Radiation scrub rate: {0}</sys:String>
+  <!-- Reward stat labels (design 1c): short label shown above the value in the stat grid. Values
+       with units (SCU, m/s, $, %, °C) are composed in code and kept English. -->
+  <sys:String x:Key="Details_StatLabel_Cargo">Cargo</sys:String>
+  <sys:String x:Key="Details_StatLabel_Crew">Crew</sys:String>
+  <sys:String x:Key="Details_StatLabel_Hull">Hull HP</sys:String>
+  <sys:String x:Key="Details_StatLabel_Shields">Shields</sys:String>
+  <sys:String x:Key="Details_StatLabel_Speed">Speed</sys:String>
+  <sys:String x:Key="Details_StatLabel_Msrp">MSRP</sys:String>
+  <sys:String x:Key="Details_StatLabel_Temp">Temp °C</sys:String>
+  <sys:String x:Key="Details_StatLabel_Radiation">Radiation</sys:String>
+  <sys:String x:Key="Details_StatLabel_RadiationScrub">Rad. scrub</sys:String>
+  <!-- Damage-resistance type labels (armor stat grid) -->
+  <sys:String x:Key="Damage_Impact">Impact</sys:String>
+  <sys:String x:Key="Damage_Physical">Physical</sys:String>
+  <sys:String x:Key="Damage_Energy">Energy</sys:String>
+  <sys:String x:Key="Damage_Distortion">Distortion</sys:String>
+  <sys:String x:Key="Damage_Thermal">Thermal</sys:String>
+  <sys:String x:Key="Damage_Biochem">Biochem</sys:String>
+  <sys:String x:Key="Damage_Stun">Stun</sys:String>
   <sys:String x:Key="Details_Stat_Missiles">Missiles × {0}</sys:String>
-  <sys:String x:Key="Details_Loadout_Weapons">Weapons</sys:String>
-  <sys:String x:Key="Details_Loadout_Components">Components</sys:String>
+  <!-- Overline labels: uppercase in the resource because WPF has no text-transform -->
+  <sys:String x:Key="Details_Loadout_Weapons">WEAPONS</sys:String>
+  <sys:String x:Key="Details_Loadout_Components">COMPONENTS</sys:String>
   <sys:String x:Key="Details_Comp_PowerPlant">Power plant</sys:String>
   <sys:String x:Key="Details_Comp_Shield">Shield</sys:String>
   <sys:String x:Key="Details_Comp_Cooler">Cooler</sys:String>
@@ -99,12 +120,17 @@
   <sys:String x:Key="Settings_Theme_Light">Light</sys:String>
   <sys:String x:Key="Settings_Theme_Dark">Dark</sys:String>
   <sys:String x:Key="Settings_Data">Catalog data</sys:String>
-  <sys:String x:Key="Settings_Data_GameVersion">Game version:</sys:String>
+  <sys:String x:Key="Settings_Data_ApiVersion">API version:</sys:String>
   <sys:String x:Key="Settings_Data_LastSync">Last synced:</sys:String>
   <sys:String x:Key="Settings_Data_CheckNow">Check for updates</sys:String>
   <sys:String x:Key="Settings_Data_UpdateFailed">Could not reach the API — showing cached data. Try again later.</sys:String>
+  <!-- Product name: a brand, deliberately identical in both languages -->
+  <sys:String x:Key="App_Name">Wikelo Contractor</sys:String>
+  <!-- Hero overline; uppercase in the resource because WPF has no text-transform -->
+  <sys:String x:Key="About_Tagline">CONTRACT CATALOG  ·  INVENTORY MANAGER</sys:String>
   <sys:String x:Key="Settings_About">Wikelo Contractor — a companion app for Wikelo trades in Star Citizen.</sys:String>
   <sys:String x:Key="Settings_AppVersion">App version:</sys:String>
+  <sys:String x:Key="Settings_BuiltWith">Built with:</sys:String>
   <sys:String x:Key="Settings_AppUpdate">Application updates</sys:String>
   <sys:String x:Key="Settings_AppUpdate_Check">Check for app updates</sys:String>
   <sys:String x:Key="Settings_AppUpdate_Checking">Checking for updates…</sys:String>

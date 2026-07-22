@@ -1,0 +1,81 @@
+<ResourceDictionary
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+
+  <!-- App-specific colours for the DARK theme. Swapped as a pair with Brand.Light.xaml by
+       ApplicationHostService.ApplyTheme. See docs/design-system.md.
+
+       Only what the Fluent theme genuinely lacks belongs here. Surfaces, text and control fills
+       must keep using the WPF-UI theme keys (TextFillColorPrimaryBrush, CardBackgroundFill...,
+       SystemFillColorSuccessBrush, ...) — never re-declare those, and never hardcode a hex in a
+       page. What is app-specific: the tinted chip fills/strokes, which Fluent only ships as solid
+       fills, and the blueprint role, which has no Fluent equivalent at all. -->
+
+  <!-- Brand accent, read back by ApplyTheme and handed to ApplicationAccentColorManager. -->
+  <Color x:Key="BrandAccentColor">#2FD0EE</Color>
+
+  <!-- Brand.Light.xaml carries three extra keys (TextFillColorSecondary/Tertiary and
+       ControlStrokeColorDefault) that are deliberately absent here — the one exception to the
+       "same keys in both files" rule. They correct Fluent's light values, which measure as
+       unreadable on our surface; the dark ones are fine as they are. Because the swap REMOVES the
+       light dictionary, Fluent's dark values resolve again with nothing to redeclare. Adding
+       copies here would mean maintaining a second palette that silently drifts from WPF-UI. -->
+
+
+  <!-- Requirement chip "no stock" (neutral) is intentionally NOT here: the design maps it to the
+       Fluent ControlFillColorSecondaryBrush, so AvailabilityToBrushConverter resolves it straight
+       from the WPF-UI theme. Only the tinted caution/success roles below need brand brushes. -->
+
+  <!-- Requirement chip: partially covered by the inventory -->
+  <SolidColorBrush x:Key="ChipCautionBackgroundBrush" Color="#1FE8B84B" />
+  <SolidColorBrush x:Key="ChipCautionBorderBrush" Color="#4DE8B84B" />
+  <SolidColorBrush x:Key="ChipCautionForegroundBrush" Color="#E8C877" />
+  <SolidColorBrush x:Key="ChipCautionValueBrush" Color="#F2DFA6" />
+
+  <!-- Requirement chip: fully covered -->
+  <SolidColorBrush x:Key="ChipSuccessBackgroundBrush" Color="#244FB98A" />
+  <SolidColorBrush x:Key="ChipSuccessBorderBrush" Color="#524FB98A" />
+  <SolidColorBrush x:Key="ChipSuccessForegroundBrush" Color="#7FD3AB" />
+  <SolidColorBrush x:Key="ChipSuccessValueBrush" Color="#A9E6C9" />
+
+  <!-- Reward chip: the cyan accent role -->
+  <SolidColorBrush x:Key="ChipRewardBackgroundBrush" Color="#1A2FD0EE" />
+  <SolidColorBrush x:Key="ChipRewardBorderBrush" Color="#4D2FD0EE" />
+  <SolidColorBrush x:Key="ChipRewardForegroundBrush" Color="#7FDCEF" />
+
+  <!-- Blueprint role: solid purple outline, deliberately distinct from the cyan reward chip.
+       No Fluent equivalent. -->
+  <SolidColorBrush x:Key="ChipBlueprintBackgroundBrush" Color="#14A78BFA" />
+  <SolidColorBrush x:Key="ChipBlueprintBorderBrush" Color="#80A78BFA" />
+  <SolidColorBrush x:Key="ChipBlueprintForegroundBrush" Color="#C4A6FF" />
+
+  <!-- XP badge (contract reputation award) -->
+  <SolidColorBrush x:Key="XpBadgeForegroundBrush" Color="#E8B84B" />
+
+  <!-- Completed catalog row: left marker plus a fade-out wash across the row -->
+  <SolidColorBrush x:Key="CompletedRowAccentBrush" Color="#4FB98A" />
+  <LinearGradientBrush x:Key="CompletedRowWashBrush" StartPoint="0,0" EndPoint="1,0">
+    <GradientStop Offset="0" Color="#0F4FB98A" />
+    <GradientStop Offset="0.55" Color="#004FB98A" />
+  </LinearGradientBrush>
+
+  <!-- Reputation banner above the contract list -->
+  <LinearGradientBrush x:Key="ReputationBannerBrush" StartPoint="0,0" EndPoint="1,0">
+    <GradientStop Offset="0" Color="#172FD0EE" />
+    <GradientStop Offset="1" Color="#002FD0EE" />
+  </LinearGradientBrush>
+
+  <!-- About page hero panel: a branded glow behind the mark and wordmark -->
+  <RadialGradientBrush
+    x:Key="AboutHeroBackgroundBrush"
+    Center="0.5,0.12"
+    GradientOrigin="0.5,0.12"
+    RadiusX="1.2"
+    RadiusY="0.95">
+    <GradientStop Offset="0" Color="#1A3947" />
+    <GradientStop Offset="0.42" Color="#12202B" />
+    <GradientStop Offset="1" Color="#0C0F14" />
+  </RadialGradientBrush>
+
+</ResourceDictionary>

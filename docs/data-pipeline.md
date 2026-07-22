@@ -39,6 +39,30 @@ Every `CatalogLoadResult` carries a single mutually-exclusive `CatalogStatus`
 (`Online` / `Offline` / `RateLimited`), decided once by the service. The UI maps that one
 value to badges/InfoBars, so offline and rate-limited can never be reported together.
 
+## Sync state (completeness — a second, orthogonal axis)
+
+`CatalogStatus` answers *how fresh* the data is. It cannot answer *how complete* it is: the
+catalog is served `Online` the moment the mission list lands, minutes before enrichment fills in
+rewards, categories and the real requirement lists. That gap is what `CatalogSyncState`
+(`Services/CatalogSyncState.cs`, exposed as `IContractCatalogService.SyncState` +
+`SyncStateChanged`) makes visible — do **not** add a fourth `CatalogStatus` value for it, the two
+axes combine (`Online` *and* syncing is the normal case).
+
+- `Phase` (`Idle` / `Contracts` / `Rewards`) plus a per-phase `Completed`/`Total`. The total is
+  per-phase on purpose: the reward count is unknown until every mission detail has been read, so
+  one global total would have to be invented. The gun-name pass that follows classification is a
+  short unreported tail — its keys are derived from the pass before it.
+- Set **synchronously** in `StartEnrichmentIfNeeded` before the work is queued, so a caller that
+  has just awaited `GetContractsAsync` never observes a briefly-complete catalog.
+- Cleared at the end of `EnrichAsync` **before** `CatalogUpdated` is raised — that event means
+  "complete data is available", so a subscriber reacting to it must not still see a syncing
+  catalog — and again in the `finally` for the abort path. Both are required: enrichment swallows
+  its exceptions, so an aborted run that skipped the reset would block the UI until restart.
+- While syncing the UI blocks the catalog (filters disabled, overlay over the list) and withholds
+  the completion toggle. That last one is not cosmetic: `ContractCompletionInteraction` deducts
+  `contract.Requirements`, which mid-sync is still the `hauling_summary` fallback — no SCU
+  amounts, missing entries — so completing then removes the wrong amounts, irreversibly.
+
 ## Background enrichment
 
 The missions list has no rewards; those need per-mission detail calls (~88) plus item
@@ -139,8 +163,9 @@ Both service events may fire on background threads — always `Dispatcher.Invoke
 
 | Event | Payload | Raised when |
 |---|---|---|
-| `CatalogUpdated` | — | enrichment finished, `Current` has fresh data |
+| `CatalogUpdated` | — | enrichment finished, `Current` has fresh data (`SyncState` is already `Idle`) |
 | `RateLimitChanged` | — | rate-limit window opened (or a call was attempted while the gate is closed); read `RateLimitedUntil` for the deadline |
+| `SyncStateChanged` | — | enrichment started, advanced or ended (including on abort); read `SyncState` |
 
 ## Politeness rules (non-negotiable)
 
