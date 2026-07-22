@@ -203,9 +203,11 @@ public sealed partial class ContractCatalogService : IContractCatalogService
 
         _ = Task.Run(async () =>
         {
+            var completed = false;
             try
             {
                 await EnrichAsync();
+                completed = true;
             }
             catch (Exception)
             {
@@ -218,6 +220,16 @@ public sealed partial class ContractCatalogService : IContractCatalogService
                 // Must be in the finally: this run swallows its exceptions, and an aborted run
                 // that left the state syncing would block the catalog until the app restarts.
                 SetSyncState(CatalogSyncState.Idle);
+            }
+
+            // Announce completion only after the guard above is released — so a CatalogUpdated
+            // subscriber that reacts by forcing a refresh can start the next enrichment instead of
+            // being turned away by a guard this same run has not yet dropped — and after the state
+            // is Idle, so it never observes the catalog as still syncing. An aborted run produced
+            // no new data, so it stays silent.
+            if (completed)
+            {
+                CatalogUpdated?.Invoke(this, EventArgs.Empty);
             }
         });
     }
@@ -363,12 +375,10 @@ public sealed partial class ContractCatalogService : IContractCatalogService
 
         Current = FromEnvelope(_envelope, CatalogStatus.Online);
 
-        // Clear the sync state *before* announcing the data: CatalogUpdated means "complete data
-        // is available", so a subscriber reacting to it must not still see the catalog as
-        // syncing. The finally in StartEnrichmentIfNeeded repeats this idempotently for the
-        // abort path, where this line is never reached.
-        SetSyncState(CatalogSyncState.Idle);
-        CatalogUpdated?.Invoke(this, EventArgs.Empty);
+        // Neither the state reset nor CatalogUpdated is raised here: the caller
+        // (StartEnrichmentIfNeeded) clears the sync state and announces completion once the run
+        // guard has been released, so that "complete data is available" and "ready to sync again"
+        // become true together. Doing it here would announce while the guard is still held.
     }
 
     /// <summary>

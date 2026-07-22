@@ -54,10 +54,14 @@ axes combine (`Online` *and* syncing is the normal case).
   short unreported tail — its keys are derived from the pass before it.
 - Set **synchronously** in `StartEnrichmentIfNeeded` before the work is queued, so a caller that
   has just awaited `GetContractsAsync` never observes a briefly-complete catalog.
-- Cleared at the end of `EnrichAsync` **before** `CatalogUpdated` is raised — that event means
-  "complete data is available", so a subscriber reacting to it must not still see a syncing
-  catalog — and again in the `finally` for the abort path. Both are required: enrichment swallows
-  its exceptions, so an aborted run that skipped the reset would block the UI until restart.
+- Cleared in the `finally` of the enrichment task, so both the success and abort paths reset it —
+  enrichment swallows its exceptions, so a reset that lived only on the success path would let an
+  aborted run block the UI until restart. `CatalogUpdated` is then raised **outside** that guarded
+  region, which fixes the ordering in two ways: `SyncState` is already `Idle`, so a subscriber told
+  "complete data is available" never still sees a syncing catalog; and the `Interlocked` run guard
+  is already released, so a subscriber that reacts by forcing a refresh can start the *next*
+  enrichment instead of being turned away by the run it is reacting to (a real race the E2E sync
+  scenarios exercise — see `docs/testing.md`).
 - While syncing the UI blocks the catalog (filters disabled, overlay over the list) and withholds
   the completion toggle. That last one is not cosmetic: `ContractCompletionInteraction` deducts
   `contract.Requirements`, which mid-sync is still the `hauling_summary` fallback — no SCU
