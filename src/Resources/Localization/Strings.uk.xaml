@@ -6,7 +6,9 @@
   <sys:String x:Key="App_Title">Wikelo Contractor</sys:String>
 
   <sys:String x:Key="Nav_Catalog">Каталог</sys:String>
+  <sys:String x:Key="Nav_Favorites">Обране</sys:String>
   <sys:String x:Key="Nav_Inventory">Інвентар</sys:String>
+  <sys:String x:Key="Nav_Sourcing">Де знайти</sys:String>
   <sys:String x:Key="Nav_Settings">Налаштування</sys:String>
   <sys:String x:Key="Nav_About">Про застосунок</sys:String>
 
@@ -49,6 +51,13 @@
   <sys:String x:Key="Contract_ReadyBadge">Готово</sys:String>
   <sys:String x:Key="Contract_ReadinessTooltip">Потрібні предмети, які вже є у вашому інвентарі</sys:String>
   <sys:String x:Key="Contract_Reopen">Відкрити знову</sys:String>
+  <sys:String x:Key="Contract_AddFavorite">Додати до обраного</sys:String>
+  <sys:String x:Key="Contract_RemoveFavorite">Прибрати з обраного</sys:String>
+
+  <!-- Favorites page: the catalog filtered to starred contracts. The "nothing starred" copy is
+       deliberately separate from Catalog_Empty ("filters matched nothing") — different situations. -->
+  <sys:String x:Key="Favorites_Title">Обране</sys:String>
+  <sys:String x:Key="Favorites_Empty">Обраного ще немає. Натисніть зірочку на контракті, щоб зберегти його тут.</sys:String>
   <sys:String x:Key="Catalog_RewardsLabel">НАГОРОДИ</sys:String>
   <!-- {0} is the reputation the contract awards; the UI calls it XP (see docs/design-system.md) -->
   <sys:String x:Key="Catalog_XpBadge">+{0} XP</sys:String>
@@ -111,6 +120,17 @@
   <sys:String x:Key="Inventory_Cat_Consumable">Витратне</sys:String>
   <sys:String x:Key="Inventory_Cat_Favor">Прихильність і скрип</sys:String>
   <sys:String x:Key="Inventory_Cat_Other">Інше</sys:String>
+
+  <!-- Sourcing reference ("where to find"): the inventory item set with authored notes -->
+  <sys:String x:Key="Sourcing_Title">Де знайти</sys:String>
+  <sys:String x:Key="Sourcing_Subtitle">Де здобути кожен предмет, який просить Wikelo. Нотатки зібрані спільнотою — виправляйте їх у sourcing-notes.json.</sys:String>
+  <sys:String x:Key="Sourcing_SearchPlaceholder">Пошук предметів або джерел…</sys:String>
+  <sys:String x:Key="Sourcing_Empty">Жоден предмет не відповідає фільтрам.</sys:String>
+  <sys:String x:Key="Sourcing_NoNote">Нотатки щодо здобуття ще немає.</sys:String>
+  <sys:String x:Key="Sourcing_Back">Назад до списку</sys:String>
+  <sys:String x:Key="Sourcing_WhereToFind">ДЕ ЗНАЙТИ</sys:String>
+  <sys:String x:Key="Sourcing_HowToObtain">ЯК ЗДОБУТИ</sys:String>
+  <sys:String x:Key="Sourcing_GuidePlaceholder">Покрокову інструкцію для цього предмета ще не написано.</sys:String>
 
   <sys:String x:Key="Settings_Title">Налаштування</sys:String>
   <sys:String x:Key="Settings_Language">Мова</sys:String>

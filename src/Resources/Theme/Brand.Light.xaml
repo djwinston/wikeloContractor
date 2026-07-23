@@ -56,6 +56,10 @@
   <!-- XP badge (contract reputation award) -->
   <SolidColorBrush x:Key="XpBadgeForegroundBrush" Color="#9A6C0C" />
 
+  <!-- Favourite star, filled state. Darker than the dark-theme gold so it reads on #F9F9F9;
+       its own key rather than reusing the XP badge — see the note in Brand.Dark.xaml. -->
+  <SolidColorBrush x:Key="FavoriteStarBrush" Color="#B8860B" />
+
   <!-- Completed catalog row: left marker plus a fade-out wash across the row -->
   <SolidColorBrush x:Key="CompletedRowAccentBrush" Color="#2E8259" />
   <LinearGradientBrush x:Key="CompletedRowWashBrush" StartPoint="0,0" EndPoint="1,0">

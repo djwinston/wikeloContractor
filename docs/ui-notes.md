@@ -42,6 +42,53 @@ collects patterns and pitfalls discovered while building the UI.
   accent "Open on the wiki" link) override those keys **locally** in the button's `.Resources`, not via
   the `Foreground` property. It navigates natively through `NavigateUri` (no command needed); a plain
   `ui:Button` would need a launch command instead.
+- **Do not use `ui:ToggleButton` for a flag the *service* owns** (the favourite star, the completion
+  toggle). Clicking a ToggleButton writes `IsChecked` locally, and a local value **replaces** the
+  binding — so `IsChecked="{Binding IsFavorite, Mode=OneWay}"` works exactly once and then goes deaf
+  to the store. Use a plain `ui:Button` bound to a command, and swap the icon/colour/tooltip from a
+  `DataTrigger` on the read-only VM property (`Resources/ContractCard.xaml`, `ContractDetailPage.xaml`).
+- **`SymbolRegular.XxxOff` is a struck-through glyph, not an "empty" one.** `StarOff28` is a star
+  with a slash across it — it means "favourites disabled", so using it for "not starred yet" reads as
+  a broken feature. For a two-state toggle keep the *same* glyph and flip `Filled`:
+  `{ui:SymbolIcon Symbol=Star28}` → `{ui:SymbolIcon Symbol=Star28, Filled=True}`. Both `ui:SymbolIcon`
+  and its markup extension expose `Filled`.
+
+## Sourcing knowledge base (Phase 3.5)
+
+- The **Where to Find** list is the inventory's item set without counters, built the same way
+  (distinct requirements → `InventoryCategoryClassifier` → grouped `ListCollectionView`). The 46 × 46
+  thumb is the shared `ItemThumbTemplate` (`Resources/ItemThumb.xaml`); any page using it must expose
+  an `OpenPreviewCommand`.
+- Content comes from `docs/sourcing/*.md`, **shipped in the release**, not fetched at runtime — the
+  app has to work offline. The front matter's `name` must equal the requirement name exactly; the
+  file name is cosmetic.
+- **Render Markdown with `Views/Controls/MarkdownViewer`, never a `FlowDocumentScrollViewer`.**
+  WPF-UI does not theme the latter, so it arrives with its own fonts, scrollbar and white page and
+  fights the token layer. The viewer builds `TextBlock`s from `Models/MarkdownDocument`'s blocks.
+- The parser is **total on purpose**: unknown syntax becomes plain text rather than throwing, so a
+  bad guide can never break the page. `<!-- comments -->` are stripped at load, which is why a
+  comments-only stub correctly reports "no body" and shows `Sourcing_GuidePlaceholder`.
+- `MarkdownViewer` only launches `http`/`https` links. The `%AppData%` layer is user-writable, so a
+  `file:` or custom-scheme URI must never reach the shell.
+
+## Favourites (Phase 2.5)
+
+The Favourites page is the catalog with a narrower source — not a second catalog:
+
+- `ViewModels/ContractListViewModel` is the shared base (cards, `ICollectionView`, filters, empty
+  state, `OpenDetails`, and the fan-out of service `Changed` events onto every card).
+  `CatalogViewModel` and `FavoritesViewModel` override **only** `RebuildFromCatalog`.
+- The row markup lives once in `Resources/ContractCard.xaml` as `ContractCardTemplate`. It is merged
+  **after** `Chips.xaml` in `App.xaml`, because it resolves `ChipStyle`/`RequirementChipTemplate`/
+  `ChipWrapPanel` via `StaticResource`, which only looks backwards through merged dictionaries.
+  The template binds the row click through `{RelativeSource AncestorType=Page}` → `ViewModel.OpenDetailsCommand`,
+  which is why it works unchanged on both pages: both expose the base's command under `ViewModel`.
+- `FavoritesViewModel` rebuilds (not just refreshes) on `IFavoritesService.Changed` — un-starring a
+  contract has to remove its row, not merely redraw the star.
+- It also rebuilds in `OnNavigatedTo`: the VM is constructed on the first navigation to the page,
+  which is usually long after the catalog finished loading, so its `CatalogUpdated` never arrived.
+- Two mutually exclusive empty states, two keys: `Favorites_Empty` ("nothing starred", from
+  `HasNoFavorites`) and `Catalog_Empty` ("filters matched nothing", from the base's `IsEmpty`).
 
 ## Status surface pattern (CatalogPage)
 

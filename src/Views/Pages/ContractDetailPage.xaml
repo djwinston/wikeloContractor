@@ -88,6 +88,31 @@
             FontWeight="Bold"
             Text="{Binding ViewModel.Contract.Title}"
             TextWrapping="Wrap" />
+          <!-- Favourite toggle, same control shape as the catalog row's (see
+               Resources/ContractCard.xaml for why this is a Button, not a ToggleButton). -->
+          <ui:Button
+            Margin="8,0,0,0"
+            Padding="4"
+            VerticalAlignment="Center"
+            Appearance="Transparent"
+            BorderThickness="0"
+            Command="{Binding ViewModel.ToggleFavoriteCommand}">
+            <ui:Button.Style>
+              <Style BasedOn="{StaticResource {x:Type ui:Button}}" TargetType="ui:Button">
+                <!-- Outline → filled, same glyph; see Resources/ContractCard.xaml. -->
+                <Setter Property="Icon" Value="{ui:SymbolIcon Symbol=Star28}" />
+                <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+                <Setter Property="ToolTip" Value="{DynamicResource Contract_AddFavorite}" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding ViewModel.IsFavorite, RelativeSource={RelativeSource AncestorType=Page}}" Value="True">
+                    <Setter Property="Icon" Value="{ui:SymbolIcon Symbol=Star28, Filled=True}" />
+                    <Setter Property="Foreground" Value="{DynamicResource FavoriteStarBrush}" />
+                    <Setter Property="ToolTip" Value="{DynamicResource Contract_RemoveFavorite}" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </ui:Button.Style>
+          </ui:Button>
           <controls:StatusBadge
             Margin="12,0,0,0"
             Role="Success"

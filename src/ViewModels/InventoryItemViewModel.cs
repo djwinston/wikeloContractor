@@ -8,7 +8,7 @@ namespace WikeloContractor.ViewModels;
 /// backed by <see cref="IInventoryStore"/> and keyed by <see cref="Name"/>; every change to
 /// <see cref="Count"/> — a typed-in value or a spin step — is persisted.
 /// </summary>
-public partial class InventoryItemViewModel : ObservableObject
+public partial class InventoryItemViewModel : ObservableObject, IRequirementItem
 {
     private readonly IInventoryStore _store;
 

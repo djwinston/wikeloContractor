@@ -42,10 +42,18 @@ dotnet test tests/WikeloContractor.Tests.csproj
 
 ## Releases & updates
 
-Distributed as a **Velopack** installer with in-app auto-update. The build is
-framework-dependent; the installer downloads the .NET 10 Desktop Runtime on first install if it's
-missing. Once installed, **Settings → Check for app updates** pulls new versions from GitHub
-Releases (and the app checks in the background on launch).
+Distributed with **Velopack** and in-app auto-update. Every release ships two installers:
+
+- **`WikeloContractor-win-Setup.exe`** — one-click, no prompts, installs for the current user. Pick
+  this if you just want the app.
+- **`WikeloContractor-win.msi`** — a standard wizard: choose per-user or per-machine (Program
+  Files), pick a custom install folder, and get an Add/Remove Programs entry. Also suitable for
+  Group Policy / enterprise deployment.
+
+The build is framework-dependent; the installer downloads the .NET 10 Desktop Runtime on first
+install if it's missing. Once installed, **Settings → Check for app updates** pulls new versions
+from GitHub Releases (and the app checks in the background on launch) — updates apply the same way
+regardless of which installer you used.
 
 CI runs on every PR to `dev`/`main` (`.github/workflows/ci.yml`). To cut a release, merge into
 `main`, then push a SemVer tag — `.github/workflows/release.yml` builds and publishes the Release:

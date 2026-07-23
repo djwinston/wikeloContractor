@@ -38,7 +38,9 @@ jobs:
         run: dotnet publish src/WikeloContractor.csproj -c Release -r win-x64 --self-contained false -p:Version=$env:VERSION -o publish
 
       - name: Install Velopack CLI
-        run: dotnet tool install -g vpk
+        # Pinned to the Velopack library version in src/WikeloContractor.csproj — vpk warns and can
+        # misbehave when the two drift apart. Bump both together, never just one.
+        run: dotnet tool install -g vpk --version 1.2.0
 
       - name: Download prior releases (for deltas)
         continue-on-error: true
@@ -61,7 +63,12 @@ jobs:
             '--mainExe', 'WikeloContractor.exe',
             '--icon', 'src/Assets/app.ico',
             # Makes the installer bootstrap the .NET 10 Desktop Runtime if it is missing.
-            '--framework', 'net10.0-x64-desktop'
+            '--framework', 'net10.0-x64-desktop',
+            # Also emit a WiX-based .msi (Program Files/Add-Remove Programs, Group Policy deploy)
+            # alongside the default one-click Setup.exe. Either lets the installing user pick
+            # per-user (%LocalAppData%) vs per-machine (Program Files, needs elevation).
+            '--msi',
+            '--instLocation', 'Either'
           )
           if ($env:SIGN_PFX_BASE64) {
             [System.IO.File]::WriteAllBytes('cert.pfx', [System.Convert]::FromBase64String($env:SIGN_PFX_BASE64))

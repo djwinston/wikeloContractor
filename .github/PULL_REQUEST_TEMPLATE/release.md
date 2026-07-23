@@ -26,4 +26,5 @@ so fill in the intended version below and push it once merged.
 
 - [ ] Tag the merge commit and push it to trigger `release.yml`:
       `git tag vX.Y.Z && git push origin vX.Y.Z`
-- [ ] Confirm the GitHub Release was created with the Velopack `Setup.exe` attached
+- [ ] Confirm the GitHub Release was created with both installers attached — the Velopack
+      `WikeloContractor-win-Setup.exe` and the `WikeloContractor-win.msi`

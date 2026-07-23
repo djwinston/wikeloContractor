@@ -226,9 +226,14 @@ Requirement chip colour is chosen by `Views/Converters/AvailabilityToBrushConver
 
 `ui:SymbolIcon` with `SymbolRegular` glyphs only — no bitmap icons, no bespoke paths.
 
+A **state** toggle keeps one glyph and switches `Filled`; it does not swap to a different glyph.
+`ui:SymbolIcon` (and its markup extension) take `Filled="True"` for the solid variant — that is the
+outline/solid pair Fluent intends. The `…Off` glyphs are struck-through ("this feature is disabled")
+and belong to mute/disable actions, never to an "unset" state.
+
 | Purpose | Symbol |
 |---|---|
-| Favourite | `Star28` / `StarOff28` |
+| Favourite | `Star28` outline (not starred) → `Star28` `Filled="True"` + `FavoriteStarBrush` (starred) |
 | Data status / sync | `CloudCheckmark16` |
 | Blueprint | `Molecule24` |
 | Mark done (pending) / reopen | `Circle24` / `ArrowUndo24` |
