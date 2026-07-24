@@ -396,9 +396,11 @@ the app said so. Root cause was a missing concept, not a missing message — fre
       Releases feed) and drives a "Check for updates" row in Settings (no-op in a dev run).
       GitHub Releases doubles as the update feed. Note: the shipped `img-catalog-overrides.json` lives in
       the install dir (replaced on update); persistent user edits go to the `%AppData%` layer.
-      `vpk pack` also emits an `.msi` (`--msi --instLocation Either`) alongside `Setup.exe`: a WiX
-      wizard with per-user/per-machine choice, a Browse dialog for an arbitrary install folder, and
-      a visible progress page. `Setup.exe` stays the one-click default. WiX ships inside `vpk`.
+      **Releases are portable-only until code signing** — an unsigned `Setup.exe`/`.msi` gets
+      hard-blocked on hardened Windows and auto-update is moot while unsigned, so only the portable
+      zip is published (installers unpublished after `vpk pack`; re-enabled with signing). The MSI
+      (`--msi --instLocation Either`: WiX wizard, arbitrary install folder, Add/Remove Programs) is
+      built + verified and returns the day signing lands — see the distribution-signing memory.
 - [x] Versioning: SemVer with git tags (`vX.Y.Z`) on GitHub as the single source of truth;
       the tag version is injected into the build (`-p:Version=X.Y.Z`),
       the app shows its version in Settings (reads it from the assembly)
@@ -408,9 +410,11 @@ the app said so. Root cause was a missing concept, not a missing message — fre
       1 approval + Code Owner review + required `build-and-test`; dev: required `build-and-test`,
       owner in the bypass list so direct pushes still work).
 - [x] GitHub Actions — release (`.github/workflows/release.yml`): on pushing a `vX.Y.Z` tag,
-      publish framework-dependent → `vpk pack` → `vpk upload github`, producing a `Setup.exe` and
-      the delta feed on a GitHub Release. Optional code signing is a secret-gated step (dormant
-      until an OV/EV cert is provided).
+      publish framework-dependent → `vpk pack` → `vpk upload github` → unpublish the installers →
+      attach `SHA256SUMS.txt` + a build-provenance attestation (`actions/attest-build-provenance`).
+      Ships **portable-only** for now (see above); code signing (SignPath Foundation) is the roadmap
+      item that re-enables installers. The dormant PFX `--signParams` block is a placeholder — SignPath
+      signs in its cloud via a CI step, so it will be replaced, not fed secrets.
 
 ## Phase 6 (optional) — Cloud sync
 

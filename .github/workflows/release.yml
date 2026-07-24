@@ -2,10 +2,17 @@ name: Release
 
 on:
   push:
-    tags: ['v*.*.*']
+    # The `v` prefix is a convention, not a SemVer requirement — accept both `v1.2.3` and bare
+    # `1.2.3` tags. `Derive version from tag` strips a leading `v` only when present.
+    tags:
+      - 'v*.*.*'
+      - '[0-9]*.*.*'
 
 permissions:
   contents: write
+  # Build-provenance attestation (actions/attest-build-provenance) needs these two.
+  id-token: write
+  attestations: write
 
 jobs:
   release:
@@ -63,12 +70,13 @@ jobs:
             '--mainExe', 'WikeloContractor.exe',
             '--icon', 'src/Assets/app.ico',
             # Makes the installer bootstrap the .NET 10 Desktop Runtime if it is missing.
-            '--framework', 'net10.0-x64-desktop',
-            # Also emit a WiX-based .msi (Program Files/Add-Remove Programs, Group Policy deploy)
-            # alongside the default one-click Setup.exe. Either lets the installing user pick
-            # per-user (%LocalAppData%) vs per-machine (Program Files, needs elevation).
-            '--msi',
-            '--instLocation', 'Either'
+            '--framework', 'net10.0-x64-desktop'
+            # NOTE: portable-only until the app is code-signed. An unsigned Setup.exe/.msi is a
+            # self-extracting installer that hardened machines (Smart App Control / ASR) hard-block,
+            # and auto-update is a no-op while unsigned anyway — so we publish only the portable zip
+            # (see the "Remove installer assets" step below). To re-enable the installers once signing
+            # lands: add back '--msi', '--instLocation', 'Either' here, drop that step, and restore the
+            # installer patterns in the checksum/attestation steps.
           )
           if ($env:SIGN_PFX_BASE64) {
             [System.IO.File]::WriteAllBytes('cert.pfx', [System.Convert]::FromBase64String($env:SIGN_PFX_BASE64))
@@ -91,6 +99,22 @@ jobs:
           )
           if ($env:PRERELEASE -eq 'true') { $uploadArgs += '--pre' }
           vpk @uploadArgs
+
+      - name: Remove installer assets (portable-only until signed)
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # vpk always emits and uploads Setup.exe; unpublish it (and any .msi) so the release offers
+          # only the portable zip while the build is unsigned. The Velopack update metadata
+          # (*.nupkg / RELEASES) is left in place — harmless with no installer, and it keeps vpk's
+          # delta-download working when installers are re-enabled after signing.
+          $assets = gh release view $env:TAG --json assets --jq '.assets[].name'
+          foreach ($name in $assets) {
+            if ($name -like '*Setup.exe' -or $name -like '*.msi') {
+              gh release delete-asset $env:TAG $name --yes
+            }
+          }
 
       - name: Fill release notes from commit messages
         shell: pwsh
@@ -137,3 +161,27 @@ jobs:
 
           Set-Content -Path notes.md -Value ($out -join "`n") -Encoding utf8
           gh release edit $env:TAG --notes-file notes.md
+
+      - name: Publish SHA256 checksums
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Pull the just-published portable zip back down and checksum it, so users can verify a
+          # download while the build is not yet code-signed. Operating on the published asset (not
+          # vpk's local output dir) keeps this independent of vpk's layout.
+          New-Item -ItemType Directory -Force dist | Out-Null
+          gh release download $env:TAG -D dist --pattern '*.zip'
+          $sums = Get-ChildItem dist -File | ForEach-Object {
+            "{0}  {1}" -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(), $_.Name
+          }
+          Set-Content -Path SHA256SUMS.txt -Value $sums -Encoding ascii
+          gh release upload $env:TAG SHA256SUMS.txt --clobber
+
+      - name: Attest build provenance
+        # Records that these artifacts were built by this workflow from this repo. Verifiable with
+        # `gh attestation verify <file> --repo <repo>`; strengthens a future SignPath Foundation
+        # application and lets users verify the portable build before it is code-signed.
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/*.zip

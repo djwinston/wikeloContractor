@@ -42,58 +42,59 @@ dotnet test tests/WikeloContractor.Tests.csproj
 
 ## Releases & updates
 
-Distributed with **Velopack** and in-app auto-update. Every release ships two installers:
+Built with **Velopack**. Download the latest build from the
+[Releases page](https://github.com/djwinston/wikeloContractor/releases):
 
-- **`WikeloContractor-win-Setup.exe`** — one-click, no prompts, installs for the current user. Pick
-  this if you just want the app.
-- **`WikeloContractor-win.msi`** — a standard wizard: choose per-user or per-machine (Program
-  Files), pick a custom install folder, and get an Add/Remove Programs entry. Also suitable for
-  Group Policy / enterprise deployment.
+- **`WikeloContractor-win-Portable.zip`** — unzip anywhere and run `WikeloContractor.exe`. No
+  installation, nothing to elevate.
 
-The build is framework-dependent; the installer downloads the .NET 10 Desktop Runtime on first
-install if it's missing. Once installed, **Settings → Check for app updates** pulls new versions
-from GitHub Releases (and the app checks in the background on launch) — updates apply the same way
-regardless of which installer you used.
+The build is framework-dependent — it uses the **.NET 10 Desktop Runtime**; install it from
+[dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/10.0) if the app reports it is
+missing.
 
-CI runs on every PR to `dev`/`main` (`.github/workflows/ci.yml`). To cut a release, merge into
-`main`, then push a SemVer tag — `.github/workflows/release.yml` builds and publishes the Release:
+> **Why portable-only for now?** Installers (`Setup.exe` / `.msi`) and in-app auto-update return once
+> the app is **code-signed**. An unsigned installer is a self-extracting executable that hardened
+> Windows setups block outright, and auto-update would only ship more unsigned builds — so until
+> signing lands, the portable zip is the whole story. Code signing via
+> [SignPath Foundation](https://signpath.org/) is on the roadmap.
+
+### Verifying a download
+
+Every release carries a `SHA256SUMS.txt`; check a file with `Get-FileHash <file> -Algorithm SHA256`.
+Release artifacts also ship a GitHub build-provenance attestation — proof they were built by this
+repository's release workflow — which you can verify with the GitHub CLI:
 
 ```powershell
-git tag v1.2.3
-git push origin v1.2.3
+gh attestation verify WikeloContractor-win-Portable.zip --repo djwinston/wikeloContractor
+```
+
+CI runs on every PR to `dev`/`main` (`.github/workflows/ci.yml`). To cut a release, merge into
+`main`, then push a SemVer tag — `.github/workflows/release.yml` builds and publishes the Release.
+The `v` prefix is optional (SemVer doesn't require it); both `v1.2.3` and `1.2.3` trigger a release:
+
+```powershell
+git tag 1.2.3
+git push origin 1.2.3
 ```
 
 For a release PR into `main`, open it with the release template
 (`?template=release.md` on the "compare" URL) to capture the intended version and post-merge steps.
 
-## If Windows blocks the app from running
+## If Windows warns about the app
 
-The app is **not code-signed** — a code-signing certificate is a paid, recurring cost, and
-Microsoft's own service (Azure Artifact Signing) is not available to solo developers outside the
-US/Canada. On most machines the app runs after the normal SmartScreen prompt (**More info → Run
-anyway**).
+The app is **not yet code-signed** — a certificate is a recurring cost; free OSS signing via
+[SignPath Foundation](https://signpath.org/) is on the roadmap once the project qualifies. So on
+first run Windows SmartScreen shows *"Windows protected your PC"* — click **More info → Run anyway**.
+That is a one-time prompt, not a security exception.
 
-On hardened setups Windows may **hard-block** it instead — typically **Smart App Control** or the
-Attack Surface Reduction rule *"Block executable files from running unless they meet a prevalence,
-age, or trusted list criterion."* Note that unblocking the file (`Unblock-File`, or the *Unblock*
-checkbox in file properties) only clears the download warning — it does **not** lift these blocks.
+Before running it, confirm the download is genuine — see [Verifying a download](#verifying-a-download):
+match the `SHA256SUMS.txt` hash and/or verify the build-provenance attestation.
 
-If an **ASR rule** is blocking it, allow the app folder from an **elevated** PowerShell:
-
-```powershell
-# Allow the app folder (adjust the path to your install / extract location).
-# Installed build: %LocalAppData%\WikeloContractor ; portable: the folder you unzipped.
-Add-MpPreference -AttackSurfaceReductionOnlyExclusions "$env:LOCALAPPDATA\WikeloContractor"
-
-# See what is currently excluded:
-Get-MpPreference | Select-Object -ExpandProperty AttackSurfaceReductionOnlyExclusions
-```
-
-**Smart App Control** has no per-app allowance — it can only be turned off entirely (Settings →
-Privacy & security → Windows Security → App & browser control), which is a machine-wide change that
-cannot be re-enabled without reinstalling Windows. Do this only if you understand the trade-off.
-
-The proper fix is code signing; it is on the roadmap if the project obtains a certificate.
+On locked-down machines (**Smart App Control**, or restrictive **Attack Surface Reduction** policies)
+Windows may block unsigned apps outright. We deliberately **don't** publish steps to add antivirus
+exclusions or turn those protections off — that would mean weakening your security for our sake. If
+your system enforces such policies, the right fix is a signed build: please wait for a code-signed
+release rather than lowering your protections.
 
 ## Documentation
 

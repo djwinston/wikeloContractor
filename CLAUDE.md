@@ -195,21 +195,25 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
   and is a no-op when `UpdateManager.IsInstalled` is false (dev runs), driving the Settings
   "Check for updates" row. Release build is **framework-dependent**; the installer bootstraps the
   .NET Desktop Runtime via `vpk pack --framework net10.0-x64-desktop`.
-- `vpk pack` also emits an `.msi` (`--msi --instLocation Either`) alongside the default one-click
-  `Setup.exe`. The two serve different needs and both ship in every release:
-  - `Setup.exe` — one-click, no prompts, installs to `%LocalAppData%\WikeloContractor`. Nothing to
-    choose and no visible progress beyond a brief bar; that is expected, not a bug (see below).
-  - `.msi` — a real WiX wizard: `InstallScopeDlg` (per-user vs per-machine `Program Files`, the
-    latter elevated), `BrowseDlg`/`WIXUI_INSTALLDIR` for an **arbitrary install folder**, and a
-    `ProgressDlg`. Also gives Add/Remove Programs entries, repair/remove, and Group Policy deploy.
-    Verified by inspecting the generated MSI's Dialog/Property tables, not just from the docs.
-  WiX ships inside `vpk` — no separate WiX install is needed on the CI runner.
-  Auto-updates apply the same way regardless of which installer was used: the MSI is only the
-  initial bootstrap, it is not part of the update path.
-- The `Setup.exe` install looks instant because it is: the payload is ~6.5 MB extracted, so the
-  progress bar is on screen for a second or two. `vpk pack --splashImage {path}` would replace that
-  bar with a branded image if a longer/branded install experience is ever wanted (no asset for it
-  exists today).
+- **Releases are portable-only until the app is code-signed.** `release.yml` publishes just
+  `WikeloContractor-win-Portable.zip` (+ `SHA256SUMS.txt` + a build-provenance attestation). An
+  unsigned `Setup.exe` is a self-extracting installer that hardened Windows (Smart App Control / ASR)
+  hard-blocks, and auto-update is a no-op while unsigned anyway — so shipping installers now would
+  only create dead-end first installs. `vpk pack` still *produces* `Setup.exe`; a **Remove installer
+  assets** step unpublishes it (and any `.msi`) after upload. The Velopack update metadata
+  (`*.nupkg`/`RELEASES`) is left on the release, harmless with no installer.
+- **Re-enable the installers as one change when signing lands** (see the distribution-signing memory):
+  add back `--msi`, `--instLocation`, `Either` to `vpk pack`, delete the *Remove installer assets*
+  step, restore the `*.exe`/`*.msi` patterns in the checksum + attestation steps, and add the SignPath
+  signing step. What the installers give when re-enabled (already verified, keep for that day):
+  - `Setup.exe` — one-click, no prompts, installs to `%LocalAppData%\WikeloContractor`; near-instant
+    (payload ~6.5 MB) so the progress bar barely shows — expected, not a bug.
+  - `.msi` — a real WiX wizard: `InstallScopeDlg` (per-user vs per-machine `Program Files`),
+    `BrowseDlg`/`WIXUI_INSTALLDIR` for an **arbitrary install folder**, and a `ProgressDlg`; plus
+    Add/Remove Programs, repair/remove, and Group Policy deploy. WiX ships inside `vpk` (no separate
+    install on the runner). Verified from the generated MSI's Dialog/Property tables.
+  Auto-updates apply the same way regardless of installer — the installer is only the initial
+  bootstrap, not part of the update path; and portable builds do not auto-update (`IsInstalled` false).
 - Keep `Resources/img-catalog-overrides.json` as loose `<Content>` (do **not** embed it): it ships in the
   install dir as the editable bundled-defaults layer. It is replaced on each Velopack update, so
   persistent personal edits belong in the `%AppData%` override file, which updates never touch.

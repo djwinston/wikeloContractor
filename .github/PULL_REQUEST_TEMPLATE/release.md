@@ -6,7 +6,8 @@ so fill in the intended version below and push it once merged.
 
 ## Release version
 
-`vX.Y.Z`  <!-- e.g. v0.2.0 — this becomes the git tag that triggers release.yml -->
+`vX.Y.Z`  <!-- e.g. v0.2.0 or 0.2.0 — this becomes the git tag that triggers release.yml.
+              The `v` prefix is optional; both `vX.Y.Z` and `X.Y.Z` work. -->
 
 ## Highlights / changelog
 
@@ -26,5 +27,6 @@ so fill in the intended version below and push it once merged.
 
 - [ ] Tag the merge commit and push it to trigger `release.yml`:
       `git tag vX.Y.Z && git push origin vX.Y.Z`
-- [ ] Confirm the GitHub Release was created with both installers attached — the Velopack
-      `WikeloContractor-win-Setup.exe` and the `WikeloContractor-win.msi`
+- [ ] Confirm the GitHub Release has `WikeloContractor-win-Portable.zip`, `SHA256SUMS.txt` and a
+      build-provenance attestation, and that the unsigned `Setup.exe`/`.msi` were unpublished
+      (portable-only until code signing)
