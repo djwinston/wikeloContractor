@@ -32,6 +32,7 @@ public sealed class CatalogHarness : IDisposable
         // otherwise spend seconds of wall clock waiting out a window they only need to observe.
         Catalog = new ContractCatalogService(api, Path.Combine(_root, "cache"), TimeSpan.FromMilliseconds(50));
         Completion = new CompletionService(Path.Combine(_root, "completed.json"));
+        Favorites = new FavoritesService(Path.Combine(_root, "favorites.json"));
         Inventory = new InventoryStore(Path.Combine(_root, "inventory.json"));
     }
 
@@ -41,9 +42,14 @@ public sealed class CatalogHarness : IDisposable
 
     public CompletionService Completion { get; }
 
+    public FavoritesService Favorites { get; }
+
     public InventoryStore Inventory { get; }
 
     public CatalogViewModel Catalogue { get; private set; } = null!;
+
+    /// <summary>The same card list narrowed to starred contracts — shares the base VM's filters.</summary>
+    public FavoritesViewModel Favorited { get; private set; } = null!;
 
     public ContractDetailViewModel Detail { get; private set; } = null!;
 
@@ -71,14 +77,24 @@ public sealed class CatalogHarness : IDisposable
             harness.Shell = new MainWindowViewModel(harness.Catalog);
 
             harness.Detail = new ContractDetailViewModel(
-                navigation, harness.Catalog, harness.Completion, harness.Inventory, interaction);
+                navigation, harness.Catalog, harness.Completion, harness.Favorites, harness.Inventory, interaction);
 
             harness.Catalogue = new CatalogViewModel(
                 harness.Catalog,
                 harness.Completion,
+                harness.Favorites,
                 harness.Inventory,
                 interaction,
                 new RateLimitWatcher(harness.Catalog),
+                navigation,
+                harness.Detail);
+
+            harness.Favorited = new FavoritesViewModel(
+                harness.Catalog,
+                harness.Completion,
+                harness.Favorites,
+                harness.Inventory,
+                interaction,
                 navigation,
                 harness.Detail);
         });

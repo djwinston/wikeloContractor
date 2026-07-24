@@ -50,8 +50,8 @@ state, which is what the XAML binds to; rendering stays covered by the manual sm
 - `E2E/WpfAppFixture` — one real `Application` on an STA thread. `Application.Current` is a
   per-process singleton, hence `[Collection("WpfApp")]` with parallelization disabled. Only
   `Strings.en.xaml` is merged: `Localized` is the sole resource lookup ViewModels do.
-- `E2E/CatalogHarness` — one app instance over a temp directory (`CompletionService` and
-  `InventoryStore` both have file-path test seams). Pass another harness's `Root` to model an
+- `E2E/CatalogHarness` — one app instance over a temp directory (`CompletionService`,
+  `FavoritesService` and `InventoryStore` all have file-path test seams). Pass another harness's `Root` to model an
   **app restart** over the same cache, and call `AgeCache()` to backdate the last version check —
   without it the service correctly serves the cache untouched for 12 h and never reaches the API.
 

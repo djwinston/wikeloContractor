@@ -1,0 +1,170 @@
+<Page
+  x:Class="WikeloContractor.Views.Pages.SourcingDetailPage"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:local="clr-namespace:WikeloContractor.Views.Pages"
+  xmlns:controls="clr-namespace:WikeloContractor.Views.Controls"
+  xmlns:converters="clr-namespace:WikeloContractor.Views.Converters"
+  xmlns:helpers="clr-namespace:WikeloContractor.Views.Helpers"
+  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+  Title="SourcingDetailPage"
+  d:DataContext="{d:DesignInstance local:SourcingDetailPage, IsDesignTimeCreatable=False}"
+  d:DesignHeight="450"
+  d:DesignWidth="800"
+  ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+  ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+  ScrollViewer.CanContentScroll="False"
+  mc:Ignorable="d">
+
+  <Page.Resources>
+    <converters:InventoryCategoryToSymbolConverter x:Key="CategoryToSymbol" />
+    <converters:PresenceToVisibilityConverter x:Key="NullToVisibility" Invert="True" />
+    <converters:PresenceToVisibilityConverter x:Key="NotNullToVisibility" />
+  </Page.Resources>
+
+  <ScrollViewer
+    Margin="0,0,16,0"
+    HorizontalScrollBarVisibility="Disabled"
+    VerticalScrollBarVisibility="Auto">
+    <Grid Margin="{StaticResource SpacingPagePadding}">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+
+      <!-- Back + item art + name + category -->
+      <Grid Grid.Row="0">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <ui:Button
+          Grid.Column="0"
+          VerticalAlignment="Center"
+          Command="{Binding ViewModel.GoBackCommand}"
+          Icon="{ui:SymbolIcon ArrowLeft24}"
+          ToolTip="{DynamicResource Sourcing_Back}" />
+
+        <!-- Larger than the list thumb, so the page has a subject rather than a repeat of the row -->
+        <Border
+          Grid.Column="1"
+          Width="96"
+          Height="96"
+          Margin="16,0,0,0"
+          VerticalAlignment="Center"
+          Background="{DynamicResource ControlFillColorSecondaryBrush}"
+          CornerRadius="10">
+          <Grid>
+            <Grid.Clip>
+              <RectangleGeometry
+                RadiusX="10"
+                RadiusY="10"
+                Rect="0,0,96,96" />
+            </Grid.Clip>
+            <ui:SymbolIcon
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              FontSize="32"
+              Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+              Symbol="{Binding ViewModel.Category, Converter={StaticResource CategoryToSymbol}}"
+              Visibility="{Binding Source, ElementName=HeroImage, Converter={StaticResource NullToVisibility}}" />
+            <Image
+              x:Name="HeroImage"
+              helpers:InventoryPreview.ItemName="{Binding ViewModel.Name}"
+              RenderOptions.BitmapScalingMode="HighQuality"
+              Stretch="Uniform" />
+          </Grid>
+        </Border>
+
+        <StackPanel
+          Grid.Column="2"
+          Margin="16,0,0,0"
+          VerticalAlignment="Center">
+          <TextBlock
+            FontSize="{StaticResource FontSizeTitle}"
+            FontWeight="Bold"
+            Text="{Binding ViewModel.Name}"
+            TextWrapping="Wrap" />
+          <ContentControl
+            Margin="0,8,0,0"
+            HorizontalAlignment="Left"
+            Content="{Binding ViewModel.CategoryLabel}"
+            Style="{StaticResource TagStyle}" />
+        </StackPanel>
+      </Grid>
+
+      <!-- Short "where to find it" line — the same text the list row shows -->
+      <StackPanel Grid.Row="1" Margin="0,26,0,0">
+        <TextBlock Style="{StaticResource OverlineTextStyle}" Text="{DynamicResource Sourcing_WhereToFind}" />
+        <Border
+          Margin="0,8,0,0"
+          Padding="16,13"
+          Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+          BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+          BorderThickness="1"
+          CornerRadius="{StaticResource RadiusCard}">
+          <StackPanel>
+            <TextBlock
+              Text="{Binding ViewModel.Note}"
+              TextWrapping="Wrap"
+              Visibility="{Binding ViewModel.Note, Converter={StaticResource NotNullToVisibility}}" />
+            <TextBlock
+              FontStyle="Italic"
+              Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+              Text="{DynamicResource Sourcing_NoNote}"
+              TextWrapping="Wrap"
+              Visibility="{Binding ViewModel.Note, Converter={StaticResource NullToVisibility}}" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+
+      <!-- The step-by-step guide from docs/sourcing/{item}.md, or a placeholder while that entry is
+           still a stub. Both live in the same card slot; exactly one is ever visible. -->
+      <StackPanel Grid.Row="2" Margin="0,26,0,0">
+        <TextBlock Style="{StaticResource OverlineTextStyle}" Text="{DynamicResource Sourcing_HowToObtain}" />
+
+        <Border
+          Margin="0,8,0,0"
+          Padding="20,14"
+          Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+          BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+          BorderThickness="1"
+          CornerRadius="{StaticResource RadiusCard}"
+          Visibility="{Binding ViewModel.Guide, Converter={StaticResource NotNullToVisibility}}">
+          <controls:MarkdownViewer Markdown="{Binding ViewModel.Guide}" />
+        </Border>
+
+        <!-- Shown while no guide exists (Guide is null); the card above takes over once one is written. -->
+        <Border
+          Margin="0,8,0,0"
+          Padding="20,24"
+          Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+          BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+          BorderThickness="1"
+          CornerRadius="{StaticResource RadiusCard}"
+          Visibility="{Binding ViewModel.Guide, Converter={StaticResource NullToVisibility}}">
+          <StackPanel>
+            <ui:SymbolIcon
+              HorizontalAlignment="Center"
+              FontSize="26"
+              Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+              Symbol="DocumentText24" />
+            <TextBlock
+              Margin="0,12,0,0"
+              HorizontalAlignment="Center"
+              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+              Text="{DynamicResource Sourcing_GuidePlaceholder}"
+              TextAlignment="Center"
+              TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </Grid>
+  </ScrollViewer>
+</Page>

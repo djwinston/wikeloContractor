@@ -27,7 +27,8 @@ Reference (what already exists): https://wikelotrades.com , community Excel spre
 - [x] Empty placeholder pages
 - [x] Settings: language (en/uk, runtime switching via ResourceDictionary) and theme (System/Light/Dark), persisted to `settings.json`
 - [x] VS Code: tasks, launch, extensions, settings
-- [ ] **After the first `dotnet restore`: pin exact package versions in the csproj** (currently floating `4.*` / `8.*` / `10.*`)
+- [x] Pin exact package versions in both csproj files (was floating `4.*` / `8.*` / `10.*`).
+      Velopack is pinned to `1.2.0` to match the `vpk` CLI version in `release.yml` — bump both together.
 - [x] App icon (`.ico`) — `<ApplicationIcon>` in the csproj + `ui:TitleBar` icon (`src/Assets/`)
 
 ## Phase 1 — API client
@@ -109,30 +110,35 @@ A **Favorites** page that is the catalog filtered to flagged contracts. Delibera
 catalog implementation: the same cards, the same filters, the same detail page — only the source
 collection differs.
 
-- [ ] **Store**: `IFavoritesService` → `favorites.json` (UUID set). Follows the established
+- [x] **Store**: `IFavoritesService` → `favorites.json` (UUID set). Follows the established
       per-service JSON store shape (`AppStorage.Root`/`JsonOptions`, load with
       `try/catch (JsonException)`, atomic tmp + `File.Move`, a `Changed` event) — same as
-      `Services/CompletionService` and `Services/InventoryStore`. Registered in `App.xaml.cs`.
-- [ ] **Toggle on the card**: a star `ui:Button` on `ContractCardViewModel` (`IsFavorite`,
-      `ToggleFavoriteCommand`), next to the existing completion toggle. The card VM already
+      `Services/CompletionService` and `Services/InventoryStore`. Registered in `App.xaml.cs`
+      and loaded at startup by `ApplicationHostService`.
+- [x] **Toggle on the card**: a star `ui:Button` on `ContractCardViewModel` (`IsFavorite`,
+      `ToggleFavoriteCommand`), in the title line next to the category tag. The card VM already
       re-reads service state via `Refresh*` on a `Changed` event — favorites follow that pattern,
-      no new mechanism.
-- [ ] **Toggle on the detail page**: same command surfaced on `ContractDetailViewModel`, so the flag
+      no new mechanism. Deliberately a `ui:Button` with a state trigger, **not** a `ui:ToggleButton`:
+      `IsFavorite` is computed from the service, and a ToggleButton writes `IsChecked` locally on
+      click, which would replace the binding.
+- [x] **Toggle on the detail page**: same command surfaced on `ContractDetailViewModel`, so the flag
       can be set from either place and both stay in sync through `IFavoritesService.Changed`.
-- [ ] **Page + nav item**: `FavoritesPage` / `FavoritesViewModel` after Catalog in
+- [x] **Page + nav item**: `FavoritesPage` / `FavoritesViewModel` after Catalog in
       `Views/MainWindow.xaml`; new `Nav_Favorites` key in **both** `Strings.en.xaml` and
       `Strings.uk.xaml`. Opening a card reuses the existing `ContractDetailPage` via
       `NavigateWithHierarchy` — no new detail view.
-- [ ] **Shared filtering**: search / category / resource filtering currently lives inline in
-      `CatalogViewModel` (`FilterContract`, `_categoryOrder`, `ResourceOptions`). Favorites must not
-      copy it — extract it into a shared home (e.g. `ViewModels/ContractListViewModel` base or a
-      `ContractFilter` helper) that both pages use. A second copy of `FilterContract` is a review
-      finding. Same for the card list `DataTemplate` in `CatalogPage.xaml`: lift it into a shared
-      `ResourceDictionary` rather than duplicating the markup.
-- [ ] **Empty state**: distinct copy for "no favorites yet" vs. the catalog's "filters matched
-      nothing" (two localization keys, not one reused string).
-- [ ] Unit tests: favorites store round-trip + corrupt-file recovery, and the extracted filter logic
-      (which becomes testable once it leaves the page VM).
+- [x] **Shared filtering**: extracted into `ViewModels/ContractListViewModel` (the card list, the
+      collection view, the filters, the empty state and `OpenDetails`), which both `CatalogViewModel`
+      and `FavoritesViewModel` derive from — they differ only in `RebuildFromCatalog`. The matching
+      decision itself is `Models/ContractFilter`, a pure record with no UI notion, so it is unit
+      testable without a WPF `Application`. The row `DataTemplate` moved to
+      `Resources/ContractCard.xaml` (merged after `Chips.xaml`) and is referenced by both pages.
+- [x] **Empty state**: distinct copy for "no favorites yet" (`Favorites_Empty`, driven by
+      `FavoritesViewModel.HasNoFavorites`) vs. the catalog's "filters matched nothing"
+      (`Catalog_Empty`, driven by the base's `IsEmpty`). Mutually exclusive by construction.
+- [x] Unit tests: `FavoritesServiceTests` (round-trip, unflagging, `Changed` only on a real change,
+      corrupt-file recovery + rewrite) and `ContractFilterTests` (search over title/description/
+      rewards, category incl. the enriched multi-category case, resource, and all criteria combined).
 - [ ] Aggregation: combined resource list across all favorited contracts (what to still gather) —
       a natural follow-up once the page exists.
 
@@ -166,17 +172,37 @@ A small in-app **reference / mini-wiki scoped to the inventory items** — *wher
 Not a shop database: the SC Wiki `shops` data is almost always empty for our items, so it is not a viable
 primary source.
 
-- [ ] New nav page **after Inventory**, over the same item set as the inventory (distinct required items,
-      shared `Models/InventoryCategoryClassifier`, grouped list with search + category filter, per-item image).
-- [ ] Per resource, surface **acquisition info**: authored sourcing notes (mining / salvage / how it is
-      crafted), a link to the wiki (`web_url`) when available, and a link / deep-link into the community
-      search tool **cstone Finder** (https://finder.cstone.space/). Investigate whether Finder supports a
-      per-item query/deep-link so a row can open its results directly.
-- [ ] **Delivery — decide the mix**: (a) curated notes in a **bundled + `%AppData%` override config**
-      (same two-layer `Services/OverrideFileSet` pattern as the image overrides), keyed by item name, so
-      notes are authored, shipped, and personally extendable; and/or (b) **embed an external tool** (e.g.
-      cstone Finder) via **WebView2** (`Microsoft.Web.WebView2` + Evergreen runtime). Keep it lightweight —
-      a reference, not a live database.
+- [x] New nav page **after Inventory** (`SourcingPage`, nav key `Nav_Sourcing`), over the same item set as
+      the inventory (distinct required items, shared `Models/InventoryCategoryClassifier`, grouped list with
+      search + category filter, per-item image). Counter-free — quantities stay on the inventory page. The
+      46 × 56 thumb markup moved to `Resources/ItemThumb.xaml` and is now shared with `InventoryPage`.
+      Search matches the note text as well as the item name.
+- [x] **Knowledge base as Markdown in the repo** — decided against fetching from GitHub at runtime:
+      that breaks the offline requirement and needs a second cache layer for text that changes once a
+      patch. Instead `docs/sourcing/{slug}.md` is authored in-repo (natural for review + PRs) and
+      **shipped inside the release**, copied to `Resources/sourcing/` next to the exe by a csproj
+      `Content` glob with a `Link`. `%AppData%\WikeloContractor\sourcing\*.md` layers over it and wins
+      per item, so local notes survive updates.
+- [x] **One file per item, summary and guide together.** Front matter `name` (the lookup key — the file
+      name is cosmetic) + `summary` (the card's one-liner); the body is the "How to obtain" guide.
+      `Services/SourcingGuideService` scans both folders and indexes by `name`. This replaced the
+      earlier `sourcing-notes.json` + `SourcingNotesService`, which are gone.
+      Authoring rules live in `docs/sourcing/README.md`.
+- [x] **Markdown rendering**: `Models/MarkdownDocument` is a pure, total parser for a deliberately
+      small subset (`##`/`###`, `-` bullets, `1.` steps, inline bold/italic/code/link, `<!-- -->`
+      stripped) — no WPF, so it is unit-tested directly. `Views/Controls/MarkdownViewer` renders the
+      blocks as `TextBlock`s using the design tokens. Not a `FlowDocument`: WPF-UI does not theme
+      `FlowDocumentScrollViewer`, which would fight the token layer. Only `http(s)` links are launched.
+- [x] **Detail page** (`SourcingDetailPage`): back button, larger art, name + category tag, the short
+      note, then the rendered guide — falling back to `Sourcing_GuidePlaceholder` while an entry is a stub.
+- [ ] **Fill in the guides.** 95 files exist, one per required item; **33 carry a summary** from the
+      community sheet and only `carinite.md` has a written body (the worked example). The rest are
+      stubs by design — do not invent drop locations, an empty section is correct.
+- [ ] Still to do from the original scope: a link to the wiki (`web_url`) when available, and a
+      per-item deep-link into cstone Finder (investigate whether it supports a query URL).
+- [ ] The sheet also covers items the 4.9.0 catalog never requires (Atlasium, Janalite, Picoball,
+      Scourge Railgun, Advocacy Badge, Finley plushie, Wowblast pistol, Xanthule Helmet/Suit). No files
+      were authored for them — add one if a patch turns any into a requirement.
 
 ## Phase 3.6 — Design system
 
@@ -262,7 +288,8 @@ clarifying an individual element.
       3e (`ui:CardExpander` with a `16 requirements / 1 reward` summary that expands the chips).
       A per-user list/cards switch persisted in `settings.json`. Design exists; build later.
 - [ ] **Icon set** (spec §06): standardise on `ui:SymbolIcon` `SymbolRegular` glyphs —
-      `Star28`/`StarOff28`, `CloudCheckmark16`, `Checkmark24`, `ArrowUndo24`, `ArrowLeft24`,
+      `Star28` outline→`Filled` (**not** `StarOff28`, which is struck through — see
+      docs/design-system.md), `CloudCheckmark16`, `Checkmark24`, `ArrowUndo24`, `ArrowLeft24`,
       `Search24`, `Branch24`, `Open24`, `ArrowDownload24`, `DocumentBulletList`/`Box`/`Info` for nav,
       `Cube24` as the missing-art placeholder. **Open**: the blueprint glyph is not final
       (`ChannelShare16 ?`) — pick one and record it.
@@ -369,6 +396,11 @@ the app said so. Root cause was a missing concept, not a missing message — fre
       Releases feed) and drives a "Check for updates" row in Settings (no-op in a dev run).
       GitHub Releases doubles as the update feed. Note: the shipped `img-catalog-overrides.json` lives in
       the install dir (replaced on update); persistent user edits go to the `%AppData%` layer.
+      **Releases are portable-only until code signing** — an unsigned `Setup.exe`/`.msi` gets
+      hard-blocked on hardened Windows and auto-update is moot while unsigned, so only the portable
+      zip is published (installers unpublished after `vpk pack`; re-enabled with signing). The MSI
+      (`--msi --instLocation Either`: WiX wizard, arbitrary install folder, Add/Remove Programs) is
+      built + verified and returns the day signing lands — see the distribution-signing memory.
 - [x] Versioning: SemVer with git tags (`vX.Y.Z`) on GitHub as the single source of truth;
       the tag version is injected into the build (`-p:Version=X.Y.Z`),
       the app shows its version in Settings (reads it from the assembly)
@@ -378,9 +410,11 @@ the app said so. Root cause was a missing concept, not a missing message — fre
       1 approval + Code Owner review + required `build-and-test`; dev: required `build-and-test`,
       owner in the bypass list so direct pushes still work).
 - [x] GitHub Actions — release (`.github/workflows/release.yml`): on pushing a `vX.Y.Z` tag,
-      publish framework-dependent → `vpk pack` → `vpk upload github`, producing a `Setup.exe` and
-      the delta feed on a GitHub Release. Optional code signing is a secret-gated step (dormant
-      until an OV/EV cert is provided).
+      publish framework-dependent → `vpk pack` → `vpk upload github` → unpublish the installers →
+      attach `SHA256SUMS.txt` + a build-provenance attestation (`actions/attest-build-provenance`).
+      Ships **portable-only** for now (see above); code signing (SignPath Foundation) is the roadmap
+      item that re-enables installers. The dormant PFX `--signParams` block is a placeholder — SignPath
+      signs in its cloud via a CI step, so it will be replaced, not fed secrets.
 
 ## Phase 6 (optional) — Cloud sync
 

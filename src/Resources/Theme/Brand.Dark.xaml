@@ -53,6 +53,10 @@
   <!-- XP badge (contract reputation award) -->
   <SolidColorBrush x:Key="XpBadgeForegroundBrush" Color="#E8B84B" />
 
+  <!-- Favourite star, filled state. Same gold family as the XP badge but its own key: the two are
+       different roles and only coincidentally share a hue today. -->
+  <SolidColorBrush x:Key="FavoriteStarBrush" Color="#F2C750" />
+
   <!-- Completed catalog row: left marker plus a fade-out wash across the row -->
   <SolidColorBrush x:Key="CompletedRowAccentBrush" Color="#4FB98A" />
   <LinearGradientBrush x:Key="CompletedRowWashBrush" StartPoint="0,0" EndPoint="1,0">

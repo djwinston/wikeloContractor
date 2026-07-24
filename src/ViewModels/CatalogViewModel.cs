@@ -1,60 +1,20 @@
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Windows.Data;
 using WikeloContractor.Models;
 using WikeloContractor.Services;
 using Wpf.Ui;
 
 namespace WikeloContractor.ViewModels;
 
-public partial class CatalogViewModel : ViewModel
+/// <summary>
+/// The full contract catalog. Owns loading, freshness/sync reporting, the rate-limit countdown and
+/// the reputation banner; the card list and its filters come from <see cref="ContractListViewModel"/>.
+/// </summary>
+public partial class CatalogViewModel : ContractListViewModel
 {
-    /// <summary>Category combo order; index 0 in the UI is "All categories".</summary>
-    private static readonly ContractCategory[] _categoryOrder =
-    [
-        ContractCategory.Ship,
-        ContractCategory.GroundVehicle,
-        ContractCategory.Paint,
-        ContractCategory.Weapon,
-        ContractCategory.Armor,
-        ContractCategory.Other,
-    ];
-
-    private readonly IContractCatalogService _catalogService;
-    private readonly ICompletionService _completionService;
-    private readonly IInventoryStore _inventoryStore;
-    private readonly ContractCompletionInteraction _completionInteraction;
-
-    /// <summary>Card wrappers (one per contract); the collection view is built and filtered over these.</summary>
-    private List<ContractCardViewModel> _cards = [];
-
-    /// <summary>Suppresses the filter re-run while <see cref="SetContracts"/> restores the resource selection.</summary>
-    private bool _suppressFilter;
-
     /// <summary>How many times in a row an elapsed rate-limit window may trigger an automatic refetch.</summary>
     private const int _maxRateLimitRetries = 3;
 
     /// <summary>Consecutive automatic retries so far; reset by any load that is not rate-limited.</summary>
     private int _rateLimitRetries;
-
-    /// <summary>Filtered view over <see cref="_cards"/>; refreshed in place as filters change.</summary>
-    [ObservableProperty]
-    private ICollectionView? _contracts;
-
-    /// <summary>Index 0 is always the localized "All resources" placeholder; 1.. are resource names.</summary>
-    [ObservableProperty]
-    private ObservableCollection<string> _resourceOptions = [];
-
-    [ObservableProperty]
-    private string _searchText = string.Empty;
-
-    /// <summary>0 = all categories, 1.. = index into <see cref="_categoryOrder"/> + 1.</summary>
-    [ObservableProperty]
-    private int _categoryIndex;
-
-    /// <summary>0 = all resources, 1.. = index into <see cref="ResourceOptions"/>.</summary>
-    [ObservableProperty]
-    private int _resourceIndex;
 
     [ObservableProperty]
     private bool _isLoading;
@@ -96,10 +56,6 @@ public partial class CatalogViewModel : ViewModel
     /// <summary>API is unreachable, showing cached data (drives the offline InfoBar).</summary>
     public bool IsOffline => !HasLoadError && Status == CatalogStatus.Offline;
 
-    /// <summary>All filters combined produced no results.</summary>
-    [ObservableProperty]
-    private bool _isEmpty;
-
     [ObservableProperty]
     private string? _gameVersion;
 
@@ -110,32 +66,20 @@ public partial class CatalogViewModel : ViewModel
     /// <summary>Shared rate-limit countdown, bound by both the Catalog and Settings pages.</summary>
     public RateLimitWatcher RateLimit { get; }
 
-    private readonly INavigationService _navigationService;
-    private readonly ContractDetailViewModel _detailViewModel;
-
     public CatalogViewModel(
         IContractCatalogService catalogService,
         ICompletionService completionService,
+        IFavoritesService favoritesService,
         IInventoryStore inventoryStore,
         ContractCompletionInteraction completionInteraction,
         RateLimitWatcher rateLimit,
         INavigationService navigationService,
         ContractDetailViewModel detailViewModel)
+        : base(catalogService, completionService, favoritesService, inventoryStore,
+               completionInteraction, navigationService, detailViewModel)
     {
-        _catalogService = catalogService;
-        _completionService = completionService;
-        _inventoryStore = inventoryStore;
-        _completionInteraction = completionInteraction;
         RateLimit = rateLimit;
-        _navigationService = navigationService;
-        _detailViewModel = detailViewModel;
-        _catalogService.CatalogUpdated += OnCatalogUpdated;
-        _catalogService.SyncStateChanged += OnSyncStateChanged;
         RateLimit.WindowElapsed += OnRateLimitWindowElapsed;
-
-        // Both this VM and the service are app-lifetime singletons — the subscription needs no teardown.
-        _completionService.Changed += OnCompletionChanged;
-        _inventoryStore.Changed += OnInventoryChanged;
         RecomputeReputation();
     }
 
@@ -145,42 +89,23 @@ public partial class CatalogViewModel : ViewModel
         await LoadAsync();
     }
 
-    partial void OnSearchTextChanged(string value) => RefreshFilter();
-
-    partial void OnCategoryIndexChanged(int value) => RefreshFilter();
-
-    partial void OnResourceIndexChanged(int value) => RefreshFilter();
-
-    [RelayCommand]
-    private void ClearFilters()
+    /// <summary>The catalog shows every contract the service holds.</summary>
+    protected override void RebuildFromCatalog()
     {
-        SearchText = string.Empty;
-        CategoryIndex = 0;
-        ResourceIndex = 0;
-    }
-
-    [RelayCommand]
-    private void OpenDetails(WikeloContract? contract)
-    {
-        if (contract is null)
+        if (CatalogService.Current is { } result)
         {
-            return;
+            SetContracts(result.Contracts);
         }
-
-        _detailViewModel.Show(contract);
-        // The detail page is not a nav menu item — navigate with back-stack support.
-        _ = _navigationService.NavigateWithHierarchy(typeof(Views.Pages.ContractDetailPage));
     }
 
-    private void OnCatalogUpdated(object? sender, EventArgs e) =>
-        // Enrichment finishes on a background thread.
-        Application.Current.Dispatcher.Invoke(() =>
-        {
-            if (_catalogService.Current is { } result)
-            {
-                SetContracts(result.Contracts);
-            }
-        });
+    /// <summary>Completing a contract changes the earned standing shown in the banner.</summary>
+    protected override void OnCompletionChangedCore() => RecomputeReputation();
+
+    /// <summary>A fresh card list can carry a different completed set (e.g. after enrichment).</summary>
+    protected override void OnContractsSet() => RecomputeReputation();
+
+    /// <summary>Mirror the service's sync state into the observable the page's badge binds to.</summary>
+    protected override void OnSyncStateChangedCore() => SyncState = CatalogService.SyncState;
 
     /// <summary>
     /// The rate-limit wait elapsed, so honour the countdown's promise and refetch.
@@ -204,50 +129,8 @@ public partial class CatalogViewModel : ViewModel
             _ = LoadAsync();
         });
 
-    private void OnSyncStateChanged(object? sender, EventArgs e) =>
-        // Enrichment reports progress from a background thread, once per fetched detail. Only the
-        // syncing *bool* is consumed here (the badge; the shell owns the progress bar), and it flips
-        // exactly twice, so skip the intermediate ticks rather than re-raising and re-fanning them.
-        Application.Current.Dispatcher.Invoke(() =>
-        {
-            var next = _catalogService.SyncState;
-            if (next.IsSyncing == SyncState.IsSyncing)
-            {
-                return;
-            }
-
-            SyncState = next;
-
-            // Cards gate their completion toggle on this: completing against half-loaded
-            // requirements deducts the wrong amounts from the inventory.
-            foreach (var card in _cards)
-            {
-                card.SetSyncing(next.IsSyncing);
-            }
-        });
-
-    private void OnCompletionChanged(object? sender, EventArgs e) =>
-        Application.Current.Dispatcher.Invoke(() =>
-        {
-            foreach (var card in _cards)
-            {
-                card.RefreshCompleted();
-            }
-
-            RecomputeReputation();
-        });
-
-    private void OnInventoryChanged(object? sender, EventArgs e) =>
-        Application.Current.Dispatcher.Invoke(() =>
-        {
-            foreach (var card in _cards)
-            {
-                card.RefreshReadiness();
-            }
-        });
-
     private void RecomputeReputation() =>
-        Reputation = ReputationSummary.From(ReputationLevels.Compute(_completionService.TotalReputation));
+        Reputation = ReputationSummary.From(ReputationLevels.Compute(CompletionService.TotalReputation));
 
     private async Task LoadAsync()
     {
@@ -261,11 +144,11 @@ public partial class CatalogViewModel : ViewModel
 
         try
         {
-            var result = await _catalogService.GetContractsAsync();
+            var result = await CatalogService.GetContractsAsync();
 
             // Read before publishing the cards: a sync started by this very call (or already in
             // flight from Settings' update check) must be reflected the moment they appear.
-            SyncState = _catalogService.SyncState;
+            SyncState = CatalogService.SyncState;
             SetContracts(result.Contracts);
             // Header shows the version without the API build number — see GameVersionDisplay.
             GameVersion = GameVersionDisplay.WithoutBuild(result.GameVersion);
@@ -290,89 +173,4 @@ public partial class CatalogViewModel : ViewModel
             IsLoading = false;
         }
     }
-
-    private void SetContracts(IReadOnlyList<WikeloContract> contracts)
-    {
-        _cards = contracts
-            .Select(c => new ContractCardViewModel(c, _completionService, _inventoryStore, _completionInteraction, IsSyncing))
-            .ToList();
-
-        var resources = contracts
-            .SelectMany(c => c.Requirements)
-            .Select(r => r.Name)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        // Preserve the selection by resource name, not by raw index, since the list can shrink/grow.
-        var previouslySelected = ResourceIndex > 0 && ResourceIndex <= ResourceOptions.Count - 1
-            ? ResourceOptions[ResourceIndex]
-            : null;
-
-        var allResourcesLabel = Localized.String("Catalog_Filter_AllResources") ?? "All resources";
-        ResourceOptions = new ObservableCollection<string>([allResourcesLabel, .. resources]);
-
-        var restoredIndex = previouslySelected is null
-            ? -1
-            : resources.FindIndex(r => string.Equals(r, previouslySelected, StringComparison.OrdinalIgnoreCase));
-
-        // Restore the selection without triggering a filter pass — the fresh view below applies it.
-        _suppressFilter = true;
-        ResourceIndex = restoredIndex >= 0 ? restoredIndex + 1 : 0;
-        _suppressFilter = false;
-
-        Contracts = new ListCollectionView(_cards) { Filter = FilterContract };
-        UpdateIsEmpty();
-        RecomputeReputation();
-    }
-
-    /// <summary>Re-evaluates the current view against the filters without reallocating the collection.</summary>
-    private void RefreshFilter()
-    {
-        if (_suppressFilter)
-        {
-            return;
-        }
-
-        Contracts?.Refresh();
-        UpdateIsEmpty();
-    }
-
-    private bool FilterContract(object item)
-    {
-        if (item is not ContractCardViewModel { Contract: var contract })
-        {
-            return false;
-        }
-
-        if (!string.IsNullOrWhiteSpace(SearchText)
-            && !contract.Title.Contains(SearchText, StringComparison.OrdinalIgnoreCase)
-            && contract.Description?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) != true
-            && !contract.Rewards.Any(r => r.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase)))
-        {
-            return false;
-        }
-
-        if (CategoryIndex > 0 && CategoryIndex <= _categoryOrder.Length)
-        {
-            var selected = _categoryOrder[CategoryIndex - 1];
-
-            // Any reward category matches (a ship contract with bonus armor shows under both).
-            if (!contract.EffectiveCategories.Contains(selected))
-            {
-                return false;
-            }
-        }
-
-        if (ResourceIndex > 0 && ResourceIndex < ResourceOptions.Count
-            && !contract.Requirements.Any(r =>
-                string.Equals(r.Name, ResourceOptions[ResourceIndex], StringComparison.OrdinalIgnoreCase)))
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    private void UpdateIsEmpty() => IsEmpty = _cards.Count > 0 && (Contracts?.IsEmpty ?? false);
 }

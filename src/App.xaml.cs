@@ -39,9 +39,16 @@ public partial class App
             // Completed contracts + accumulated Wikelo reputation.
             _ = services.AddSingleton<ICompletionService, CompletionService>();
 
+            // Favorited contracts (the Favorites page is the catalog filtered to these).
+            _ = services.AddSingleton<IFavoritesService, FavoritesService>();
+
             // Personal inventory: counter store + user-supplied item images.
             _ = services.AddSingleton<IInventoryStore, InventoryStore>();
             _ = services.AddSingleton<IInventoryImageOverrideService, InventoryImageOverrideService>();
+
+            // "Where to find" knowledge base: Markdown files shipped in the install dir, plus a
+            // %AppData% layer the user owns. See docs/sourcing/README.md.
+            _ = services.AddSingleton<ISourcingGuideService, SourcingGuideService>();
 
             // Completion ↔ inventory flow (deduction/warning dialogs), shared by catalog + detail.
             _ = services.AddSingleton<ViewModels.ContractCompletionInteraction>();
@@ -56,10 +63,16 @@ public partial class App
             // Pages and their ViewModels
             _ = services.AddSingleton<Views.Pages.CatalogPage>();
             _ = services.AddSingleton<ViewModels.CatalogViewModel>();
+            _ = services.AddSingleton<Views.Pages.FavoritesPage>();
+            _ = services.AddSingleton<ViewModels.FavoritesViewModel>();
             _ = services.AddSingleton<Views.Pages.ContractDetailPage>();
             _ = services.AddSingleton<ViewModels.ContractDetailViewModel>();
             _ = services.AddSingleton<Views.Pages.InventoryPage>();
             _ = services.AddSingleton<ViewModels.InventoryViewModel>();
+            _ = services.AddSingleton<Views.Pages.SourcingPage>();
+            _ = services.AddSingleton<ViewModels.SourcingViewModel>();
+            _ = services.AddSingleton<Views.Pages.SourcingDetailPage>();
+            _ = services.AddSingleton<ViewModels.SourcingDetailViewModel>();
             _ = services.AddSingleton<Views.Pages.SettingsPage>();
             _ = services.AddSingleton<ViewModels.SettingsViewModel>();
             _ = services.AddSingleton<Views.Pages.AboutPage>();

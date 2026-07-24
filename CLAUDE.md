@@ -13,9 +13,8 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
 - Data source: `https://api.star-citizen.wiki` (public, no auth), swagger at `https://docs.star-citizen.wiki`
 - Persistence: JSON files in `%AppData%\WikeloContractor\` (settings.json, inventory.json, cache/)
 - No cloud/auth for now (optional Supabase + Discord OAuth is Phase 6)
-
-TODO after first successful `dotnet restore`: pin exact package versions in the csproj
-(currently floating `4.*` / `8.*` / `10.*`).
+- Package versions are pinned exactly in both csproj files (no floating `*`). `Velopack` is kept in
+  lockstep with the `vpk` CLI version in `.github/workflows/release.yml` — bump the two together.
 
 ## Environment
 
@@ -85,7 +84,39 @@ TODO after first successful `dotnet restore`: pin exact package versions in the 
     (`completed.json`, UUID→earned reputation). New per-service JSON stores follow this shape:
     `AppStorage.Root`/`JsonOptions`, load-with-`try/catch(JsonException)`, atomic tmp+`File.Move`
     write (same as `SettingsService`/`ContractCatalogService`). `Services/InventoryStore`
-    (`inventory.json`, name→count) is the second store on this shape
+    (`inventory.json`, name→count) is the second store on this shape, `Services/FavoritesService`
+    (`favorites.json`, UUID set) the third
+  - `ViewModels/ContractListViewModel` — the base for **any page showing a filterable contract
+    list**: the cards, the `ICollectionView` over them, the search/category/resource filters, the
+    empty state, `OpenDetails`, and the fan-out of the completion/favorites/inventory/sync `Changed`
+    events onto every card. `CatalogViewModel` (everything) and `FavoritesViewModel` (starred only)
+    differ solely in `RebuildFromCatalog`. A third list page subclasses this — it does not re-filter
+  - `ViewModels/RequirementListViewModel` — the item-grid analogue: the base for **any page showing
+    the catalog's required items as a category-grouped grid** (the distinct-item projection, the
+    grouped `ICollectionView`, the search + category filter, the empty state, the image-preview
+    overlay). Rows implement `IRequirementItem` (`Name`/`Category`/`CategoryLabel`).
+    `InventoryViewModel` (adds a count store) and `SourcingViewModel` (adds a sourcing note + detail
+    nav) override only `CreateItem` (and Sourcing widens `MatchesSearch`). A third item-grid page
+    subclasses this — it does not re-implement the grouping/filter/preview
+  - `Models/ContractFilter` — the pure search/category/resource matching decision
+    (`Matches(contract)`), deliberately free of UI notions so it is testable without a WPF
+    `Application`; the VM maps combo box indices onto it. A second copy of this is a review finding
+  - `Resources/ContractCard.xaml` — the catalog row `DataTemplate` (`ContractCardTemplate`), shared
+    verbatim by `CatalogPage` and `FavoritesPage`. Merged **after** `Chips.xaml` in `App.xaml`
+    because it resolves the chip styles via `StaticResource`, which only looks backwards
+  - `Resources/ItemThumb.xaml` — the 46 × 46 item thumb (`ItemThumbTemplate`: artwork with a
+    category-icon fallback, click-to-preview), shared by `InventoryPage` and `SourcingPage`. Its
+    DataContext needs a `Name` + `Category`, and the hosting page must expose `OpenPreviewCommand`
+  - `Services/SourcingGuideService` — the "where to find it" knowledge base: one Markdown file per
+    item in `docs/sourcing/`, shipped into `Resources/sourcing/` and layered with
+    `%AppData%\WikeloContractor\sourcing\`. Two-layer like the override services but resolved **per
+    file**, so it scans directories rather than reusing `OverrideFileSet` (a key→value JSON engine).
+    The front matter's `name` is the key, never the file name. Format + rules: `docs/sourcing/README.md`
+  - `Models/MarkdownDocument` — the only Markdown parser: a small, **total** subset (headings,
+    bullets, ordered steps, inline bold/italic/code/link, `<!-- -->` stripping). Pure, so it is
+    unit-tested without WPF; malformed input degrades to plain text and never throws.
+    `Views/Controls/MarkdownViewer` is the matching renderer (`TextBlock`s over design tokens — not a
+    `FlowDocument`, which WPF-UI does not theme). Do not add a second Markdown implementation
   - `Services/OverrideFileSet` — the reusable two-layer (bundled + `%AppData%`) key→value override
     engine with throttled hot-reload and a first-run user template. `ImageOverrideService` (reward
     images) and `InventoryImageOverrideService` (inventory item images, `img-inventory-overrides.json`)
@@ -164,6 +195,25 @@ TODO after first successful `dotnet restore`: pin exact package versions in the 
   and is a no-op when `UpdateManager.IsInstalled` is false (dev runs), driving the Settings
   "Check for updates" row. Release build is **framework-dependent**; the installer bootstraps the
   .NET Desktop Runtime via `vpk pack --framework net10.0-x64-desktop`.
+- **Releases are portable-only until the app is code-signed.** `release.yml` publishes just
+  `WikeloContractor-win-Portable.zip` (+ `SHA256SUMS.txt` + a build-provenance attestation). An
+  unsigned `Setup.exe` is a self-extracting installer that hardened Windows (Smart App Control / ASR)
+  hard-blocks, and auto-update is a no-op while unsigned anyway — so shipping installers now would
+  only create dead-end first installs. `vpk pack` still *produces* `Setup.exe`; a **Remove installer
+  assets** step unpublishes it (and any `.msi`) after upload. The Velopack update metadata
+  (`*.nupkg`/`RELEASES`) is left on the release, harmless with no installer.
+- **Re-enable the installers as one change when signing lands** (see the distribution-signing memory):
+  add back `--msi`, `--instLocation`, `Either` to `vpk pack`, delete the *Remove installer assets*
+  step, restore the `*.exe`/`*.msi` patterns in the checksum + attestation steps, and add the SignPath
+  signing step. What the installers give when re-enabled (already verified, keep for that day):
+  - `Setup.exe` — one-click, no prompts, installs to `%LocalAppData%\WikeloContractor`; near-instant
+    (payload ~6.5 MB) so the progress bar barely shows — expected, not a bug.
+  - `.msi` — a real WiX wizard: `InstallScopeDlg` (per-user vs per-machine `Program Files`),
+    `BrowseDlg`/`WIXUI_INSTALLDIR` for an **arbitrary install folder**, and a `ProgressDlg`; plus
+    Add/Remove Programs, repair/remove, and Group Policy deploy. WiX ships inside `vpk` (no separate
+    install on the runner). Verified from the generated MSI's Dialog/Property tables.
+  Auto-updates apply the same way regardless of installer — the installer is only the initial
+  bootstrap, not part of the update path; and portable builds do not auto-update (`IsInstalled` false).
 - Keep `Resources/img-catalog-overrides.json` as loose `<Content>` (do **not** embed it): it ships in the
   install dir as the editable bundled-defaults layer. It is replaced on each Velopack update, so
   persistent personal edits belong in the `%AppData%` override file, which updates never touch.

@@ -14,6 +14,7 @@ public partial class ContractDetailViewModel : ViewModel
     private readonly INavigationService _navigationService;
     private readonly IContractCatalogService _catalogService;
     private readonly ICompletionService _completionService;
+    private readonly IFavoritesService _favoritesService;
     private readonly IInventoryStore _inventoryStore;
     private readonly ContractCompletionInteraction _completionInteraction;
 
@@ -21,6 +22,7 @@ public partial class ContractDetailViewModel : ViewModel
     [NotifyPropertyChangedFor(nameof(CategoryLabel))]
     [NotifyPropertyChangedFor(nameof(IsCompleted))]
     [NotifyPropertyChangedFor(nameof(CompletedButtonLabel))]
+    [NotifyPropertyChangedFor(nameof(IsFavorite))]
     [NotifyPropertyChangedFor(nameof(HasBlueprints))]
     [NotifyPropertyChangedFor(nameof(XpLabel))]
     private WikeloContract? _contract;
@@ -96,6 +98,9 @@ public partial class ContractDetailViewModel : ViewModel
 
     public bool IsCompleted => Contract is { } contract && _completionService.IsCompleted(contract.Uuid);
 
+    /// <summary>Flagged for the Favorites page; ungated, mirroring <see cref="ContractCardViewModel"/>.</summary>
+    public bool IsFavorite => Contract is { } contract && _favoritesService.IsFavorite(contract.Uuid);
+
     /// <summary>
     /// Localized label for the completion toggle. Reads as the *action*, not the state — a
     /// completed contract offers "Reopen", matching the catalog row's toggle.
@@ -113,12 +118,14 @@ public partial class ContractDetailViewModel : ViewModel
         INavigationService navigationService,
         IContractCatalogService catalogService,
         ICompletionService completionService,
+        IFavoritesService favoritesService,
         IInventoryStore inventoryStore,
         ContractCompletionInteraction completionInteraction)
     {
         _navigationService = navigationService;
         _catalogService = catalogService;
         _completionService = completionService;
+        _favoritesService = favoritesService;
         _inventoryStore = inventoryStore;
         _completionInteraction = completionInteraction;
         _catalogService.CatalogUpdated += OnCatalogUpdated;
@@ -126,6 +133,7 @@ public partial class ContractDetailViewModel : ViewModel
 
         // App-lifetime singletons on both sides — no unsubscription needed.
         _completionService.Changed += OnCompletionChanged;
+        _favoritesService.Changed += OnFavoritesChanged;
         _inventoryStore.Changed += OnInventoryChanged;
     }
 
@@ -176,6 +184,11 @@ public partial class ContractDetailViewModel : ViewModel
             OnPropertyChanged(nameof(CompletedButtonLabel));
             RecomputeReadiness();
         });
+
+    // Fired when the star is toggled from a list page while this one holds the same contract.
+    // Nothing else depends on the flag, so this notifies the single property.
+    private void OnFavoritesChanged(object? sender, EventArgs e) =>
+        Application.Current.Dispatcher.Invoke(() => OnPropertyChanged(nameof(IsFavorite)));
 
     private void RecomputeReadiness()
     {
@@ -239,6 +252,17 @@ public partial class ContractDetailViewModel : ViewModel
         if (Contract is { } contract)
         {
             await _completionInteraction.ToggleAsync(contract);
+        }
+    }
+
+    // Ungated: unlike completion, starring never touches the inventory, so there is nothing to
+    // withhold mid-sync. The Changed event notifies IsFavorite back here.
+    [RelayCommand]
+    private async Task ToggleFavorite()
+    {
+        if (Contract is { } contract)
+        {
+            await _favoritesService.SetFavoriteAsync(contract.Uuid, !IsFavorite);
         }
     }
 }

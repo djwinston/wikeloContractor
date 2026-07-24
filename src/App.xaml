@@ -18,6 +18,10 @@
              runtime, paired with the WPF-UI theme above -->
         <ResourceDictionary Source="pack://application:,,,/Resources/Theme/Brand.Dark.xaml" />
         <ResourceDictionary Source="pack://application:,,,/Resources/Chips.xaml" />
+        <!-- After Chips.xaml: the shared catalog row resolves the chip styles via StaticResource,
+             which only looks backwards through the merged dictionaries -->
+        <ResourceDictionary Source="pack://application:,,,/Resources/ContractCard.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/Resources/ItemThumb.xaml" />
         <!-- Default language; LocalizationService swaps this dictionary at runtime -->
         <ResourceDictionary Source="pack://application:,,,/Resources/Localization/Strings.en.xaml" />
       </ResourceDictionary.MergedDictionaries>

@@ -1,0 +1,211 @@
+<Page
+  x:Class="WikeloContractor.Views.Pages.SourcingPage"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:local="clr-namespace:WikeloContractor.Views.Pages"
+  xmlns:converters="clr-namespace:WikeloContractor.Views.Converters"
+  xmlns:helpers="clr-namespace:WikeloContractor.Views.Helpers"
+  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+  Title="SourcingPage"
+  d:DataContext="{d:DesignInstance local:SourcingPage, IsDesignTimeCreatable=False}"
+  d:DesignHeight="450"
+  d:DesignWidth="800"
+  ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+  ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+  ScrollViewer.CanContentScroll="False"
+  mc:Ignorable="d">
+
+  <!-- The sourcing reference: the inventory's item set without the counters, each row carrying a
+       short "where to find it" line. A row opens SourcingDetailPage; the thumb itself opens the
+       image preview, exactly as on the inventory page (shared ItemThumbTemplate). -->
+
+  <Page.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+    <converters:PresenceToVisibilityConverter x:Key="NullToVisibility" Invert="True" />
+    <converters:PresenceToVisibilityConverter x:Key="NotNullToVisibility" />
+    <converters:ToUpperConverter x:Key="ToUpper" />
+  </Page.Resources>
+
+  <Page.InputBindings>
+    <KeyBinding Key="Escape" Command="{Binding ViewModel.ClosePreviewCommand}" />
+  </Page.InputBindings>
+
+  <Grid>
+    <Grid Margin="{StaticResource SpacingPagePadding}">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+
+      <!-- Header -->
+      <TextBlock
+        Grid.Row="0"
+        FontSize="{StaticResource FontSizeTitle}"
+        FontWeight="Bold"
+        Text="{DynamicResource Sourcing_Title}" />
+
+      <TextBlock
+        Grid.Row="1"
+        Margin="0,6,0,0"
+        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+        Text="{DynamicResource Sourcing_Subtitle}"
+        TextWrapping="Wrap" />
+
+      <!-- Search + category filter -->
+      <Grid Grid.Row="2" Margin="0,16,0,0">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <ui:TextBox
+          Grid.Column="0"
+          Icon="{ui:SymbolIcon Search24}"
+          PlaceholderText="{DynamicResource Sourcing_SearchPlaceholder}"
+          Text="{Binding ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+        <ComboBox
+          Grid.Column="1"
+          MinWidth="190"
+          Margin="8,0,0,0"
+          SelectedIndex="{Binding ViewModel.CategoryIndex, Mode=TwoWay}">
+          <ComboBoxItem Content="{DynamicResource Catalog_Filter_AllCategories}" />
+          <ComboBoxItem Content="{DynamicResource Inventory_Cat_OreMineral}" />
+          <ComboBoxItem Content="{DynamicResource Inventory_Cat_Armor}" />
+          <ComboBoxItem Content="{DynamicResource Inventory_Cat_Weapon}" />
+          <ComboBoxItem Content="{DynamicResource Inventory_Cat_Vehicle}" />
+          <ComboBoxItem Content="{DynamicResource Inventory_Cat_Component}" />
+          <ComboBoxItem Content="{DynamicResource Inventory_Cat_CreatureMaterial}" />
+          <ComboBoxItem Content="{DynamicResource Inventory_Cat_Collectible}" />
+          <ComboBoxItem Content="{DynamicResource Inventory_Cat_Consumable}" />
+          <ComboBoxItem Content="{DynamicResource Inventory_Cat_Favor}" />
+          <ComboBoxItem Content="{DynamicResource Inventory_Cat_Other}" />
+        </ComboBox>
+      </Grid>
+
+      <!-- Empty state -->
+      <TextBlock
+        Grid.Row="3"
+        Margin="0,24,0,0"
+        HorizontalAlignment="Center"
+        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+        Text="{DynamicResource Sourcing_Empty}"
+        Visibility="{Binding ViewModel.IsEmpty, Converter={StaticResource BoolToVisibility}}" />
+
+      <!-- Item list, grouped by category -->
+      <ScrollViewer
+        Grid.Row="4"
+        Margin="0,12,0,0"
+        HorizontalScrollBarVisibility="Disabled"
+        VerticalScrollBarVisibility="Auto">
+        <ItemsControl Margin="0,0,16,0" ItemsSource="{Binding ViewModel.Items}">
+          <ItemsControl.GroupStyle>
+            <GroupStyle>
+              <GroupStyle.HeaderTemplate>
+                <DataTemplate>
+                  <TextBlock
+                    Margin="0,18,0,11"
+                    FontSize="12"
+                    FontWeight="Bold"
+                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                    Text="{Binding Name, Converter={StaticResource ToUpper}}" />
+                </DataTemplate>
+              </GroupStyle.HeaderTemplate>
+            </GroupStyle>
+          </ItemsControl.GroupStyle>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border
+                Margin="0,0,0,9"
+                Padding="16,12"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource RadiusCard}"
+                Cursor="Hand">
+                <Border.InputBindings>
+                  <MouseBinding
+                    Command="{Binding ViewModel.OpenDetailsCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                    CommandParameter="{Binding}"
+                    MouseAction="LeftClick" />
+                </Border.InputBindings>
+
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+
+                  <ContentControl
+                    Grid.Column="0"
+                    Margin="0,0,15,0"
+                    VerticalAlignment="Top"
+                    Content="{Binding}"
+                    ContentTemplate="{StaticResource ItemThumbTemplate}" />
+
+                  <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock
+                      FontSize="{StaticResource FontSizeBodyStrong}"
+                      FontWeight="SemiBold"
+                      Text="{Binding Name}"
+                      TextWrapping="Wrap" />
+                    <!-- The short sourcing line. Wraps rather than trims: a row that hides half its
+                         answer would send the user to the detail page for no reason. -->
+                    <TextBlock
+                      Margin="0,4,0,0"
+                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                      Text="{Binding Note}"
+                      TextWrapping="Wrap"
+                      Visibility="{Binding Note, Converter={StaticResource NotNullToVisibility}}" />
+                    <TextBlock
+                      Margin="0,4,0,0"
+                      FontStyle="Italic"
+                      Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                      Text="{DynamicResource Sourcing_NoNote}"
+                      TextWrapping="Wrap"
+                      Visibility="{Binding Note, Converter={StaticResource NullToVisibility}}" />
+                  </StackPanel>
+
+                  <ui:SymbolIcon
+                    Grid.Column="2"
+                    Margin="12,0,0,0"
+                    VerticalAlignment="Center"
+                    FontSize="14"
+                    Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                    Symbol="ChevronRight24" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Grid>
+
+    <!-- Full-window item image preview; click anywhere or press Esc to close -->
+    <Grid
+      Background="#CC000000"
+      Visibility="{Binding ViewModel.IsPreviewOpen, Converter={StaticResource BoolToVisibility}}">
+      <Grid.InputBindings>
+        <MouseBinding Command="{Binding ViewModel.ClosePreviewCommand}" MouseAction="LeftClick" />
+      </Grid.InputBindings>
+      <Image
+        Margin="60"
+        helpers:InventoryPreview.PreviewItemName="{Binding ViewModel.PreviewItemName}"
+        RenderOptions.BitmapScalingMode="HighQuality"
+        Stretch="Uniform" />
+      <ui:Button
+        Margin="0,24,24,0"
+        HorizontalAlignment="Right"
+        VerticalAlignment="Top"
+        Command="{Binding ViewModel.ClosePreviewCommand}"
+        Icon="{ui:SymbolIcon Dismiss24}" />
+    </Grid>
+  </Grid>
+</Page>

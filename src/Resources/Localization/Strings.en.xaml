@@ -6,7 +6,9 @@
   <sys:String x:Key="App_Title">Wikelo Contractor</sys:String>
 
   <sys:String x:Key="Nav_Catalog">Catalog</sys:String>
+  <sys:String x:Key="Nav_Favorites">Favorites</sys:String>
   <sys:String x:Key="Nav_Inventory">Inventory</sys:String>
+  <sys:String x:Key="Nav_Sourcing">Where to Find</sys:String>
   <sys:String x:Key="Nav_Settings">Settings</sys:String>
   <sys:String x:Key="Nav_About">About</sys:String>
 
@@ -49,6 +51,13 @@
   <sys:String x:Key="Contract_ReadyBadge">Ready</sys:String>
   <sys:String x:Key="Contract_ReadinessTooltip">Required items you already have in your inventory</sys:String>
   <sys:String x:Key="Contract_Reopen">Reopen</sys:String>
+  <sys:String x:Key="Contract_AddFavorite">Add to favorites</sys:String>
+  <sys:String x:Key="Contract_RemoveFavorite">Remove from favorites</sys:String>
+
+  <!-- Favorites page: the catalog filtered to starred contracts. The "nothing starred" copy is
+       deliberately separate from Catalog_Empty ("filters matched nothing") — different situations. -->
+  <sys:String x:Key="Favorites_Title">Favorites</sys:String>
+  <sys:String x:Key="Favorites_Empty">No favorites yet. Tap the star on a contract to keep it here.</sys:String>
   <sys:String x:Key="Catalog_RewardsLabel">REWARDS</sys:String>
   <!-- {0} is the reputation the contract awards; the UI calls it XP (see docs/design-system.md) -->
   <sys:String x:Key="Catalog_XpBadge">+{0} XP</sys:String>
@@ -112,6 +121,17 @@
   <sys:String x:Key="Inventory_Cat_Consumable">Consumables</sys:String>
   <sys:String x:Key="Inventory_Cat_Favor">Favor &amp; scrip</sys:String>
   <sys:String x:Key="Inventory_Cat_Other">Other</sys:String>
+
+  <!-- Sourcing reference ("where to find"): the inventory item set with authored notes -->
+  <sys:String x:Key="Sourcing_Title">Where to Find</sys:String>
+  <sys:String x:Key="Sourcing_Subtitle">Where to source every item Wikelo asks for. Notes are community-sourced — correct them in sourcing-notes.json.</sys:String>
+  <sys:String x:Key="Sourcing_SearchPlaceholder">Search items or sources…</sys:String>
+  <sys:String x:Key="Sourcing_Empty">No items match the filters.</sys:String>
+  <sys:String x:Key="Sourcing_NoNote">No sourcing note yet.</sys:String>
+  <sys:String x:Key="Sourcing_Back">Back to the list</sys:String>
+  <sys:String x:Key="Sourcing_WhereToFind">WHERE TO FIND IT</sys:String>
+  <sys:String x:Key="Sourcing_HowToObtain">HOW TO OBTAIN IT</sys:String>
+  <sys:String x:Key="Sourcing_GuidePlaceholder">A step-by-step guide for this item has not been written yet.</sys:String>
 
   <sys:String x:Key="Settings_Title">Settings</sys:String>
   <sys:String x:Key="Settings_Language">Language</sys:String>

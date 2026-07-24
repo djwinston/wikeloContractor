@@ -24,6 +24,9 @@ public sealed class ApplicationHostService(IServiceProvider serviceProvider) : I
         // Personal inventory counters, so the inventory page shows the right totals on first open.
         await serviceProvider.GetRequiredService<IInventoryStore>().LoadAsync();
 
+        // Favorited contracts, so the star state is right on the first paint of the catalog.
+        await serviceProvider.GetRequiredService<IFavoritesService>().LoadAsync();
+
         serviceProvider
             .GetRequiredService<ILocalizationService>()
             .ApplyLanguage(settingsService.Current.Language);

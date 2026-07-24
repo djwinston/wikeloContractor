@@ -56,9 +56,17 @@
           Icon="{ui:SymbolIcon ClipboardTaskListLtr24}"
           TargetPageType="{x:Type pages:CatalogPage}" />
         <ui:NavigationViewItem
+          Content="{DynamicResource Nav_Favorites}"
+          Icon="{ui:SymbolIcon Star28}"
+          TargetPageType="{x:Type pages:FavoritesPage}" />
+        <ui:NavigationViewItem
           Content="{DynamicResource Nav_Inventory}"
           Icon="{ui:SymbolIcon Box24}"
           TargetPageType="{x:Type pages:InventoryPage}" />
+        <ui:NavigationViewItem
+          Content="{DynamicResource Nav_Sourcing}"
+          Icon="{ui:SymbolIcon BookQuestionMark24}"
+          TargetPageType="{x:Type pages:SourcingPage}" />
       </ui:NavigationView.MenuItems>
 
       <ui:NavigationView.FooterMenuItems>

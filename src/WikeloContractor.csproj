@@ -28,16 +28,22 @@
     <!-- Shipped image overrides: shared defaults maintained in the repository -->
     <Content Include="Resources\img-catalog-overrides.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Resources\img-inventory-overrides.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Sourcing knowledge base: authored in docs/ (natural for review + PRs), shipped in the
+         install dir. The %AppData% layer wins per item and updates never touch it. -->
+    <Content Include="..\docs\sourcing\*.md"
+             Link="Resources\sourcing\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Floating versions for the first restore; pin exact versions afterwards (TODO in PLAN.md) -->
-    <PackageReference Include="WPF-UI" Version="4.*" />
-    <PackageReference Include="WPF-UI.DependencyInjection" Version="4.*" />
-    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.*" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.*" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="10.*" />
-    <PackageReference Include="Velopack" Version="0.0.*" />
+    <PackageReference Include="WPF-UI" Version="4.3.0" />
+    <PackageReference Include="WPF-UI.DependencyInjection" Version="4.3.0" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.10" />
+    <!-- Keep in lockstep with the vpk CLI version pinned in .github/workflows/release.yml:
+         vpk warns and can misbehave when the library is older than the packing tool. -->
+    <PackageReference Include="Velopack" Version="1.2.0" />
   </ItemGroup>
 
 </Project>

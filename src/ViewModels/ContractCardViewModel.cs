@@ -11,6 +11,7 @@ namespace WikeloContractor.ViewModels;
 public partial class ContractCardViewModel : ObservableObject
 {
     private readonly ICompletionService _completionService;
+    private readonly IFavoritesService _favoritesService;
     private readonly IInventoryStore _inventoryStore;
     private readonly ContractCompletionInteraction _completionInteraction;
 
@@ -24,11 +25,13 @@ public partial class ContractCardViewModel : ObservableObject
     public ContractCardViewModel(
         WikeloContract contract,
         ICompletionService completionService,
+        IFavoritesService favoritesService,
         IInventoryStore inventoryStore,
         ContractCompletionInteraction completionInteraction,
         bool isSyncing = false)
     {
         _completionService = completionService;
+        _favoritesService = favoritesService;
         _inventoryStore = inventoryStore;
         _completionInteraction = completionInteraction;
         _contract = contract;
@@ -46,6 +49,10 @@ public partial class ContractCardViewModel : ObservableObject
     public IReadOnlyList<RequirementChip> RequirementChips => _readiness.Chips;
 
     public bool IsCompleted => _completionService.IsCompleted(Contract.Uuid);
+
+    /// <summary>Flagged for the Favorites page. Unlike completion this has no gate — a contract can
+    /// be starred at any time, including mid-sync and after it is completed.</summary>
+    public bool IsFavorite => _favoritesService.IsFavorite(Contract.Uuid);
 
     /// <summary>
     /// "+250 XP" — what the contract awards, shown on every row regardless of completion.
@@ -96,6 +103,13 @@ public partial class ContractCardViewModel : ObservableObject
     /// <summary>Re-reads completion after the store changed elsewhere (e.g. the detail page toggle).</summary>
     public void RefreshCompleted() => Recompute(nameof(IsCompleted));
 
+    /// <summary>
+    /// Re-reads the favorite flag after the store changed elsewhere (the detail page, or the other
+    /// list page showing the same contract). Readiness does not depend on it, so this notifies the
+    /// one property rather than going through <see cref="Recompute"/>.
+    /// </summary>
+    public void RefreshFavorite() => OnPropertyChanged(nameof(IsFavorite));
+
     /// <summary>Recomputes requirement availability after the inventory changed.</summary>
     public void RefreshReadiness() => Recompute();
 
@@ -127,4 +141,9 @@ public partial class ContractCardViewModel : ObservableObject
     // RefreshCompleted / RefreshReadiness on every card — no self-notify needed here.
     [RelayCommand(CanExecute = nameof(CanToggleCompleted))]
     private Task ToggleCompleted() => _completionInteraction.ToggleAsync(Contract);
+
+    // Same story: IFavoritesService.Changed fans back out to RefreshFavorite on every card, so the
+    // star updates here and on any other page showing this contract from the one event.
+    [RelayCommand]
+    private Task ToggleFavorite() => _favoritesService.SetFavoriteAsync(Contract.Uuid, !IsFavorite);
 }
