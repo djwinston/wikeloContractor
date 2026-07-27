@@ -39,21 +39,23 @@ public sealed class ImageCacheService : IImageCacheService
         _cacheDirectory = cacheDirectory;
     }
 
-    public async Task<string?> GetLocalPathAsync(string url, CancellationToken cancellationToken = default)
+    public async Task<string?> GetLocalPathAsync(string reference, CancellationToken cancellationToken = default)
     {
-        // Custom overrides may point at a local file instead of a URL — pass it through.
-        if (!url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        // An override may point at a file instead: rooted verbatim, relative against the install
+        // dir (a bundled image). See IImageCacheService for the contract.
+        if (!reference.StartsWith("http", StringComparison.OrdinalIgnoreCase))
         {
-            return File.Exists(url) ? url : null;
+            var path = Path.IsPathRooted(reference) ? reference : Path.Combine(AppContext.BaseDirectory, reference);
+            return File.Exists(path) ? path : null;
         }
 
-        var filePath = Path.Combine(_cacheDirectory, FileNameFor(url));
+        var filePath = Path.Combine(_cacheDirectory, FileNameFor(reference));
         if (File.Exists(filePath))
         {
             return filePath;
         }
 
-        var download = _inFlight.GetOrAdd(url, _ => DownloadAsync(url, filePath, cancellationToken));
+        var download = _inFlight.GetOrAdd(reference, url => DownloadAsync(url, filePath, cancellationToken));
         try
         {
             return await download;
@@ -61,7 +63,7 @@ public sealed class ImageCacheService : IImageCacheService
         finally
         {
             // Failures are not cached: the next request retries the download.
-            _ = _inFlight.TryRemove(url, out _);
+            _ = _inFlight.TryRemove(reference, out _);
         }
     }
 

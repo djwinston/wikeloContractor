@@ -65,7 +65,7 @@
           TargetPageType="{x:Type pages:InventoryPage}" />
         <ui:NavigationViewItem
           Content="{DynamicResource Nav_Sourcing}"
-          Icon="{ui:SymbolIcon BookQuestionMark24}"
+          Icon="{ui:SymbolIcon MyLocation16}"
           TargetPageType="{x:Type pages:SourcingPage}" />
       </ui:NavigationView.MenuItems>
 

@@ -132,7 +132,7 @@ public static class RewardPreview
     /// <summary>Candidate URLs across the rewards, override first, in stable order.</summary>
     private static IEnumerable<string> CandidateUrls(IReadOnlyList<ContractReward> rewards)
     {
-        var overrides = App.Services.GetRequiredService<IImageOverrideService>();
+        var overrides = App.Services.GetRequiredService<ICatalogImageOverrideService>();
 
         return rewards.SelectMany(Candidates).Distinct();
 

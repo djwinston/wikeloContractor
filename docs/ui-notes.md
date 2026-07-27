@@ -127,9 +127,12 @@ Each contract card shows a 64×64 preview left of the content, loaded asynchrono
 `helpers:RewardPreview.Contract` attached property on an `Image` (`Views/Helpers/RewardPreview.cs`):
 
 - Candidate order per reward: override → thumbnail → original; the first that downloads
-  **and decodes** wins. Overrides are two-layered (`ImageOverrideService`): the bundled
+  **and decodes** wins. Overrides are two-layered (`CatalogImageOverrideService`): the bundled
   `src/Resources/img-catalog-overrides.json` (in the repo, ships with the app — add shared image
-  URLs there) plus the user's `%AppData%` file, which wins per key. A `.webp` thumbnail on a machine without the WebP codec fails decode
+  URLs there) plus the user's `%AppData%` file, which wins per key. An override value may also be a
+  path instead of a URL: relative (`Resources/img/catalog/…`, an image bundled next to the exe) or
+  absolute (the user's own disk) — see docs/data-pipeline.md and `src/Resources/img/README.md`.
+  A `.webp` thumbnail on a machine without the WebP codec fails decode
   and falls back to the original PNG automatically.
 - Bitmaps are decoded on a worker thread (`DecodePixelWidth=128`), frozen, and memoized for
   the session, so filter refreshes don't re-decode.
@@ -239,7 +242,9 @@ icon per category from `InventoryCategoryToSymbolConverter`.
 Item **images** have no API source, so they load purely from a user-editable override config
 (`InventoryImageOverrideService` → `img-inventory-overrides.json`, bundled + `%AppData%` layers)
 through the `helpers:InventoryPreview.ItemName` attached property — a simpler cousin of `RewardPreview`
-(override URL → disk cache → decode; category icon placeholder until it loads). The two-layer +
+(override URL → disk cache → decode; category icon placeholder until it loads). A value may equally be
+a bundled `Resources/img/inventory/…` path (all 95 required items are covered that way or by URL, see
+docs/inventory-images.md) or an absolute local path. The two-layer +
 hot-reload mechanics are shared with reward overrides via `Services/OverrideFileSet`. Clicking a row
 image that has one opens a full-window preview (`InventoryPreview.PreviewItemName`; see the overlay
 pattern below).

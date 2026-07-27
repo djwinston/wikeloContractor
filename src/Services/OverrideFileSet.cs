@@ -8,7 +8,7 @@ namespace WikeloContractor.Services;
 /// exe, maintained in the repository) provides shared defaults; a user file in <c>%AppData%</c> layers
 /// personal edits on top and wins per key. Both files are re-read lazily whenever they change on disk
 /// (throttled, since lookups run in the render path); a template for the user file is written on first
-/// access. Shared by <see cref="ImageOverrideService"/> and <see cref="InventoryImageOverrideService"/>.
+/// access. Shared by <see cref="CatalogImageOverrideService"/> and <see cref="InventoryImageOverrideService"/>.
 /// </summary>
 internal sealed class OverrideFileSet
 {

@@ -4,9 +4,15 @@ namespace WikeloContractor.Services;
 public interface IImageCacheService
 {
     /// <summary>
-    /// Returns a local file path for the image at <paramref name="url"/>, downloading it on
-    /// first use. Absolute local paths (custom overrides) are passed through when the file
-    /// exists. Returns null when the image cannot be obtained.
+    /// Resolves an image reference to a local file path. This is the one place that defines the
+    /// accepted forms, and every override value passes through it:
+    /// <list type="bullet">
+    /// <item>an <c>http(s)</c> URL — downloaded on first use, then served from the disk cache;</item>
+    /// <item>an absolute local path — used as is (a personal <c>%AppData%</c> override);</item>
+    /// <item>a relative path — resolved against the install dir (an image bundled with the app,
+    /// e.g. <c>Resources/img/catalog/foo.webp</c>).</item>
+    /// </list>
+    /// A path is returned only when the file exists; null when the image cannot be obtained.
     /// </summary>
-    Task<string?> GetLocalPathAsync(string url, CancellationToken cancellationToken = default);
+    Task<string?> GetLocalPathAsync(string reference, CancellationToken cancellationToken = default);
 }

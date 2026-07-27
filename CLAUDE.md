@@ -33,8 +33,10 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
   orthogonal — never merge them into one enum)
 - `docs/api-item-fields.md` — full field inventory of item/vehicle detail responses;
   consult before extending `RewardDetails` or the contract detail view
-- `docs/reward-images.md` / `docs/inventory-images.md` — which reward items and which required
-  items still need a manual image in the matching `Resources/img-*-overrides.json`
+- `docs/reward-images.md` / `docs/inventory-images.md` — where each reward item's and each required
+  item's picture comes from in the matching `Resources/img-*-overrides.json` (community URL, a
+  bundled image under `src/Resources/img/`, or still missing — 4 rewards, 0 required items).
+  `src/Resources/img/README.md` is the how-to for adding a bundled image
 - `docs/design-system.md` — **before touching any styling**: `src/Views/` or `src/Resources/`.
   The rule is "the WPF-UI Fluent theme is the token layer" — never re-declare a theme brush, never
   hardcode a hex. Covers the theme-swapped brand palette, embedded fonts, geometry scale, chips,
@@ -118,7 +120,7 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
     `Views/Controls/MarkdownViewer` is the matching renderer (`TextBlock`s over design tokens — not a
     `FlowDocument`, which WPF-UI does not theme). Do not add a second Markdown implementation
   - `Services/OverrideFileSet` — the reusable two-layer (bundled + `%AppData%`) key→value override
-    engine with throttled hot-reload and a first-run user template. `ImageOverrideService` (reward
+    engine with throttled hot-reload and a first-run user template. `CatalogImageOverrideService` (reward
     images) and `InventoryImageOverrideService` (inventory item images, `img-inventory-overrides.json`)
     both delegate to it — a new user-editable override config wraps this, it does not re-implement it.
     It also handles one-time adoption of a pre-rename `%AppData%` user file (`legacyUserFilePath`),
@@ -217,6 +219,10 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
 - Keep `Resources/img-catalog-overrides.json` as loose `<Content>` (do **not** embed it): it ships in the
   install dir as the editable bundled-defaults layer. It is replaced on each Velopack update, so
   persistent personal edits belong in the `%AppData%` override file, which updates never touch.
+  `Resources/img/**` (the hand-made pictures for items no site has an image of) ships the same way
+  and is likewise replaced on update — an override value that is a *relative* path resolves against
+  `AppContext.BaseDirectory` in `ImageCacheService`, an absolute one is used verbatim, which is how a
+  personal `%AppData%` entry can point at the user's own disk. See `src/Resources/img/README.md`.
 - CI/release live in `.github/workflows/`; merge gating (tests must pass, approvals) is configured
   in GitHub **Rulesets**, not in the YAML. The CI job is named `build-and-test` — keep that name
   stable, the rulesets reference it.

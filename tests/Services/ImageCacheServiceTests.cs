@@ -89,6 +89,37 @@ public sealed class ImageCacheServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Relative_override_path_resolves_against_the_install_directory()
+    {
+        // How every bundled image ships: the shared override file stores "Resources/img/…" with
+        // forward slashes so it stays machine-independent, and the app resolves it next to the exe.
+        var handler = new StubHandler(_ => throw new InvalidOperationException("No HTTP expected"));
+        var service = CreateService(handler);
+
+        // The directory has to sit under the install dir — that is the resolution being tested.
+        var name = "img-test-" + Guid.NewGuid().ToString("N");
+        var root = Path.Combine(AppContext.BaseDirectory, name);
+        _ = Directory.CreateDirectory(root);
+        try
+        {
+            var relative = $"{name}/bundled.webp";
+            var expected = Path.Combine(AppContext.BaseDirectory, relative);
+            await File.WriteAllBytesAsync(expected, [42]);
+
+            // Compared as an exact rooted string, so the relative value being handed straight back
+            // fails here: resolving it is not the caller's job, and a caller resolving it against
+            // the *working* directory would break outside a dev run.
+            Assert.Equal(expected, await service.GetLocalPathAsync(relative));
+            Assert.Null(await service.GetLocalPathAsync($"{name}/absent.webp"));
+            Assert.Equal(0, handler.Requests);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task Url_without_a_usable_extension_falls_back_to_img()
     {
         var handler = new StubHandler(_ => Png([7]));

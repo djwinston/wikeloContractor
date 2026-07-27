@@ -3,16 +3,17 @@ using System.IO;
 namespace WikeloContractor.Services;
 
 /// <summary>
-/// Two-layer inventory image config, mirroring <see cref="ImageOverrideService"/>. The bundled file
+/// Two-layer inventory image config, mirroring <see cref="CatalogImageOverrideService"/>. The bundled file
 /// (<c>Resources/img-inventory-overrides.json</c> next to the exe) ships shared defaults; the user's
-/// file in <c>%AppData%</c> wins per key. Keys are item names (case-insensitive); values are image
-/// URLs or absolute local file paths. Both files hot-reload via <see cref="OverrideFileSet"/>.
+/// file in <c>%AppData%</c> wins per key. Keys are item names (case-insensitive); for the value
+/// forms see <see cref="IImageCacheService.GetLocalPathAsync"/>. Both files hot-reload via
+/// <see cref="OverrideFileSet"/>.
 /// </summary>
 public sealed class InventoryImageOverrideService : IInventoryImageOverrideService
 {
     private const string _userTemplate = """
         {
-          "$comment": "Personal inventory item images layered over the app's shipped defaults (these win per key). Key: item name (case-insensitive); value: image URL or absolute local file path. Applied on the next inventory open / app start.",
+          "$comment": "Personal inventory item images layered over the app's shipped defaults (these win per key). Key: item name (case-insensitive); value: image URL, absolute local file path, or a path relative to the install dir for a bundled image (e.g. Resources/img/foo.png). Applied on the next inventory open / app start.",
           "overrides": {
           }
         }

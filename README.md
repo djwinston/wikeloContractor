@@ -104,7 +104,8 @@ release rather than lowering your protections.
 - [docs/ui-notes.md](docs/ui-notes.md) — UI patterns and WPF-UI quirks
 - [docs/testing.md](docs/testing.md) — test layout and conventions
 - [docs/api-item-fields.md](docs/api-item-fields.md) — field inventory of the item/vehicle API responses
-- [docs/reward-images.md](docs/reward-images.md) — which reward items still need a manual image URL
+- [docs/reward-images.md](docs/reward-images.md) — where each reward item's picture comes from
+- [docs/inventory-images.md](docs/inventory-images.md) — the same for required (inventory) items
 
 ## License, attribution & disclaimer
 

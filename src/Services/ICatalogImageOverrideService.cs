@@ -6,11 +6,12 @@ namespace WikeloContractor.Services;
 /// and the user's <c>%AppData%\WikeloContractor\img-catalog-overrides.json</c>, which wins per
 /// key. Covers items the wiki has no image for (e.g. Wikelo-exclusive variants).
 /// </summary>
-public interface IImageOverrideService
+public interface ICatalogImageOverrideService
 {
     /// <summary>
-    /// Returns the custom image (URL or absolute local path) for an item, matched by UUID
-    /// first, then by name (case-insensitive). Null when no override is configured.
+    /// Returns the custom image reference for an item, matched by UUID first, then by name
+    /// (case-insensitive); null when no override is configured. See
+    /// <see cref="IImageCacheService.GetLocalPathAsync"/> for the accepted forms.
     /// </summary>
     string? GetOverride(string? itemUuid, string itemName);
 }

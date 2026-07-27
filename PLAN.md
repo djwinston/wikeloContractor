@@ -59,6 +59,15 @@ Reference (what already exists): https://wikelotrades.com , community Excel spre
       impact), category icon fallback, custom overrides via `img-catalog-overrides.json`
       (two layers: bundled repo file with shared URLs — missing-image inventory in
       `docs/reward-images.md` — plus a personal `%AppData%` file that wins per key)
+- [x] **Bundled images** for the items no site pictures at all (both the reward and the inventory
+      side): an override value may be a URL, an absolute local path, or a path **relative to the
+      install dir** (`Resources/img/{catalog,inventory}/…`, resolved against
+      `AppContext.BaseDirectory` in `ImageCacheService`), which keeps the shared override file
+      machine-independent. 27 hand-made screenshots/crops ship as loose `<Content>`, re-encoded as
+      lossy WebP q88 (16.3 MB → 1.34 MB; the how-to and that encode line live in
+      `src/Resources/img/README.md`). Coverage after this pass: **all 95 required items** have an
+      image, and 65 of the 69 rewards with no API image do — the remaining 4 are listed in
+      `docs/reward-images.md`
 - [x] Contract details page: click a card → full requirements (incl. SCU amounts and extra
       entries from `hauling_orders`, e.g. Wikelo Favor) + reward cards with image, description,
       manufacturer, item stats (rarity/resistances/temperature) or vehicle stats
@@ -157,7 +166,8 @@ collection differs.
 - [x] Full-window item image preview (click a row image that has one → full-resolution overlay; click
       anywhere or press Esc to close), reusing the detail page's overlay pattern via a native-resolution
       `InventoryPreview.PreviewItemName` attached-property variant. Only rows with an override image are
-      clickable (a null-`Source` `Image` is not hit-tested)
+      clickable (a null-`Source` `Image` is not hit-tested) — in practice all of them now, since every
+      required item has one (URL or bundled, see the Phase 2 bundled-images entry)
 - [x] Progress + readiness: per-requirement availability coloring, "X / Y satisfied" count, and a
       "Contract ready to turn in" indicator on the catalog card and detail page (see Phase 2 entry)
 - [x] Marking a contract completed is gated on readiness (`IsReady`); confirming a dialog deducts the
@@ -394,8 +404,9 @@ the app said so. Root cause was a missing concept, not a missing message — fre
       .NET 10 Desktop Runtime (`--framework net10.0-x64-desktop`) if missing. `VelopackApp.Run()`
       runs first in `App.OnStartup`; `Services/AppUpdateService` wraps `UpdateManager` (GitHub
       Releases feed) and drives a "Check for updates" row in Settings (no-op in a dev run).
-      GitHub Releases doubles as the update feed. Note: the shipped `img-catalog-overrides.json` lives in
-      the install dir (replaced on update); persistent user edits go to the `%AppData%` layer.
+      GitHub Releases doubles as the update feed. Note: the shipped `img-*-overrides.json` and the
+      bundled `Resources/img/**` images live in the install dir (replaced on update); persistent
+      user edits and personal images go to the `%AppData%` layer.
       **Releases are portable-only until code signing** — an unsigned `Setup.exe`/`.msi` gets
       hard-blocked on hardened Windows and auto-update is moot while unsigned, so only the portable
       zip is published (installers unpublished after `vpk pack`; re-enabled with signing). The MSI

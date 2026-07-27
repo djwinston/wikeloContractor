@@ -7,6 +7,9 @@ namespace WikeloContractor.Services;
 /// </summary>
 public interface IInventoryImageOverrideService
 {
-    /// <summary>The configured image URL or local path for an item name, or null when none is set.</summary>
+    /// <summary>
+    /// The configured image reference for an item name, or null when none is set. See
+    /// <see cref="IImageCacheService.GetLocalPathAsync"/> for the accepted forms.
+    /// </summary>
     string? GetOverride(string itemName);
 }
