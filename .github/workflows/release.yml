@@ -84,6 +84,32 @@ jobs:
           }
           vpk @vpkArgs
 
+      - name: Re-stamp portable zip timestamps
+        shell: pwsh
+        run: |
+          # vpk pack builds the portable zip via NuGet.Packaging's zip writer, which stamps every
+          # entry with a fixed 1980-01-01 timestamp for its own deterministic-package hashing
+          # (confirmed upstream behavior: https://github.com/TRGamer-tech/FluentTaskScheduler/issues/7
+          # — "it's a thing that VeloPack just likes to do"). Harmless, but Explorer shows the
+          # extracted exe as "Modified: 1979-12-31 23:00" (UTC-1980-01-01 in non-UTC zones), which
+          # reads as a corrupted/tampered file. Re-zip with the release commit's timestamp instead.
+          # Only the portable zip is touched — Setup.exe/.nupkg/RELEASES feed the Velopack update
+          # manifest and portable builds don't auto-update anyway (IsInstalled is false), so nothing
+          # here affects update integrity.
+          $stamp = [DateTimeOffset]::Parse((git log -1 --format=%cI)).UtcDateTime
+
+          $zipPath = (Get-ChildItem -Path Releases -Filter '*-Portable.zip').FullName
+          $extractDir = Join-Path $env:RUNNER_TEMP 'portable-restamp'
+          Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force
+
+          Get-ChildItem -Path $extractDir -Recurse -File | ForEach-Object {
+            $_.LastWriteTimeUtc = $stamp
+            $_.CreationTimeUtc = $stamp
+          }
+
+          Remove-Item $zipPath -Force
+          Compress-Archive -Path (Join-Path $extractDir '*') -DestinationPath $zipPath
+
       - name: Publish GitHub Release
         shell: pwsh
         env:
