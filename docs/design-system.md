@@ -243,7 +243,8 @@ and belong to mute/disable actions, never to an "unset" state.
 | Prerequisites | `Branch24` |
 | External wiki link | `Open24` |
 | App update | `ArrowDownload24` |
-| Nav: Catalog / Inventory / About | `DocumentBulletList` / `Box` / `Info` |
+| Nav: Catalog / Favourites / Inventory / Where to Find | `ClipboardTaskListLtr24` / `Star28` / `Box24` / `MyLocation16` |
+| Nav: Settings / About | `Settings24` / `Info24` |
 | Missing artwork placeholder | `Cube24` |
 
 ## Terminology

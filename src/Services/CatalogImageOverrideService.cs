@@ -10,11 +10,11 @@ namespace WikeloContractor.Services;
 /// (a list refresh picks them up). A template for the user file is created on first access.
 /// The two-layer + hot-reload mechanics live in <see cref="OverrideFileSet"/>.
 /// </summary>
-public sealed class ImageOverrideService : IImageOverrideService
+public sealed class CatalogImageOverrideService : ICatalogImageOverrideService
 {
     private const string _userTemplate = """
         {
-          "$comment": "Personal reward images layered over the app's shipped defaults (these win per key). Key: item UUID or item name (case-insensitive); value: image URL or absolute local file path. Applied on the next catalog refresh / app start.",
+          "$comment": "Personal reward images layered over the app's shipped defaults (these win per key). Key: item UUID or item name (case-insensitive); value: image URL, absolute local file path, or a path relative to the install dir for a bundled image (e.g. Resources/img/foo.png). Applied on the next catalog refresh / app start.",
           "overrides": {
           }
         }
@@ -27,7 +27,7 @@ public sealed class ImageOverrideService : IImageOverrideService
 
     private readonly OverrideFileSet _files;
 
-    public ImageOverrideService()
+    public CatalogImageOverrideService()
         : this(
             Path.Combine(AppStorage.Root, _fileName),
             Path.Combine(AppContext.BaseDirectory, "Resources", _fileName))
@@ -35,7 +35,7 @@ public sealed class ImageOverrideService : IImageOverrideService
     }
 
     /// <summary>Test seam: lets unit tests point the service at temp files and disable the stat throttle.</summary>
-    internal ImageOverrideService(string userFilePath, string? bundledFilePath = null, TimeSpan? statInterval = null) =>
+    internal CatalogImageOverrideService(string userFilePath, string? bundledFilePath = null, TimeSpan? statInterval = null) =>
         _files = new OverrideFileSet(
             userFilePath,
             bundledFilePath ?? Path.Combine(AppContext.BaseDirectory, "Resources", _fileName),

@@ -16,7 +16,7 @@ Read this before adding or changing tests in `tests/`.
 | API client | `Services/StarCitizenWikiClientTests.cs` | stub `HttpMessageHandler` returning fixture JSON |
 | Catalog service | `Services/ContractCatalogServiceTests.cs` | `E2E/ScriptedWikiApi` + temp cache dir |
 | Sync / availability | `E2E/*Scenarios.cs` | real services + ViewModels on a real WPF `Application` |
-| JSON store | `Services/InventoryStoreTests.cs` | internal file-path ctor pointed at a temp file (per-test guid dir, deleted in `Dispose`) — same seam as `ImageOverrideServiceTests` |
+| JSON store | `Services/InventoryStoreTests.cs` | internal file-path ctor pointed at a temp file (per-test guid dir, deleted in `Dispose`) — same seam as `CatalogImageOverrideServiceTests` |
 | Localization | `Localization/LocalizationParityTests.cs` | XAML dictionaries parsed as XML |
 
 - **No mocking library** — hand-written fakes/stubs are enough at this scale; keep it that way

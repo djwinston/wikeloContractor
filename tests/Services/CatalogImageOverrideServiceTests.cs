@@ -4,14 +4,14 @@ using Xunit;
 
 namespace WikeloContractor.Tests.Services;
 
-public sealed class ImageOverrideServiceTests : IDisposable
+public sealed class CatalogImageOverrideServiceTests : IDisposable
 {
     private readonly string _directory = Path.Combine(
         Path.GetTempPath(), "WikeloContractorTests", Guid.NewGuid().ToString("N"));
 
     private readonly string _filePath;
 
-    public ImageOverrideServiceTests()
+    public CatalogImageOverrideServiceTests()
     {
         _ = Directory.CreateDirectory(_directory);
         _filePath = Path.Combine(_directory, "img-catalog-overrides.json");
@@ -32,7 +32,7 @@ public sealed class ImageOverrideServiceTests : IDisposable
     [Fact]
     public void Missing_file_yields_no_override_and_creates_an_editable_template()
     {
-        var service = new ImageOverrideService(_filePath);
+        var service = new CatalogImageOverrideService(_filePath);
 
         Assert.Null(service.GetOverride("uuid-1", "Testudo Helmet"));
         Assert.True(File.Exists(_filePath));
@@ -45,7 +45,7 @@ public sealed class ImageOverrideServiceTests : IDisposable
         var legacyPath = Path.Combine(_directory, "image-overrides.json");
         File.WriteAllText(legacyPath, """{ "overrides": { "uuid-1": "https://example.test/personal.png" } }""");
 
-        var service = new ImageOverrideService(_filePath);
+        var service = new CatalogImageOverrideService(_filePath);
 
         Assert.Equal("https://example.test/personal.png", service.GetOverride("uuid-1", "Item"));
         Assert.True(File.Exists(_filePath));
@@ -63,7 +63,7 @@ public sealed class ImageOverrideServiceTests : IDisposable
               }
             }
             """);
-        var service = new ImageOverrideService(_filePath);
+        var service = new CatalogImageOverrideService(_filePath);
 
         Assert.Equal("https://example.test/by-uuid.png", service.GetOverride("uuid-1", "Testudo Helmet"));
         Assert.Equal("https://example.test/by-name.png", service.GetOverride("uuid-other", "Testudo Helmet"));
@@ -75,7 +75,7 @@ public sealed class ImageOverrideServiceTests : IDisposable
     public void Edited_file_is_reloaded_on_the_next_lookup()
     {
         File.WriteAllText(_filePath, """{ "overrides": { "uuid-1": "https://example.test/old.png" } }""");
-        var service = new ImageOverrideService(_filePath, statInterval: TimeSpan.Zero);
+        var service = new CatalogImageOverrideService(_filePath, statInterval: TimeSpan.Zero);
         Assert.Equal("https://example.test/old.png", service.GetOverride("uuid-1", "Item"));
 
         File.WriteAllText(_filePath, """{ "overrides": { "uuid-1": "https://example.test/new.png" } }""");
@@ -98,7 +98,7 @@ public sealed class ImageOverrideServiceTests : IDisposable
             }
             """);
         File.WriteAllText(_filePath, """{ "overrides": { "uuid-1": "https://example.test/user-1.png" } }""");
-        var service = new ImageOverrideService(_filePath, bundledPath);
+        var service = new CatalogImageOverrideService(_filePath, bundledPath);
 
         // The user's file wins for uuid-1; the bundled default still serves uuid-2.
         Assert.Equal("https://example.test/user-1.png", service.GetOverride("uuid-1", "Item"));
@@ -110,7 +110,7 @@ public sealed class ImageOverrideServiceTests : IDisposable
     public void Missing_bundled_file_is_not_created_and_yields_no_defaults()
     {
         var bundledPath = Path.Combine(_directory, "bundled-overrides.json");
-        var service = new ImageOverrideService(_filePath, bundledPath);
+        var service = new CatalogImageOverrideService(_filePath, bundledPath);
 
         Assert.Null(service.GetOverride("uuid-1", "Item"));
         Assert.False(File.Exists(bundledPath));
@@ -120,7 +120,7 @@ public sealed class ImageOverrideServiceTests : IDisposable
     public void Malformed_file_keeps_previously_loaded_overrides()
     {
         File.WriteAllText(_filePath, """{ "overrides": { "uuid-1": "https://example.test/ok.png" } }""");
-        var service = new ImageOverrideService(_filePath, statInterval: TimeSpan.Zero);
+        var service = new CatalogImageOverrideService(_filePath, statInterval: TimeSpan.Zero);
         Assert.Equal("https://example.test/ok.png", service.GetOverride("uuid-1", "Item"));
 
         File.WriteAllText(_filePath, "{ not json");

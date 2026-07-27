@@ -28,6 +28,8 @@
     <!-- Shipped image overrides: shared defaults maintained in the repository -->
     <Content Include="Resources\img-catalog-overrides.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Resources\img-inventory-overrides.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Bundled item images for items with no online picture; see Resources\img\README.md -->
+    <Content Include="Resources\img\**\*.webp" CopyToOutputDirectory="PreserveNewest" />
     <!-- Sourcing knowledge base: authored in docs/ (natural for review + PRs), shipped in the
          install dir. The %AppData% layer wins per item and updates never touch it. -->
     <Content Include="..\docs\sourcing\*.md"

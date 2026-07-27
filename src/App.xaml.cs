@@ -34,7 +34,7 @@ public partial class App
             // download deduplication and the politeness semaphore are app-wide; one plain
             // HttpClient for the app lifetime, no factory indirection needed.
             _ = services.AddSingleton<IImageCacheService>(_ => new ImageCacheService(new System.Net.Http.HttpClient()));
-            _ = services.AddSingleton<IImageOverrideService, ImageOverrideService>();
+            _ = services.AddSingleton<ICatalogImageOverrideService, CatalogImageOverrideService>();
 
             // Completed contracts + accumulated Wikelo reputation.
             _ = services.AddSingleton<ICompletionService, CompletionService>();
