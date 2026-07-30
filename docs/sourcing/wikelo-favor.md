@@ -1,27 +1,23 @@
 ---
 name: "Wikelo Favor"
 summary: "Traded from Wikelo for 50x MG Scrip, 50x Council Scrip, 50x Carinite, or 15x Irradiated Valakkar Pearl."
+faction: "Wikelo"
 ---
-
-<!--
-Everything below renders on the item's detail page as "How to obtain".
-Comments like this one are stripped and never shown, so leaving them here is safe.
-
-Supported: '## Heading', '### Sub-heading', '- bullet', '1. numbered step',
-**bold**, *italic*, `code` and [link](https://example.com).
-
-Suggested shape:
 
 ## Where to find it
 
-Locations, mission names, which containers.
+{{include: wikelo-exchange}}
+
+It is the currency most of his contracts ask for, so a surplus is never wasted.
 
 ## Step by step
 
-1. First step.
-2. Second step.
+1. Gather one of the accepted stacks listed below.
+2. Hand it in at Wikelo's Emporium to receive a Wikelo Favor.
 
-## Notes
+### Accepted trades
 
-Drop rates, gotchas, patch-specific behaviour.
--->
+- 50x **MG Scrip**
+- 50x **Council Scrip**
+- 50x **Carinite**
+- 15x **Irradiated Valakkar Pearl**

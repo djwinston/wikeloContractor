@@ -1,27 +1,14 @@
 ---
 name: "Large Artifact Fragment (Pristine)"
-summary: "Lootable from blue boxes at Align & Mine and Storm Breaker locations, and small boxes at Derelict Outposts (terrible odds)."
+summary: "Blue boxes at Align & Mine, Storm Breaker and Vanduul-Tech Smugglers; small boxes at Derelict Outposts."
 ---
-
-<!--
-Everything below renders on the item's detail page as "How to obtain".
-Comments like this one are stripped and never shown, so leaving them here is safe.
-
-Supported: '## Heading', '### Sub-heading', '- bullet', '1. numbered step',
-**bold**, *italic*, `code` and [link](https://example.com).
-
-Suggested shape:
 
 ## Where to find it
 
-Locations, mission names, which containers.
+Container loot, from three different runs:
 
-## Step by step
+- **Blue boxes** at Align & Mine and Storm Breaker locations.
+- **Blue boxes** on the Vanduul-Tech Smugglers run.
+- Small boxes at **Derelict Outposts**, where the odds are far worse.
 
-1. First step.
-2. Second step.
-
-## Notes
-
-Drop rates, gotchas, patch-specific behaviour.
--->
+{{include: container-loot}}

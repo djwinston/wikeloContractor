@@ -1,27 +1,23 @@
 ---
 name: "RCMBNT-XTL-2"
-summary: "New wing of Onyx Sites."
+summary: "Site B experiment sample, Onyx Sites."
+contract: "Jorrit Dossier: Project Hyperion"
+faction: "Hockrow Agency"
 ---
-
-<!--
-Everything below renders on the item's detail page as "How to obtain".
-Comments like this one are stripped and never shown, so leaving them here is safe.
-
-Supported: '## Heading', '### Sub-heading', '- bullet', '1. numbered step',
-**bold**, *italic*, `code` and [link](https://example.com).
-
-Suggested shape:
 
 ## Where to find it
 
-Locations, mission names, which containers.
+{{include: onyx-site-b}}
 
 ## Step by step
 
-1. First step.
-2. Second step.
+1. Complete all **seven** earlier *Jorrit Dossier* contracts to unlock the eighth, *Jorrit Dossier: Project Hyperion*.
+2. At the energy core, connect **beam 2** to set the experiment number to **2**.
+3. Collect the experiment data at the **biological processor** aboard the Blade ship to lock the **XTL** series.
+4. Finish the experiment and collect **RCMBNT-XTL-2**.
 
 ## Notes
 
-Drop rates, gotchas, patch-specific behaviour.
--->
+- Order matters — the beam is connected first, the data collected second.
+- The Yormandi encounter sits in the same Site B section; see *Yormandi Eye* for the two ways in.
+{{include: onyx-sources}}

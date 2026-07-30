@@ -1,27 +1,16 @@
 ---
 name: "Warden Backpack Monde"
-summary: ''
+summary: "Rock Breaker locations."
 ---
-
-<!--
-Everything below renders on the item's detail page as "How to obtain".
-Comments like this one are stripped and never shown, so leaving them here is safe.
-
-Supported: '## Heading', '### Sub-heading', '- bullet', '1. numbered step',
-**bold**, *italic*, `code` and [link](https://example.com).
-
-Suggested shape:
 
 ## Where to find it
 
-Locations, mission names, which containers.
+Part of the Monde kit, from the same source as the armour pieces.
 
-## Step by step
+{{include: rock-breaker}}
 
-1. First step.
-2. Second step.
-
-## Notes
-
-Drop rates, gotchas, patch-specific behaviour.
+<!--
+Careful: the sheet lists "Warden Backpack Monde" among the Crimson Camo set you receive, while the
+trade-in cost for that set names "Warden Backpack Epoque". Which variant a given contract asks for
+should be confirmed in game before this guide is trusted for a shopping list.
 -->

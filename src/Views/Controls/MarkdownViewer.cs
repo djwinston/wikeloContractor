@@ -3,11 +3,14 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Navigation;
 using WikeloContractor.Models;
+using WikeloContractor.Views.Helpers;
 
 namespace WikeloContractor.Views.Controls;
 
 /// <summary>
-/// Renders the <see cref="MarkdownDocument"/> subset as a stack of <see cref="TextBlock"/>s.
+/// Renders the <see cref="MarkdownDocument"/> subset as a stack of <see cref="TextBlock"/>s, with
+/// each <c>##</c> section wrapped in a collapsible <see cref="Expander"/> and <c>![alt](url)</c>
+/// blocks resolved to real pictures.
 /// <para>
 /// Deliberately not a <c>FlowDocumentScrollViewer</c>: WPF-UI does not theme it, so it would arrive
 /// with its own fonts, its own scrollbar and a white page, fighting the token layer the whole design
@@ -44,21 +47,68 @@ public sealed class MarkdownViewer : ContentControl
 
         var panel = new StackPanel();
 
+        // Each `##` opens a collapsible section that swallows everything up to the next one. Blocks
+        // before the first heading (a guide that opens with prose) stay loose at the top.
+        StackPanel? section = null;
+
         foreach (var block in blocks)
         {
-            panel.Children.Add(BuildBlock(block));
+            if (block.Kind == MarkdownBlockKind.Heading)
+            {
+                section = new StackPanel();
+                panel.Children.Add(BuildSection(block, section, first: panel.Children.Count == 0));
+                continue;
+            }
+
+            (section ?? panel).Children.Add(BuildBlock(block));
         }
 
         Content = panel;
     }
 
-    private TextBlock BuildBlock(MarkdownBlock block)
+    /// <summary>
+    /// Wraps one <c>##</c> section in an <see cref="Expander"/> so a long step list can be folded
+    /// away. Expanded by default — a guide is opened to be read, not to be unfolded first. The stock
+    /// control is used deliberately: WPF-UI themes it, so it lands on the same token layer as the
+    /// rest of the page (see docs/design-system.md).
+    /// </summary>
+    private Expander BuildSection(MarkdownBlock heading, StackPanel body, bool first)
     {
+        var header = new TextBlock
+        {
+            TextWrapping = TextWrapping.Wrap,
+            FontSize = Size("FontSizeBodyStrong", 14),
+            FontWeight = FontWeights.SemiBold,
+        };
+
+        foreach (var inline in heading.Inlines)
+        {
+            header.Inlines.Add(BuildInline(inline));
+        }
+
+        return new Expander
+        {
+            Header = header,
+            Content = body,
+            IsExpanded = true,
+            Margin = new Thickness(0, first ? 0 : 8, 0, 0),
+        };
+    }
+
+    private UIElement BuildBlock(MarkdownBlock block)
+    {
+        if (block.Kind == MarkdownBlockKind.Image)
+        {
+            return BuildImage(block);
+        }
+
         var text = new TextBlock { TextWrapping = TextWrapping.Wrap };
 
         switch (block.Kind)
         {
             case MarkdownBlockKind.Heading:
+                // Only reached if a heading arrives outside the sectioning above; kept so the block
+                // still renders as a heading instead of silently falling through to paragraph.
                 text.FontSize = Size("FontSizeBodyStrong", 14);
                 text.FontWeight = FontWeights.SemiBold;
                 text.Margin = new Thickness(0, 16, 0, 6);
@@ -79,12 +129,14 @@ public sealed class MarkdownViewer : ContentControl
             case MarkdownBlockKind.OrderedItem:
                 text.Margin = new Thickness(2, 0, 0, 5);
                 // Mono, so multi-step guides keep their numbers in a column.
-                text.Inlines.Add(new Run($"{block.Number}.  ")
+                var marker = new Run($"{block.Number}.  ")
                 {
-                    FontFamily = Font("MonoFontFamily"),
                     FontWeight = FontWeights.SemiBold,
                     Foreground = Brush("TextFillColorSecondaryBrush"),
-                });
+                };
+
+                ApplyMonoFont(marker);
+                text.Inlines.Add(marker);
                 break;
 
             default:
@@ -99,6 +151,63 @@ public sealed class MarkdownViewer : ContentControl
 
         return text;
     }
+
+    /// <summary>
+    /// Renders <c>![alt](url)</c>. Resolution goes through <see cref="ThumbnailLoader"/>, the same
+    /// path the reward and inventory thumbs use, so a remote slide is disk-cached once and a bundled
+    /// picture resolves against the install directory. Loading is fire-and-forget: the element is
+    /// returned empty and fills in when the bytes arrive, and a missing image simply stays blank.
+    /// </summary>
+    private static UIElement BuildImage(MarkdownBlock block)
+    {
+        var image = new Image
+        {
+            Stretch = System.Windows.Media.Stretch.Uniform,
+            // Never upscale a small screenshot to the card width — it would only go soft.
+            StretchDirection = StretchDirection.DownOnly,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            MaxHeight = 320,
+            Margin = new Thickness(0, 4, 0, 10),
+        };
+
+        var caption = block.PlainText;
+        if (caption.Length > 0)
+        {
+            image.ToolTip = caption;
+        }
+
+        if (block.Url is { Length: > 0 } reference && IsSafeImageReference(reference))
+        {
+            _ = LoadImageAsync(image, reference);
+        }
+
+        return image;
+    }
+
+    private static async Task LoadImageAsync(Image target, string reference)
+    {
+        try
+        {
+            // 640px: wide enough for a map slide in the card, cheap enough to decode off-thread.
+            var source = await ThumbnailLoader.ResolveAsync([reference], decodePixelWidth: 640);
+            if (source is not null)
+            {
+                target.Source = source;
+            }
+        }
+        catch (Exception)
+        {
+            // A guide is partly user-authored content; a bad picture must never take the page down.
+        }
+    }
+
+    /// <summary>
+    /// Guides are shipped content, but the <c>%AppData%</c> layer is user-writable, so an image
+    /// reference is only followed when it is a web image or a plain local path. Anything carrying
+    /// another scheme (<c>data:</c>, <c>javascript:</c>, …) is dropped rather than handed onwards.
+    /// </summary>
+    private static bool IsSafeImageReference(string reference) =>
+        !Uri.TryCreate(reference, UriKind.Absolute, out var uri) || uri.Scheme is "http" or "https" or "file";
 
     private Inline BuildInline(MarkdownInline inline)
     {
@@ -123,7 +232,7 @@ public sealed class MarkdownViewer : ContentControl
 
         if (inline.Code)
         {
-            run.FontFamily = Font("MonoFontFamily");
+            ApplyMonoFont(run);
             run.Foreground = Brush("TextFillColorSecondaryBrush");
         }
 
@@ -163,6 +272,19 @@ public sealed class MarkdownViewer : ContentControl
 
     private System.Windows.Media.FontFamily? Font(string key) =>
         TryFindResource(key) as System.Windows.Media.FontFamily;
+
+    /// <summary>
+    /// Switches a run to the mono face, but only once the resource actually resolves. A null
+    /// <c>Foreground</c> is harmless, a null <c>FontFamily</c> throws — so an unresolved key has to
+    /// leave the run as it is instead of taking the whole guide page down with it.
+    /// </summary>
+    private void ApplyMonoFont(Run run)
+    {
+        if (Font("MonoFontFamily") is { } family)
+        {
+            run.FontFamily = family;
+        }
+    }
 
     private double Size(string key, double fallback) =>
         TryFindResource(key) is double value ? value : fallback;

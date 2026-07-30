@@ -1,27 +1,15 @@
 ---
 name: "Fresnel Energy LMG"
-summary: ''
+summary: "Gun racks in Onyx Facility Site B."
 ---
-
-<!--
-Everything below renders on the item's detail page as "How to obtain".
-Comments like this one are stripped and never shown, so leaving them here is safe.
-
-Supported: '## Heading', '### Sub-heading', '- bullet', '1. numbered step',
-**bold**, *italic*, `code` and [link](https://example.com).
-
-Suggested shape:
 
 ## Where to find it
 
-Locations, mission names, which containers.
+Taken from the **gun racks** in the **Site B "Hyperion"** wing of the Onyx Facility, rather than bought.
 
-## Step by step
+{{include: shop-purchase}}
 
-1. First step.
-2. Second step.
-
-## Notes
-
-Drop rates, gotchas, patch-specific behaviour.
+<!--
+Conflicting accounts: the community sheet places this in the Site-B gun racks, while shop purchase has
+also been reported. Both are listed; verify in game before treating either as the only route.
 -->

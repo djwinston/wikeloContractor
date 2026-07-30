@@ -148,4 +148,108 @@ public sealed class SourcingGuideServiceTests : IDisposable
 
         Assert.Null(Service().GetGuide("Carinite"));
     }
+
+    private void WriteFragment(string layer, string file, string content)
+    {
+        var directory = Path.Combine(layer, "_shared");
+        _ = Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, file), content);
+    }
+
+    [Fact]
+    public void Contract_and_faction_are_read_from_the_front_matter()
+    {
+        WriteBundled("a.md", "---\nname: Carinite\ncontract: \"Retrieve Additional Smuggler Intel\"\nfaction: InterSec Defense Solutions\n---\n\nBody.");
+
+        var guide = Service().GetGuide("Carinite");
+
+        Assert.Equal("Retrieve Additional Smuggler Intel", guide!.Contract);
+        Assert.Equal("InterSec Defense Solutions", guide.Faction);
+        Assert.True(guide.HasContract);
+        Assert.True(guide.HasFaction);
+    }
+
+    [Fact]
+    public void A_guide_without_those_keys_reports_neither()
+    {
+        WriteBundled("a.md", "---\nname: Carinite\nsummary: An ore.\n---\n\nBody.");
+
+        var guide = Service().GetGuide("Carinite");
+
+        // Most of the corpus is bought or mined; the page hides both rows rather than showing blanks.
+        Assert.False(guide!.HasContract);
+        Assert.False(guide.HasFaction);
+    }
+
+    [Fact]
+    public void A_contract_without_a_known_faction_keeps_the_contract()
+    {
+        WriteBundled("a.md", "---\nname: Carinite\ncontract: Some Mission\n---\n\nBody.");
+
+        var guide = Service().GetGuide("Carinite");
+
+        Assert.True(guide!.HasContract);
+        Assert.False(guide.HasFaction);
+    }
+
+    [Fact]
+    public void A_shared_fragment_is_spliced_into_the_guide()
+    {
+        WriteFragment(_bundled, "onyx.md", "---\nname: onyx\n---\n\nShared mechanic.");
+        WriteBundled("a.md", "---\nname: Carinite\n---\n\n## Where\n\n{{include: onyx}}");
+
+        var guide = Service().GetGuide("Carinite");
+
+        Assert.Contains("Shared mechanic.", guide!.Body);
+        Assert.DoesNotContain("{{include", guide.Body);
+    }
+
+    [Fact]
+    public void A_fragment_is_never_mistaken_for_a_guide()
+    {
+        WriteFragment(_bundled, "onyx.md", "---\nname: onyx\n---\n\nShared mechanic.");
+
+        // The guide scan is top-directory only, so a fragment cannot be attached to an item even
+        // though it declares a name of its own.
+        Assert.Null(Service().GetGuide("onyx"));
+    }
+
+    [Fact]
+    public void A_personal_fragment_overrides_the_bundled_one()
+    {
+        WriteFragment(_bundled, "onyx.md", "---\nname: onyx\n---\n\nShipped text.");
+        WriteFragment(_user, "onyx.md", "---\nname: onyx\n---\n\nMy own notes.");
+        WriteBundled("a.md", "---\nname: Carinite\n---\n\n{{include: onyx}}");
+
+        var guide = Service().GetGuide("Carinite");
+
+        Assert.Contains("My own notes.", guide!.Body);
+        Assert.DoesNotContain("Shipped text.", guide.Body);
+    }
+
+    [Fact]
+    public void Editing_a_fragment_refreshes_every_guide_including_it()
+    {
+        WriteFragment(_bundled, "onyx.md", "---\nname: onyx\n---\n\nFirst wording.");
+        WriteBundled("a.md", "---\nname: Carinite\n---\n\n{{include: onyx}}");
+
+        var service = Service();
+        Assert.Contains("First wording.", service.GetGuide("Carinite")!.Body);
+
+        // Only the fragment changes; the guide file is untouched, so this fails unless the
+        // reload signature covers the _shared folders too.
+        WriteFragment(_bundled, "onyx.md", "---\nname: onyx\n---\n\nSecond wording.");
+
+        Assert.Contains("Second wording.", service.GetGuide("Carinite")!.Body);
+    }
+
+    [Fact]
+    public void A_guide_whose_only_body_is_an_unknown_include_reports_no_body()
+    {
+        WriteBundled("a.md", "---\nname: Carinite\n---\n\n{{include: missing}}");
+
+        // Nothing resolvable is left, so the page must show its "not written yet" placeholder
+        // rather than an empty card.
+        Assert.False(Service().GetGuide("Carinite")!.HasBody);
+    }
 }

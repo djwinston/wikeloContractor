@@ -1,27 +1,20 @@
 ---
 name: "Metamaterial Test #146"
-summary: ''
+summary: "Crafted at a refabricator from its blueprint."
+faction: "Wikelo"
 ---
-
-<!--
-Everything below renders on the item's detail page as "How to obtain".
-Comments like this one are stripped and never shown, so leaving them here is safe.
-
-Supported: '## Heading', '### Sub-heading', '- bullet', '1. numbered step',
-**bold**, *italic*, `code` and [link](https://example.com).
-
-Suggested shape:
 
 ## Where to find it
 
-Locations, mission names, which containers.
+Not looted — **crafted at a refabricator**, once you hold its blueprint.
 
 ## Step by step
 
-1. First step.
-2. Second step.
+1. Obtain the **Metamaterial Test #146** blueprint — granted by a Wikelo contract, one of the few that award blueprints at all.
+2. Take it to a **refabricator** and craft the sample.
+
+{{include: contract-lookup}}
 
 ## Notes
 
-Drop rates, gotchas, patch-specific behaviour.
--->
+- The sample is a gate in a crafting chain rather than an end product — it unlocks further blueprints.

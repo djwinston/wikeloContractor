@@ -1,27 +1,17 @@
 ---
 name: "Geist Armor Helmet ASD Edition"
-summary: ''
+summary: "Orange lootboxes during the Onyx Facility contracts."
+faction: "Hockrow Agency"
 ---
-
-<!--
-Everything below renders on the item's detail page as "How to obtain".
-Comments like this one are stripped and never shown, so leaving them here is safe.
-
-Supported: '## Heading', '### Sub-heading', '- bullet', '1. numbered step',
-**bold**, *italic*, `code` and [link](https://example.com).
-
-Suggested shape:
 
 ## Where to find it
 
-Locations, mission names, which containers.
+Dropped while running the **Onyx Facility** contracts — the same investigation chain that pays out the
+ASD Secure Drives and, through Site B, the RCMBNT containers.
 
-## Step by step
-
-1. First step.
-2. Second step.
+{{include: orange-lootboxes}}
 
 ## Notes
 
-Drop rates, gotchas, patch-specific behaviour.
--->
+- Worth stacking with an ASD Drive farm run: the contracts you replay for drives are the ones that fill these boxes.
+{{include: onyx-sources}}

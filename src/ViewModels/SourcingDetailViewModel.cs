@@ -15,6 +15,9 @@ public partial class SourcingDetailViewModel(INavigationService navigationServic
     [NotifyPropertyChangedFor(nameof(Category))]
     [NotifyPropertyChangedFor(nameof(Note))]
     [NotifyPropertyChangedFor(nameof(Guide))]
+    [NotifyPropertyChangedFor(nameof(Contract))]
+    [NotifyPropertyChangedFor(nameof(Faction))]
+    [NotifyPropertyChangedFor(nameof(HasContractDetails))]
     [NotifyPropertyChangedFor(nameof(CategoryLabel))]
     private SourcingItemViewModel? _item;
 
@@ -36,6 +39,18 @@ public partial class SourcingDetailViewModel(INavigationService navigationServic
     /// vs. its placeholder.
     /// </summary>
     public string? Guide => Item?.Guide;
+
+    /// <summary>Mission that yields the item; null when it is bought or mined, so the row hides.</summary>
+    public string? Contract => Item?.Contract;
+
+    /// <summary>Who hands out that contract; null far more often than <see cref="Contract"/>.</summary>
+    public string? Faction => Item?.Faction;
+
+    /// <summary>
+    /// Whether the contract block has anything to show at all. Hoisted so the card's visibility and
+    /// its heading test one value instead of repeating the "either field is present" condition.
+    /// </summary>
+    public bool HasContractDetails => Contract is not null || Faction is not null;
 
     /// <summary>Sets the item to display; call right before navigating to the page.</summary>
     public void Show(SourcingItemViewModel item) => Item = item;

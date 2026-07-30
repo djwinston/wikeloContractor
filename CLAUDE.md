@@ -45,6 +45,9 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
   (WPF-UI pitfalls, status InfoBar pattern, adaptive icon, formatted localized strings)
 - `docs/testing.md` — before adding/changing tests in `tests/`
 - `.claude/skills/api-explore/SKILL.md` — before exploring new API endpoints (known facts inside)
+- `.claude/skills/sourcing-guide/SKILL.md` — before writing or correcting a `docs/sourcing/` guide
+  (why the API/wiki/Spectrum cannot supply this, the hard Markdown-format rules, the "never invent
+  a game fact" rule)
 
 ## Verification workflow
 
@@ -113,12 +116,17 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
     item in `docs/sourcing/`, shipped into `Resources/sourcing/` and layered with
     `%AppData%\WikeloContractor\sourcing\`. Two-layer like the override services but resolved **per
     file**, so it scans directories rather than reusing `OverrideFileSet` (a key→value JSON engine).
-    The front matter's `name` is the key, never the file name. Format + rules: `docs/sourcing/README.md`
+    The front matter's `name` is the key, never the file name. Text several guides share lives once
+    in `docs/sourcing/_shared/` and is pulled in with a `{{include: key}}` line — fragments are keyed
+    by `name` too, layered the same way, and can never become guides because the guide scan is
+    top-directory only. Format + rules: `docs/sourcing/README.md`
   - `Models/MarkdownDocument` — the only Markdown parser: a small, **total** subset (headings,
-    bullets, ordered steps, inline bold/italic/code/link, `<!-- -->` stripping). Pure, so it is
-    unit-tested without WPF; malformed input degrades to plain text and never throws.
-    `Views/Controls/MarkdownViewer` is the matching renderer (`TextBlock`s over design tokens — not a
-    `FlowDocument`, which WPF-UI does not theme). Do not add a second Markdown implementation
+    bullets, ordered steps, block-level `![alt](url)` images, inline bold/italic/code/link,
+    `<!-- -->` stripping, `{{include: key}}` fragment splicing). Pure, so it is unit-tested without
+    WPF; malformed input degrades to plain text and never throws. `Views/Controls/MarkdownViewer` is the matching renderer (`TextBlock`s
+    over design tokens — not a `FlowDocument`, which WPF-UI does not theme); it folds every `##`
+    section into a stock themed `Expander` and resolves images through `ThumbnailLoader`, the same
+    disk-cached path the reward and inventory thumbs use. Do not add a second Markdown implementation
   - `Services/OverrideFileSet` — the reusable two-layer (bundled + `%AppData%`) key→value override
     engine with throttled hot-reload and a first-run user template. `CatalogImageOverrideService` (reward
     images) and `InventoryImageOverrideService` (inventory item images, `img-inventory-overrides.json`)

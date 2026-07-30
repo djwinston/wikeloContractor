@@ -1,27 +1,12 @@
 ---
 name: "Vanduul Plating"
-summary: "Vanduul-Tech Smugglers."
+summary: "Vanduul-Tech Smugglers; also the Nyx Retrieve Additional Smuggler Intel mission."
+contract: "Retrieve Additional Smuggler Intel / Vanduul-Tech Smugglers"
 ---
-
-<!--
-Everything below renders on the item's detail page as "How to obtain".
-Comments like this one are stripped and never shown, so leaving them here is safe.
-
-Supported: '## Heading', '### Sub-heading', '- bullet', '1. numbered step',
-**bold**, *italic*, `code` and [link](https://example.com).
-
-Suggested shape:
 
 ## Where to find it
 
-Locations, mission names, which containers.
+Recovered from **Vanduul-Tech Smugglers**, and picked up on the **Retrieve Additional Smuggler Intel**
+run in Nyx.
 
-## Step by step
-
-1. First step.
-2. Second step.
-
-## Notes
-
-Drop rates, gotchas, patch-specific behaviour.
--->
+{{include: nyx-smuggler-intel}}

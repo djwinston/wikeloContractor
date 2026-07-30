@@ -25,6 +25,12 @@ public sealed class SourcingItemViewModel(string name, InventoryCategory categor
     /// <summary>The step-by-step body, as Markdown; null when the entry is still a stub.</summary>
     public string? Guide { get; } = guide is { HasBody: true } ? guide.Body : null;
 
+    /// <summary>Mission that yields the item; null when it is bought or mined instead.</summary>
+    public string? Contract { get; } = guide is { HasContract: true } ? guide.Contract : null;
+
+    /// <summary>Who hands out that contract; null whenever the client is not recorded.</summary>
+    public string? Faction { get; } = guide is { HasFaction: true } ? guide.Faction : null;
+
     /// <summary>Localized category name; also the grouping key for the page's section headers.</summary>
     public string CategoryLabel => Localized.String(InventoryCategoryDisplay.LabelKey(Category)) ?? Name;
 }

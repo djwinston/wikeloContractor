@@ -3,11 +3,21 @@ namespace WikeloContractor.Services;
 /// <summary>One item's knowledge-base entry: the card's short line plus the step-by-step body.</summary>
 /// <param name="Summary">Short "where to find it" line; empty when the file has none yet.</param>
 /// <param name="Body">Markdown body rendered as the "How to obtain" guide; empty for a stub.</param>
-public sealed record SourcingGuide(string Summary, string Body)
+/// <param name="Contract">
+/// Name of the mission that yields the item, when one does. Empty for anything simply bought or
+/// mined — most of the corpus — so the page hides the row rather than showing a blank label.
+/// </param>
+/// <param name="Faction">Who hands out that contract, when it is known. Empty far more often than
+/// <paramref name="Contract"/>: a mission name is usually recorded while its client is not.</param>
+public sealed record SourcingGuide(string Summary, string Body, string Contract = "", string Faction = "")
 {
     public bool HasSummary => !string.IsNullOrWhiteSpace(Summary);
 
     public bool HasBody => !string.IsNullOrWhiteSpace(Body);
+
+    public bool HasContract => !string.IsNullOrWhiteSpace(Contract);
+
+    public bool HasFaction => !string.IsNullOrWhiteSpace(Faction);
 }
 
 /// <summary>

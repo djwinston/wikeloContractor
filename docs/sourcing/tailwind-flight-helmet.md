@@ -1,27 +1,24 @@
 ---
 name: "Tailwind Flight Helmet"
-summary: ''
+summary: "Bought at a shop, or looted on the Tactical Strike Group mission."
+contract: "Tactical Strike Group Needed — InterSec Defense Solutions"
+faction: "InterSec Defense Solutions"
 ---
-
-<!--
-Everything below renders on the item's detail page as "How to obtain".
-Comments like this one are stripped and never shown, so leaving them here is safe.
-
-Supported: '## Heading', '### Sub-heading', '- bullet', '1. numbered step',
-**bold**, *italic*, `code` and [link](https://example.com).
-
-Suggested shape:
 
 ## Where to find it
 
-Locations, mission names, which containers.
+Part of the **Tailwind flight kit**. Two routes, and the easy one is simply buying it.
 
-## Step by step
+### Buy it
 
-1. First step.
-2. Second step.
+{{include: shop-purchase}}
+
+### Loot it
+
+Found in the lootboxes on the **Tactical Strike Group Needed — InterSec Defense Solutions** mission.
+
+{{include: tactical-strike-group}}
 
 ## Notes
 
-Drop rates, gotchas, patch-specific behaviour.
--->
+- The other Tailwind piece comes from the same shops and the same mission, so grab both in one go.

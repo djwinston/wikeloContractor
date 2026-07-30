@@ -1,27 +1,19 @@
 ---
 name: "MG Scrip"
-summary: "Foxwell Patrol / Ambush missions, and Gilly's Combat Gauntlet missions."
+summary: "Reward from Mercenary and bounty-hunter contracts; Foxwell Patrol / Ambush and Gilly's Combat Gauntlet."
+contract: "Foxwell Patrol / Ambush / Gilly's Combat Gauntlet"
 ---
-
-<!--
-Everything below renders on the item's detail page as "How to obtain".
-Comments like this one are stripped and never shown, so leaving them here is safe.
-
-Supported: '## Heading', '### Sub-heading', '- bullet', '1. numbered step',
-**bold**, *italic*, `code` and [link](https://example.com).
-
-Suggested shape:
 
 ## Where to find it
 
-Locations, mission names, which containers.
+Paid out as a reward for **Mercenary** and **bounty-hunter** contracts, among others. Named sources
+that drop it:
 
-## Step by step
+- *Foxwell Patrol* and *Ambush* missions.
+- **Gilly's Combat Gauntlet** missions.
 
-1. First step.
-2. Second step.
+{{include: contract-lookup}}
 
 ## Notes
 
-Drop rates, gotchas, patch-specific behaviour.
--->
+- Wikelo trades a **Wikelo Favor** for 50x MG Scrip.

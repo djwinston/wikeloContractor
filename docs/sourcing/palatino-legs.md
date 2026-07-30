@@ -1,27 +1,15 @@
 ---
 name: "Palatino Legs"
-summary: ''
+summary: "Orange lootboxes at hostile Distribution Centers."
 ---
-
-<!--
-Everything below renders on the item's detail page as "How to obtain".
-Comments like this one are stripped and never shown, so leaving them here is safe.
-
-Supported: '## Heading', '### Sub-heading', '- bullet', '1. numbered step',
-**bold**, *italic*, `code` and [link](https://example.com).
-
-Suggested shape:
 
 ## Where to find it
 
-Locations, mission names, which containers.
+Search the **hostile Distribution Centers** — **Dupree** and **Greycat Industrial** are the named ones.
+Check **inside and outside** the buildings; the boxes are not all indoors.
 
-## Step by step
-
-1. First step.
-2. Second step.
+{{include: orange-lootboxes}}
 
 ## Notes
 
-Drop rates, gotchas, patch-specific behaviour.
--->
+- [How to find the Palatino Armor Set](https://www.youtube.com/watch?v=MlAjdHCtQCw) — video walkthrough.

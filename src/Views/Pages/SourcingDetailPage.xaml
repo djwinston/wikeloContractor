@@ -20,6 +20,7 @@
   mc:Ignorable="d">
 
   <Page.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
     <converters:InventoryCategoryToSymbolConverter x:Key="CategoryToSymbol" />
     <converters:PresenceToVisibilityConverter x:Key="NullToVisibility" Invert="True" />
     <converters:PresenceToVisibilityConverter x:Key="NotNullToVisibility" />
@@ -128,6 +129,47 @@
            still a stub. Both live in the same card slot; exactly one is ever visible. -->
       <StackPanel Grid.Row="2" Margin="0,26,0,0">
         <TextBlock Style="{StaticResource OverlineTextStyle}" Text="{DynamicResource Sourcing_HowToObtain}" />
+
+        <!-- Which mission yields the item and who hands it out. Both come from the guide's front
+             matter and are optional: each row hides on its own, and the whole card disappears for
+             anything simply bought or mined, which is most of the corpus. -->
+        <Border
+          Margin="0,8,0,0"
+          Padding="16,13"
+          Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+          BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+          BorderThickness="1"
+          CornerRadius="{StaticResource RadiusCard}"
+          Visibility="{Binding ViewModel.HasContractDetails, Converter={StaticResource BoolToVisibility}}">
+          <StackPanel>
+            <Grid Visibility="{Binding ViewModel.Contract, Converter={StaticResource NotNullToVisibility}}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" MinWidth="104" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <TextBlock
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                Text="{DynamicResource Sourcing_Contract}" />
+              <TextBlock
+                Grid.Column="1"
+                Text="{Binding ViewModel.Contract}"
+                TextWrapping="Wrap" />
+            </Grid>
+            <Grid Margin="0,6,0,0" Visibility="{Binding ViewModel.Faction, Converter={StaticResource NotNullToVisibility}}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" MinWidth="104" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <TextBlock
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                Text="{DynamicResource Sourcing_Faction}" />
+              <TextBlock
+                Grid.Column="1"
+                Text="{Binding ViewModel.Faction}"
+                TextWrapping="Wrap" />
+            </Grid>
+          </StackPanel>
+        </Border>
 
         <Border
           Margin="0,8,0,0"
