@@ -142,10 +142,16 @@
 
                 <!-- Editable counter: type a value directly (e.g. 100 / 1000) or step with the spin
                      buttons. Mono, because it is a quantity. An empty stock (0) is muted so a
-                     glance down the list reads as "what do I still need". -->
+                     glance down the list reads as "what do I still need".
+
+                     The width has to cover the inline spin buttons *plus* the text: the buttons take
+                     their desired size first and the text area gets whatever is left, so a box sized
+                     for the number alone shows a single digit. Five digits is the floor — scrip is
+                     traded in the tens of thousands — and this leaves room for six. Do not shrink
+                     this back without checking how many digits stay visible. -->
                 <ui:NumberBox
                   Grid.Column="2"
-                  Width="110"
+                  Width="150"
                   Margin="15,0,0,0"
                   VerticalAlignment="Center"
                   ClearButtonEnabled="False"
