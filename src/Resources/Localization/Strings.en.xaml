@@ -5,7 +5,7 @@
 
   <sys:String x:Key="App_Title">Wikelo Contractor</sys:String>
 
-  <sys:String x:Key="Nav_Catalog">Catalog</sys:String>
+  <sys:String x:Key="Nav_Catalog">Contracts</sys:String>
   <sys:String x:Key="Nav_Favorites">Favorites</sys:String>
   <sys:String x:Key="Nav_Inventory">Inventory</sys:String>
   <sys:String x:Key="Nav_Sourcing">Where to Find</sys:String>

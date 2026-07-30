@@ -5,7 +5,7 @@
 
   <sys:String x:Key="App_Title">Wikelo Contractor</sys:String>
 
-  <sys:String x:Key="Nav_Catalog">Каталог</sys:String>
+  <sys:String x:Key="Nav_Catalog">Контракти</sys:String>
   <sys:String x:Key="Nav_Favorites">Обране</sys:String>
   <sys:String x:Key="Nav_Inventory">Інвентар</sys:String>
   <sys:String x:Key="Nav_Sourcing">Де знайти</sys:String>
