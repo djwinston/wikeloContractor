@@ -17,6 +17,7 @@ Read this before adding or changing tests in `tests/`.
 | Catalog service | `Services/ContractCatalogServiceTests.cs` | `E2E/ScriptedWikiApi` + temp cache dir |
 | Sync / availability | `E2E/*Scenarios.cs` | real services + ViewModels on a real WPF `Application` |
 | JSON store | `Services/InventoryStoreTests.cs` | internal file-path ctor pointed at a temp file (per-test guid dir, deleted in `Dispose`) — same seam as `CatalogImageOverrideServiceTests` |
+| Debounced writes | `Services/InventoryStoreTests.cs` | second internal ctor injecting the quiet period and hard-flush interval; poll the file for the expected content rather than sleeping a fixed time |
 | Localization | `Localization/LocalizationParityTests.cs` | XAML dictionaries parsed as XML |
 
 - **No mocking library** — hand-written fakes/stubs are enough at this scale; keep it that way
@@ -51,9 +52,26 @@ state, which is what the XAML binds to; rendering stays covered by the manual sm
   per-process singleton, hence `[Collection("WpfApp")]` with parallelization disabled. Only
   `Strings.en.xaml` is merged: `Localized` is the sole resource lookup ViewModels do.
 - `E2E/CatalogHarness` — one app instance over a temp directory (`CompletionService`,
-  `FavoritesService` and `InventoryStore` all have file-path test seams). Pass another harness's `Root` to model an
+  `FavoritesService`, `InventoryStore`, `PinnedItemsService` and `SettingsService` all have file-path
+  test seams). Pass another harness's `Root` to model an
   **app restart** over the same cache, and call `AgeCache()` to backdate the last version check —
   without it the service correctly serves the cache untouched for 12 h and never reaches the API.
+- `E2E/OverlayDoubles` — `FakeHotkeyService` (the one `IHotkeyService` fake — **never add a second**)
+  and `FakeOverlayWindow`. `Press(action, slot)` raises the same event the real service raises from
+  `WM_HOTKEY`.
+
+### Overlay scenarios
+
+**The seam is `IHotkeyService.Pressed`, the event — not the Win32 message.** Two reasons, both
+disqualifying for the alternative: registering global combinations from a test would steal
+`Ctrl+Alt+O` from whoever is at the keyboard, and whether Win32 grants one depends on what else is
+running, so `Assert(RegisterHotKey succeeded)` is flaky everywhere but the author's desk. The
+decoding of `WM_HOTKEY` into an action and slot is covered separately by `E2E/HotkeyServiceTests`,
+which calls the hook directly on the STA fixture and never asks the OS for anything.
+
+That seam is also why `OverlayViewModel` holds no `Window` and `OverlayService` reaches the window
+through `IOverlayWindow`: keeping the window out of the decision layer is what makes the whole
+feature — hotkey to store to catalog readiness chip — assertable without rendering anything.
 
 Two traps worth knowing before writing a new scenario:
 

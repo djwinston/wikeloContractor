@@ -84,8 +84,15 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
     `Services/AppVersion` — assembly version without the `+commit` suffix, shared by the log banner
     and the About page
   - `Services/AppHttp` — the User-Agent constant for every outgoing HttpClient
+  - `Services/AppElevation` — the only place that asks "are we elevated?" and the only place that
+    relaunches with `Verb = "runas"`. Static and dependency-free like `AppLog`; exists for the UIPI
+    hotkey limit described under *Overlay notes*
   - `ViewModels/Localized` — code-side localized strings: `Localized.String(key)` /
     `Localized.Format(key, args)` (XAML uses `{DynamicResource}` directly)
+  - `ViewModels/UiThread.Invoke(action)` — the dispatcher hop every service-event fan-out needs
+    (services raise `Changed` from whichever thread did the work). Falls through to a direct call
+    when there is no `Application`, so a VM stays testable without a window. A second copy of this
+    marshalling rule is a review finding
   - `Models/ContractRequirement.FormatRange` — min–max display rule ("2", "1–3";
     max-only is the API's fixed amount and renders plain "N"), invariant culture
   - `Models/ContractCategoryDisplay.LabelKey`, `Models/ComponentTypeDisplay.LabelKey`,
@@ -98,7 +105,27 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
     `AppStorage.Root`/`JsonOptions`, load-with-`try/catch(JsonException)`, atomic tmp+`File.Move`
     write (same as `SettingsService`/`ContractCatalogService`). `Services/InventoryStore`
     (`inventory.json`, name→count) is the second store on this shape, `Services/FavoritesService`
-    (`favorites.json`, UUID set) the third
+    (`favorites.json`, UUID set) the third, `Services/PinnedItemsService` (`pinned.json`, an ordered
+    name list where the order **is** the overlay slot) the fourth. The `OverlaySlots.MaxSlots` cap
+    lives in that service, not in a VM — the hotkey plan and both pages depend on it holding, and a
+    rule in a service is testable without a window
+  - `Services/InventoryStore` also carries the **debounced-write** shape any store the overlay can
+    hammer needs: `SemaphoreSlim` around the write, memory mutated and `Changed` raised synchronously,
+    the file written on a trailing `Task.Delay`/`CancellationTokenSource` debounce with a hard-flush
+    ceiling, plus `Flush()`/`FlushAsync()` and `AppLog` on failure. Deliberately dispatcher-free so it
+    stays testable off the UI thread. **A completed `SetCountAsync` does not mean "on disk"** —
+    `ApplicationHostService.StopAsync` flushes, and anything else that needs the file current awaits
+    `FlushAsync`
+  - `Interop/NativeMethods` — the app's **only** P/Invoke surface (`[LibraryImport]`, not
+    `[DllImport]`). A second Win32 declaration anywhere else is a review finding: a duplicated
+    signature with subtly different marshalling is how that class of bug hides. `AllowUnsafeBlocks`
+    is on solely because the `LibraryImport` generator emits unsafe marshalling code
+  - `Services/HotkeyService` — the global-hotkey surface and nothing about the domain; it registers a
+    `Models/HotkeyPlan` and reports presses. `Services/OverlayService` is the coordinator that decides
+    what a press *means* and owns the window through `IOverlayWindow`. Keeping the window out of the
+    decision layer is what makes the overlay testable — see `docs/ui-notes.md` and `docs/testing.md`
+  - `Views/Controls/HotkeyBox` — the key-combination capture box (full binding or modifier-only
+    `PatternOnly`). A second hotkey-capture control is a review finding
   - `ViewModels/ContractListViewModel` — the base for **any page showing a filterable contract
     list**: the cards, the `ICollectionView` over them, the search/category/resource filters, the
     empty state, `OpenDetails`, and the fan-out of the completion/favorites/inventory/sync `Changed`
@@ -108,9 +135,11 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
     the catalog's required items as a category-grouped grid** (the distinct-item projection, the
     grouped `ICollectionView`, the search + category filter, the empty state, the image-preview
     overlay). Rows implement `IRequirementItem` (`Name`/`Category`/`CategoryLabel`).
-    `InventoryViewModel` (adds a count store) and `SourcingViewModel` (adds a sourcing note + detail
-    nav) override only `CreateItem` (and Sourcing widens `MatchesSearch`). A third item-grid page
-    subclasses this — it does not re-implement the grouping/filter/preview
+    `InventoryViewModel` (adds a count store + overlay pins) and `SourcingViewModel` (adds a sourcing
+    note + detail nav) override only `CreateItem` (and Sourcing widens `MatchesSearch`, Inventory
+    `OnItemsRebuilt`). A third item-grid page subclasses this — it does not re-implement the
+    grouping/filter/preview. `ItemVms` + `OnItemsRebuilt` are the seams for fanning a service event
+    onto every row without keeping a second list
   - `Models/ContractFilter` — the pure search/category/resource matching decision
     (`Matches(contract)`), deliberately free of UI notions so it is testable without a WPF
     `Application`; the VM maps combo box indices onto it. A second copy of this is a review finding
@@ -144,6 +173,9 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
     that rather than hand-rolling a migration
   - `Models/InventoryCategoryClassifier.Classify(name, hasScu)` — the single home for the required-item
     → `InventoryCategory` mapping (ordered keyword rules, first match wins; unit-tested).
+    `ClassifyDistinct(contracts)` is the set-level companion: every distinct required item across a
+    catalog, classified, ordered by name — what the inventory grid, the sourcing grid and the overlay
+    all project from, so they cannot disagree on the item set or on an item's glyph.
     `Models/InventoryCategoryDisplay.LabelKey` is its `XDisplay.LabelKey` companion
   - `Models/ReputationLevels` — Wikelo rank thresholds (New 0 / Very Good 340 / Very Best 999,
     not in the API) + `Compute(total)`; the single home for the tier math, unit-tested
@@ -200,10 +232,37 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
 
 ## Overlay notes (Phase 4)
 
-- Separate borderless `Topmost` window; global hotkey via user32 `RegisterHotKey`;
-  click-through = toggling `WS_EX_TRANSPARENT` via `SetWindowLong`.
+**Read `docs/ui-notes.md` "In-game overlay" before touching any of this** — it holds the full
+rationale. The short version:
+
+- Separate borderless `Topmost` window (`Views/OverlayWindow`, a plain `Window` — **not**
+  `ui:FluentWindow`); global hotkeys via user32 `RegisterHotKey` on a **message-only** `HwndSource`;
+  click-through = toggling `WS_EX_TRANSPARENT`, which only works because `AllowsTransparency="True"`
+  gives the window `WS_EX_LAYERED`. `ShowActivated="False"` + `WS_EX_NOACTIVATE` keep a fullscreen
+  game from minimising when the HUD appears.
+- Up to ten user-pinned items (`Models/OverlaySlots.MaxSlots`), one hotkey digit each: two configurable
+  modifier **patterns** plus the digit, not twenty separate bindings. Unpinning compacts the slots.
+- `App.ShutdownMode = OnExplicitShutdown` — with a second window the default `OnLastWindowClose`
+  would make exiting window-count-dependent. `MainWindow.OnClosed`'s `Application.Current.Shutdown()`
+  stays the single exit trigger, and `ApplicationHostService.StopAsync` is where all teardown lands
+  (synchronous on purpose: `App.OnExit` is `async void`).
+- `OverlayWindow` is registered **transient** while everything else is a singleton — a closed WPF
+  `Window` is permanently dead, so `Show()` throws after `Close()`. `OverlayService` takes a
+  `Func<IOverlayWindow>`, which also breaks what would be a construction cycle.
 - Overlays render above Star Citizen even in its "Fullscreen" mode on Windows 11
   (DWM fullscreen optimizations); confirmed by the SCLOC-Verse community app.
+- **UIPI is why hotkeys "work on the desktop but not in game".** Windows does not deliver a global
+  hotkey to a lower-integrity process while a higher-integrity window is foreground, and Star Citizen
+  is commonly launched elevated. `RegisterHotKey` still *succeeds*, the keys still work while the game
+  is minimised, and nothing reports an error anywhere — so this reads as a bug in our code and is not
+  one. `Services/AppElevation` detects the unelevated case (`WindowsPrincipal.IsInRole(Administrator)`)
+  and Settings offers **Restart as administrator** (`Verb = "runas"`, a declined UAC prompt is a caught
+  `Win32Exception`, not a crash). Reported from the field, not theorised.
+- **No injection, no `SetWindowsHookEx`, no reading SC memory.** A topmost layered window plus
+  `RegisterHotKey` are ordinary windowing APIs; a low-level keyboard hook is exactly what anti-cheat
+  exists to stop — and it is also the only *unelevated* way around the UIPI limit above, so if someone
+  proposes one "to fix hotkeys in game", that is the trade being made. `uiAccess=true` is out too — it
+  needs signing *and* `Program Files`.
 
 ## Distribution & updates (Phase 5)
 

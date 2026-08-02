@@ -205,9 +205,14 @@ primary source.
       `FlowDocumentScrollViewer`, which would fight the token layer. Only `http(s)` links are launched.
 - [x] **Detail page** (`SourcingDetailPage`): back button, larger art, name + category tag, the short
       note, then the rendered guide — falling back to `Sourcing_GuidePlaceholder` while an entry is a stub.
-- [ ] **Fill in the guides.** 95 files exist, one per required item; **33 carry a summary** from the
-      community sheet and only `carinite.md` has a written body (the worked example). The rest are
-      stubs by design — do not invent drop locations, an empty section is correct.
+- [x] **Fill in the guides — all 95 written.** Sourced from the player's own testing plus ChrisGBG's
+      Wikelo reference sheet, never invented. 14 shared fragments in `docs/sourcing/_shared/` carry
+      the text families of items have in common (the Onyx Site B mechanic backs nine RCMBNT guides,
+      the source links back twenty-three). 30 guides name their contract and 26 their faction.
+      Unresolved facts stay in HTML comments rather than becoming prose: whether *Retrieve Additional
+      Smuggler Intel* is a stage of Vanduul-Tech Smugglers, whether the contract wants Warden Backpack
+      *Monde* or *Epoque*, and whether the Fresnel LMG comes from Site B gun racks or a shop.
+      Authoring rules and the research dead-ends live in `.claude/skills/sourcing-guide/SKILL.md`.
 - [ ] Still to do from the original scope: a link to the wiki (`web_url`) when available, and a
       per-item deep-link into cstone Finder (investigate whether it supports a query URL).
 - [ ] The sheet also covers items the 4.9.0 catalog never requires (Atlasium, Janalite, Picoball,
@@ -360,11 +365,96 @@ where the new artwork legitimately changes a rule, do not fork it per revision.
 
 ## Phase 4 — Overlay
 
-- [ ] Separate window: `Topmost`, borderless, semi-transparent background, compact inventory list
-- [ ] Global show/hide hotkey (user32 `RegisterHotKey`, default configurable in Settings)
-- [ ] Quantity editing from the overlay (+/- buttons, keyboard input)
-- [ ] Click-through mode (toggle `WS_EX_TRANSPARENT`), remember position/size
-- [ ] Verify on top of SC in Fullscreen (DWM fullscreen optimizations) and Borderless
+Two product decisions settled with the user before implementation: items are **pinned manually** from
+the Inventory page (showing all ~95 is unusable in game), and **hotkeys do the work** — two
+configurable modifier patterns plus the slot digit, so ten slots cost two settings rows rather than
+twenty. Full rationale in `docs/ui-notes.md` "In-game overlay".
+
+- [x] **Pure model layer** — `HotkeyModifiers` (values mirror `MOD_*`, so interop is a cast),
+      `HotkeyBinding` (one type for both the modifier patterns and the full toggles; `Format`/
+      `TryParse` are the single persistence form), `OverlaySlots` (cap + slot↔digit, slot 10 = "0"),
+      `HotkeyPlan.Build` (only the digits actually pinned, deterministic ids, **own-collision
+      detection** so the user gets a real message instead of Win32's "already in use"),
+      `OverlayPlacement.Clamp`. All provable without a window; 4 unit-test files.
+- [x] **`OverlaySettings` on `AppSettings`** — hotkey strings plus nullable geometry.
+      `double?`, **not** a `double.NaN` sentinel: `System.Text.Json` throws on NaN, and every save
+      call site is fire-and-forget, so a sentinel would have silently broken saving *all* settings.
+      Caught by a test, not in review.
+- [x] **`PinnedItemsService`** (`pinned.json`) — the fourth JSON store on the documented shape. An
+      ordered name list where the order *is* the slot; cap enforced in the service; de-dups and
+      truncates on load, because the file is hand-editable.
+- [x] **`InventoryStore` hardening** — `SemaphoreSlim` around the write, memory mutated and `Changed`
+      raised synchronously, the file written on a trailing debounce with a hard-flush ceiling, plus
+      `Flush()`/`FlushAsync()` and `AppLog` on failure. Landed early: hotkey auto-repeat (~30 edits/s)
+      against the old fixed-temp-path, unlocked, fire-and-forget write would have thrown `IOException`
+      into a swallowed task and lost writes.
+- [x] **`Interop/NativeMethods`** — the repo's first and only P/Invoke surface, `[LibraryImport]`.
+      **`Services/HotkeyService`** owns the Win32 side on a dedicated **message-only** `HwndSource`
+      (hooking a real window would make teardown depend on window-close ordering); partial
+      registration failure is reported, never rolled back.
+- [x] **`ShutdownMode = OnExplicitShutdown`** — with a second window the default would make exiting
+      window-count-dependent. Verified by smoke run that closing MainWindow still exits cleanly.
+- [x] **`OverlayViewModel`/`OverlaySlotViewModel`/`OverlayService`** — windowless; the coordinator
+      reaches the window through `IOverlayWindow`. `Initialize` forces interactive mode when the
+      unlock hotkey failed to register, which is the one failure that would otherwise leave a
+      click-through HUD unreachable by any means.
+- [x] **`OverlayWindow`** — plain `Window`, click-through, drag header, geometry persistence, new
+      brand keys in **both** palettes (light theme is dark glass, not a white box — what is behind is
+      the game). Bounds are tracked as they change, because `Application.Shutdown` closes windows
+      before `Exit` and reading them at teardown lost the placement every time.
+- [x] **Inventory page** — pin button (plain `Button` + `DataTrigger`, never `ToggleButton`), slot
+      badge, `Overlay N/10` counter, and the long-orphaned `RefreshCount` finally wired to
+      `IInventoryStore.Changed`.
+- [x] **Settings** — overlay section with four `HotkeyBox` capture rows, show-on-startup, a conflict
+      `InfoBar` fed from `IHotkeyService.LastResult`, **Reset position**, and the warning that
+      `RegisterHotKey` is greedy: while the app runs, Star Citizen never sees those combinations.
+- [x] **Docs** — `docs/ui-notes.md`, `docs/design-system.md`, `docs/testing.md`, `CLAUDE.md`.
+      Tests: 344 green, including `E2E/OverlayScenarios` (the seam is `IHotkeyService.Pressed`, the
+      event — never the real Win32 hotkey table) and `E2E/HotkeyServiceTests` for `WM_HOTKEY` decoding.
+- [ ] **In-game verification (user, cannot be automated)** — draws above SC in Fullscreen (DWM
+      fullscreen optimizations) and Borderless; hotkeys fire while SC has focus and the defaults do
+      not collide with the player's binds; clicks genuinely pass through in HUD mode; showing the HUD
+      does not steal focus or minimise the game; legibility at 1080p/1440p/4K and 125 %/150 % DPI.
+
+### Phase 4.1 — Slot count derived from the monitor (planned, not built)
+
+Ten is currently a constant (`OverlaySlots.MaxSlots`). On a 4K screen that wastes most of the height;
+on a 1080p laptop at 150 % scaling ten rows already crowd the game's own HUD. The cap should follow
+the display instead.
+
+**The constraint that shapes the whole design: there are only ten main-row digits.** More than ten
+slots therefore cannot all have a hotkey, and the hotkey is the entire reason the overlay exists. So:
+
+- **Ten stays the hard ceiling for *hotkey-driven* slots.** A monitor-derived number can only be
+  *lower* than ten, never higher. Anything above ten would need a second modifier tier (`Ctrl+Alt+Shift+1`
+  = slot 11), which is a separate decision and probably not worth it — three modifiers plus a digit is
+  not a gesture anyone performs mid-flight.
+- Compute from the **work area of the monitor the overlay currently sits on**, not the primary one and
+  not the full virtual screen: `System.Windows.Forms` is not referenced, so use
+  `SystemParameters.WorkArea` for the single-monitor case and the window's own DPI via
+  `VisualTreeHelper.GetDpi(window)` for scaling. Multi-monitor needs `MonitorFromWindow` +
+  `GetMonitorInfo` in `Interop/NativeMethods` — the same one-P/Invoke-home rule applies.
+- The arithmetic belongs in a **pure model** next to `OverlayPlacement`, e.g.
+  `OverlayCapacity.Fit(workAreaHeight, dpiScale, rowHeight, chromeHeight)` → clamped to
+  `1..OverlaySlots.MaxSlots`. Pure means it is unit-testable across a table of real screen sizes
+  (1080p/1440p/4K × 100/125/150 %), which is the only way to check the numbers without a rig.
+- Budget a **fraction of the work area**, not all of it — roughly a third feels right; a HUD that can
+  cover half the screen defeats its purpose. Pick the fraction against a real screenshot, not by feel.
+- `OverlaySlots.MaxSlots` stops being the cap and becomes the ceiling: `PinnedItemsService` takes the
+  effective capacity as a value (constructor or a settable property) so the rule stays enforced in the
+  service and stays testable. **Shrinking the capacity must not silently drop pins** — keep them in the
+  file, mark the ones past the capacity as inactive, and restore them when there is room again. Dropping
+  a pin because the user unplugged a monitor is exactly the kind of silent data loss the pinned store
+  exists to avoid.
+- Settings shows the derived number and why ("Your display fits 7 items"), plus a manual override for
+  players who want fewer. The inventory counter (`Overlay N/10`) reads the effective capacity.
+- Recompute on `SystemParameters.StaticPropertyChanged` (resolution change) and on `DpiChanged`
+  (dragging across mixed-scaling monitors) — both already matter for `OverlayPlacement`.
+
+Open question to settle first: should the capacity be **advisory** (the overlay just gets taller and
+the user can shrink it) or **enforced** (the eleventh pin is refused)? Enforced is what exists today
+and is simpler to reason about; advisory is friendlier but makes "why did my hotkey stop working"
+harder to answer. Decide before building.
 
 ## Phase 3.9 — Sync visibility + synthetic E2E tests
 

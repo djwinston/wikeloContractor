@@ -1,0 +1,200 @@
+<Window
+  x:Class="WikeloContractor.Views.OverlayWindow"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:converters="clr-namespace:WikeloContractor.Views.Converters"
+  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+  Title="{DynamicResource Overlay_Title}"
+  Width="{StaticResource SizeOverlayDefaultWidth}"
+  MinWidth="{StaticResource SizeOverlayMinWidth}"
+  MinHeight="{StaticResource SizeOverlayMinHeight}"
+  AllowsTransparency="True"
+  Background="Transparent"
+  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+  ResizeMode="CanResize"
+  ShowActivated="False"
+  ShowInTaskbar="False"
+  SizeToContent="Height"
+  Topmost="True"
+  WindowStyle="None"
+  mc:Ignorable="d">
+
+  <!-- Deliberately a plain Window, not ui:FluentWindow: the Mica backdrop and the title-bar chrome
+       do not compose with a layered, click-through HUD drawn over another application.
+
+       AllowsTransparency="True" is load-bearing beyond the rounded corners — it is what makes WPF
+       give the window WS_EX_LAYERED, which WS_EX_TRANSPARENT (click-through) requires. Dropping it
+       "for performance" would silently break click-through. See docs/ui-notes.md.
+
+       ShowActivated="False" pairs with WS_EX_NOACTIVATE in the code-behind: without both, showing
+       the HUD steals focus and can minimise a fullscreen game. -->
+
+  <Window.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+    <converters:InventoryCategoryToSymbolConverter x:Key="CategorySymbol" />
+  </Window.Resources>
+
+  <Border
+    x:Name="Root"
+    Background="{DynamicResource OverlayBackgroundBrush}"
+    BorderBrush="{DynamicResource OverlayBorderBrush}"
+    BorderThickness="1"
+    CornerRadius="{StaticResource RadiusOverlay}">
+
+    <Grid Margin="8">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+
+      <!-- Header: only in interactive mode. In HUD mode the window is click-through, so a drag
+           handle there would be a lie. -->
+      <Grid
+        x:Name="Header"
+        Grid.Row="0"
+        Margin="0,0,0,6"
+        Background="Transparent"
+        MouseLeftButtonDown="OnHeaderDrag"
+        Visibility="{Binding IsInteractive, Converter={StaticResource BoolToVisibility}}">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <ui:SymbolIcon
+          Grid.Column="0"
+          Margin="2,0,6,0"
+          FontSize="12"
+          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+          Symbol="ReOrderDotsVertical24" />
+
+        <TextBlock
+          Grid.Column="1"
+          Style="{StaticResource OverlineTextStyle}"
+          Text="{DynamicResource Overlay_DragHint}"
+          TextTrimming="CharacterEllipsis" />
+
+        <ui:Button
+          Grid.Column="2"
+          Padding="6,2"
+          Appearance="Transparent"
+          Click="OnLockClick"
+          Icon="{ui:SymbolIcon LockClosed24}"
+          ToolTip="{DynamicResource Overlay_Lock}" />
+
+        <ui:Button
+          Grid.Column="3"
+          Padding="6,2"
+          Appearance="Transparent"
+          Click="OnHideClick"
+          Icon="{ui:SymbolIcon Dismiss24}"
+          ToolTip="{DynamicResource Overlay_Hide}" />
+      </Grid>
+
+      <!-- Nothing pinned yet -->
+      <TextBlock
+        Grid.Row="1"
+        Margin="4,8"
+        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+        FontSize="{StaticResource FontSizeCaption}"
+        Text="{DynamicResource Overlay_Empty}"
+        TextWrapping="Wrap"
+        Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}" />
+
+      <ItemsControl Grid.Row="2" ItemsSource="{Binding Slots}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Border
+              Margin="0,0,0,4"
+              Padding="6,4"
+              Background="{DynamicResource OverlayRowBackgroundBrush}"
+              CornerRadius="{StaticResource RadiusChip}">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Slot digit: the hotkey to press, so it leads the row -->
+                <Border
+                  Grid.Column="0"
+                  Width="{StaticResource SizeOverlaySlotBadge}"
+                  Height="{StaticResource SizeOverlaySlotBadge}"
+                  Margin="0,0,6,0"
+                  Background="{DynamicResource OverlaySlotBadgeBackgroundBrush}"
+                  CornerRadius="{StaticResource RadiusBadge}">
+                  <TextBlock
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    FontFamily="{StaticResource MonoFontFamily}"
+                    FontSize="{StaticResource FontSizeCaption}"
+                    FontWeight="Bold"
+                    Foreground="{DynamicResource OverlaySlotBadgeForegroundBrush}"
+                    Text="{Binding DigitLabel}" />
+                </Border>
+
+                <!-- A category glyph, not the shared ItemThumbTemplate: that template binds through
+                     RelativeSource AncestorType=Page for its preview command and cannot resolve
+                     inside a Window. Widening it would push a page-shaped assumption into a shared
+                     dictionary to serve one HUD. -->
+                <ui:SymbolIcon
+                  Grid.Column="1"
+                  Margin="0,0,6,0"
+                  FontSize="14"
+                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                  Symbol="{Binding Category, Converter={StaticResource CategorySymbol}}" />
+
+                <TextBlock
+                  Grid.Column="2"
+                  VerticalAlignment="Center"
+                  FontSize="{StaticResource FontSizeBody}"
+                  Text="{Binding Name}"
+                  TextTrimming="CharacterEllipsis"
+                  ToolTip="{Binding Name}" />
+
+                <TextBlock
+                  Grid.Column="3"
+                  MinWidth="34"
+                  Margin="6,0,0,0"
+                  HorizontalAlignment="Right"
+                  FontFamily="{StaticResource MonoFontFamily}"
+                  FontSize="{StaticResource FontSizeBodyStrong}"
+                  FontWeight="Bold"
+                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                  Text="{Binding Count}"
+                  TextAlignment="Right"
+                  VerticalAlignment="Center" />
+
+                <!-- Mouse controls, interactive mode only -->
+                <StackPanel
+                  Grid.Column="4"
+                  Margin="6,0,0,0"
+                  Orientation="Horizontal"
+                  Visibility="{Binding DataContext.IsInteractive, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibility}}">
+                  <ui:Button
+                    Padding="6,0"
+                    Appearance="Transparent"
+                    Command="{Binding DecrementCommand}"
+                    Icon="{ui:SymbolIcon Subtract24}" />
+                  <ui:Button
+                    Padding="6,0"
+                    Appearance="Transparent"
+                    Command="{Binding IncrementCommand}"
+                    Icon="{ui:SymbolIcon Add24}" />
+                </StackPanel>
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </Grid>
+  </Border>
+</Window>

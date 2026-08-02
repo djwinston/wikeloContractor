@@ -13,6 +13,9 @@
     <Version>0.1.0</Version>
     <!-- Allows building the project on Linux CI agents (compilation only, not running) -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <!-- Required by the [LibraryImport] source generator in src\Interop\NativeMethods.cs; it emits
+         unsafe marshalling code. No hand-written unsafe code exists in this project. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>

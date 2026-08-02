@@ -110,6 +110,17 @@ Keys, and why each one is not just a Fluent brush:
 - `XpBadgeForegroundBrush` — the `+N XP` badge.
 - `CompletedRow{Accent,Wash}Brush` — the completed catalog row's left marker and gradient wash.
 - `ReputationBannerBrush` — the rank banner above the contract list.
+- `Overlay{Background,Border,RowBackground,InteractiveBorder}Brush`,
+  `OverlaySlotBadge{Background,Foreground}Brush` — the in-game HUD. Fluent has no "translucent panel
+  floating over **another application**" role, so these are ours. Two rules that are easy to get
+  wrong here:
+  - **The light theme is not a white box.** What sits behind this window is Star Citizen, not the
+    app's `#F9F9F9` surface, so the light-theme overlay is still dark glass — one shade lighter and
+    a touch more transparent. Inverting it would put a white panel over a night-side cockpit.
+  - **Alpha lives in the brush, never in `Window.Opacity`.** Fading the window fades the text with
+    it, and the text is the only thing the overlay exists to show.
+  Do **not** copy the `#CC000000` full-window scrim value into these: that literal is the project's
+  one design-system violation and already appears in three pages — do not make it four.
 
 ### Theme application
 
@@ -169,9 +180,19 @@ files belongs here.
 
 | Group | Keys |
 |---|---|
-| Radii | `RadiusChip` 6, `RadiusControl` 7, `RadiusCard` 10 |
+| Radii | `RadiusChip` 6, `RadiusControl` 7, `RadiusCard` 10, `RadiusOverlay` **0** (square on purpose — see below) |
 | Spacing | `SpacingChipGap`, `SpacingRowPadding`, `SpacingCardPadding`, `SpacingPagePadding` |
 | Sizes | `SizeCatalogThumb{Width,Height}` 120×80 (grown from the spec's 84×56 — see note), `SizeInventoryThumb` 46, `SizeProgressBarHeight` 6, `SizeNavRailWidth` 150, `SizeHitTarget` 28 |
+| Overlay | `SizeOverlayDefaultWidth` 280, `SizeOverlayMin{Width,Height}` 220×120, `SizeOverlaySlotBadge` 22 |
+
+The overlay minimums are not decoration: `OverlayPlacement.Clamp` grows a restored window up to them,
+so a hand-edited `settings.json` cannot shrink the HUD to an unclickable sliver.
+
+`RadiusOverlay` is the one radius that is **0**, and it is not an oversight. Every other surface sits
+on an opaque page background, where a rounded corner anti-aliases against a known colour. The overlay
+sits on an `AllowsTransparency` window, so its corner is anti-aliased against the *transparent*
+backdrop instead of against the game behind it — over moving footage that reads as a ragged step, not
+a curve. Confirmed in game, not theorised. Do not "restore consistency" by giving it a radius.
 
 The catalog thumbnail is deliberately larger than the design spec's 84×56. The mockup rows are
 short (a couple of requirement chips); real contracts carry many, so the row is far taller and the

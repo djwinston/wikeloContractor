@@ -11,7 +11,10 @@ Windows companion app for **Wikelo** trades in Star Citizen.
   Customer → Very Best Customer) on a progress bar
 - **Inventory** — track collected resources with an editable quantity box (type any value or step by one),
   grouped by category; each contract shows readiness (which required items you already have) and completing
-  one deducts them *(in-game overlay coming next)*
+  one deducts them
+- **In-game overlay** — pin up to 10 inventory items to a small always-on-top HUD and adjust their counts
+  with global hotkeys, without leaving the game. Click-through by default; an interactive mode adds a drag
+  header and +/− buttons. Hotkeys, position and size are configurable in Settings
 
 ## Stack
 

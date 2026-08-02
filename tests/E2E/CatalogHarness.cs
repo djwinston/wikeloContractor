@@ -34,6 +34,8 @@ public sealed class CatalogHarness : IDisposable
         Completion = new CompletionService(Path.Combine(_root, "completed.json"));
         Favorites = new FavoritesService(Path.Combine(_root, "favorites.json"));
         Inventory = new InventoryStore(Path.Combine(_root, "inventory.json"));
+        Pins = new PinnedItemsService(Path.Combine(_root, "pinned.json"));
+        Settings = new SettingsService(Path.Combine(_root, "settings.json"));
     }
 
     public ScriptedWikiApi Api { get; }
@@ -45,6 +47,22 @@ public sealed class CatalogHarness : IDisposable
     public FavoritesService Favorites { get; }
 
     public InventoryStore Inventory { get; }
+
+    public PinnedItemsService Pins { get; }
+
+    public SettingsService Settings { get; }
+
+    /// <summary>The hotkey seam: raise <see cref="FakeHotkeyService.Press"/> instead of going via Win32.</summary>
+    public FakeHotkeyService Hotkeys { get; } = new();
+
+    public FakeOverlayWindow OverlayWindow { get; } = new();
+
+    public OverlayService Overlay { get; private set; } = null!;
+
+    public OverlayViewModel Hud { get; private set; } = null!;
+
+    /// <summary>The inventory grid, so a scenario can assert an overlay edit reaches the page.</summary>
+    public InventoryViewModel Inventoried { get; private set; } = null!;
 
     public CatalogViewModel Catalogue { get; private set; } = null!;
 
@@ -68,6 +86,12 @@ public sealed class CatalogHarness : IDisposable
     public static async Task<CatalogHarness> CreateAsync(WpfAppFixture app, ScriptedWikiApi api, string? root = null)
     {
         var harness = new CatalogHarness(api, root);
+
+        // Settings carry the overlay's hotkey patterns; the rest of the stores start empty unless a
+        // scenario reuses a root, in which case the previous run's files are already there.
+        await harness.Settings.LoadAsync();
+        await harness.Pins.LoadAsync();
+        await harness.Inventory.LoadAsync();
 
         await app.OnUiAsync(() =>
         {
@@ -97,6 +121,17 @@ public sealed class CatalogHarness : IDisposable
                 interaction,
                 navigation,
                 harness.Detail);
+
+            harness.Inventoried = new InventoryViewModel(harness.Catalog, harness.Inventory, harness.Pins);
+
+            harness.Hud = new OverlayViewModel(harness.Pins, harness.Inventory, harness.Catalog);
+
+            harness.Overlay = new OverlayService(
+                harness.Hotkeys,
+                harness.Pins,
+                harness.Settings,
+                harness.Hud,
+                () => harness.OverlayWindow);
         });
 
         return harness;
@@ -122,6 +157,8 @@ public sealed class CatalogHarness : IDisposable
 
     public void Dispose()
     {
+        Inventory.Dispose();
+
         if (!_ownsRoot)
         {
             return;

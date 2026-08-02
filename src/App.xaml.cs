@@ -52,6 +52,22 @@ public partial class App
             _ = services.AddSingleton<IInventoryStore, InventoryStore>();
             _ = services.AddSingleton<IInventoryImageOverrideService, InventoryImageOverrideService>();
 
+            // Items the user pinned to the in-game overlay, in slot order.
+            _ = services.AddSingleton<IPinnedItemsService, PinnedItemsService>();
+
+            // Global hotkeys (the overlay's whole point: no alt-tab out of the game).
+            _ = services.AddSingleton<IHotkeyService, HotkeyService>();
+
+            // In-game overlay. The window is TRANSIENT while everything else here is a singleton:
+            // a closed WPF Window is permanently dead (Show() throws after Close()), so a singleton
+            // window could never come back. The coordinator takes a factory rather than the window
+            // itself — that also breaks what would otherwise be a construction cycle, and is the
+            // seam the E2E tests substitute.
+            _ = services.AddSingleton<ViewModels.OverlayViewModel>();
+            _ = services.AddSingleton<IOverlayService, OverlayService>();
+            _ = services.AddTransient<IOverlayWindow, Views.OverlayWindow>();
+            _ = services.AddSingleton<Func<IOverlayWindow>>(provider => provider.GetRequiredService<IOverlayWindow>);
+
             // "Where to find" knowledge base: Markdown files shipped in the install dir, plus a
             // %AppData% layer the user owns. See docs/sourcing/README.md.
             _ = services.AddSingleton<ISourcingGuideService, SourcingGuideService>();
@@ -102,6 +118,11 @@ public partial class App
 
         // After the hooks: the updater's own log is complete for the run that just happened.
         AppLog.MirrorUpdaterLog();
+
+        // The overlay makes this a two-window app, and the default OnLastWindowClose would then make
+        // "does the app exit?" depend on how many windows happen to be open. MainWindow.OnClosed's
+        // Application.Current.Shutdown() stays the single exit trigger.
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
         await _host.StartAsync();
     }

@@ -121,6 +121,19 @@
   <sys:String x:Key="Inventory_Cat_Consumable">Consumables</sys:String>
   <sys:String x:Key="Inventory_Cat_Favor">Favor &amp; scrip</sys:String>
   <sys:String x:Key="Inventory_Cat_Other">Other</sys:String>
+  <sys:String x:Key="Inventory_Pin">Pin to the overlay</sys:String>
+  <sys:String x:Key="Inventory_Unpin">Remove from the overlay</sys:String>
+  <sys:String x:Key="Inventory_PinFull">The overlay is full — unpin an item first</sys:String>
+  <!-- {0} pinned, {1} slots -->
+  <sys:String x:Key="Inventory_PinCount">Overlay {0}/{1}</sys:String>
+  <sys:String x:Key="Inventory_ClearPins">Unpin everything</sys:String>
+
+  <!-- In-game overlay -->
+  <sys:String x:Key="Overlay_Title">Wikelo Contractor overlay</sys:String>
+  <sys:String x:Key="Overlay_Empty">Nothing pinned yet. Pin items on the Inventory page to count them in game.</sys:String>
+  <sys:String x:Key="Overlay_DragHint">DRAG TO MOVE</sys:String>
+  <sys:String x:Key="Overlay_Lock">Lock (click-through)</sys:String>
+  <sys:String x:Key="Overlay_Hide">Hide the overlay</sys:String>
 
   <!-- Sourcing reference ("where to find"): the inventory item set with authored notes -->
   <sys:String x:Key="Sourcing_Title">Where to Find</sys:String>
@@ -141,6 +154,25 @@
   <sys:String x:Key="Settings_Theme_System">System</sys:String>
   <sys:String x:Key="Settings_Theme_Light">Light</sys:String>
   <sys:String x:Key="Settings_Theme_Dark">Dark</sys:String>
+  <sys:String x:Key="Settings_Overlay">In-game overlay</sys:String>
+  <sys:String x:Key="Settings_Overlay_Description">A small always-on-top panel with the items you pinned, driven by global hotkeys so you never have to leave the game to update a count.</sys:String>
+  <sys:String x:Key="Settings_Overlay_ShowOnStartup">Show the overlay when the app starts</sys:String>
+  <sys:String x:Key="Settings_Overlay_Increment">Add one — these modifiers plus the slot digit (1…9, 0)</sys:String>
+  <sys:String x:Key="Settings_Overlay_Decrement">Subtract one — these modifiers plus the slot digit</sys:String>
+  <sys:String x:Key="Settings_Overlay_Toggle">Show / hide the overlay</sys:String>
+  <sys:String x:Key="Settings_Overlay_Interactive">Lock / unlock (click-through)</sys:String>
+  <sys:String x:Key="Settings_Overlay_GreedyHint">Global hotkeys are exclusive: while the app runs, Star Citizen no longer receives the combinations above. Click a field and press the keys; Esc clears it and turns that hotkey off.</sys:String>
+  <!-- {0} the combinations that were dropped -->
+  <sys:String x:Key="Settings_Overlay_Conflict">Two of these hotkeys ask for the same combination, so {0} was dropped.</sys:String>
+  <!-- {0} the combinations another application already owns -->
+  <sys:String x:Key="Settings_Overlay_Failed">Windows refused {0} — another application already owns it. Pick a different combination.</sys:String>
+  <sys:String x:Key="Settings_Overlay_Elevation_Title">Hotkeys don't work while the game has focus?</sys:String>
+  <sys:String x:Key="Settings_Overlay_Elevation_Hint">Windows does not deliver global hotkeys to an ordinary app while a window running as administrator is in the foreground. Star Citizen is usually launched that way, so the keys work on the desktop and stop the moment you switch to the game. Restarting this app as administrator fixes it.</sys:String>
+  <sys:String x:Key="Settings_Overlay_Elevation_Restart">Restart as administrator</sys:String>
+  <sys:String x:Key="Settings_Overlay_Elevation_Active">Running as administrator — hotkeys also reach an elevated game.</sys:String>
+  <sys:String x:Key="Settings_Overlay_Show">Show the overlay</sys:String>
+  <sys:String x:Key="Settings_Overlay_ResetPosition">Reset position</sys:String>
+
   <sys:String x:Key="Settings_Data">Catalog data</sys:String>
   <sys:String x:Key="Settings_Data_ApiVersion">API version:</sys:String>
   <sys:String x:Key="Settings_Data_LastSync">Last synced:</sys:String>

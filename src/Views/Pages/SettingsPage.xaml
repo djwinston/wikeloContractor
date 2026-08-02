@@ -5,6 +5,7 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:local="clr-namespace:WikeloContractor.Views.Pages"
+  xmlns:controls="clr-namespace:WikeloContractor.Views.Controls"
   xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
   Title="SettingsPage"
   d:DataContext="{d:DesignInstance local:SettingsPage, IsDesignTimeCreatable=False}"
@@ -37,6 +38,139 @@
       <ComboBoxItem Content="{DynamicResource Settings_Theme_Light}" />
       <ComboBoxItem Content="{DynamicResource Settings_Theme_Dark}" />
     </ComboBox>
+
+    <!-- In-game overlay -->
+    <TextBlock Margin="0,32,0,4" Text="{DynamicResource Settings_Overlay}" />
+    <TextBlock
+      Margin="0,0,0,10"
+      FontSize="{StaticResource FontSizeCaption}"
+      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+      Text="{DynamicResource Settings_Overlay_Description}"
+      TextWrapping="Wrap" />
+
+    <CheckBox
+      Content="{DynamicResource Settings_Overlay_ShowOnStartup}"
+      IsChecked="{Binding ViewModel.OverlayShowOnStartup, Mode=TwoWay}" />
+
+    <Grid Margin="0,12,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="170" />
+      </Grid.ColumnDefinitions>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+
+      <TextBlock
+        Grid.Row="0"
+        Grid.Column="0"
+        Margin="0,0,12,8"
+        VerticalAlignment="Center"
+        Text="{DynamicResource Settings_Overlay_Increment}"
+        TextWrapping="Wrap" />
+      <controls:HotkeyBox
+        Grid.Row="0"
+        Grid.Column="1"
+        Margin="0,0,0,8"
+        Hotkey="{Binding ViewModel.OverlayIncrementPattern, Mode=TwoWay}"
+        PatternOnly="True" />
+
+      <TextBlock
+        Grid.Row="1"
+        Grid.Column="0"
+        Margin="0,0,12,8"
+        VerticalAlignment="Center"
+        Text="{DynamicResource Settings_Overlay_Decrement}"
+        TextWrapping="Wrap" />
+      <controls:HotkeyBox
+        Grid.Row="1"
+        Grid.Column="1"
+        Margin="0,0,0,8"
+        Hotkey="{Binding ViewModel.OverlayDecrementPattern, Mode=TwoWay}"
+        PatternOnly="True" />
+
+      <TextBlock
+        Grid.Row="2"
+        Grid.Column="0"
+        Margin="0,0,12,8"
+        VerticalAlignment="Center"
+        Text="{DynamicResource Settings_Overlay_Toggle}"
+        TextWrapping="Wrap" />
+      <controls:HotkeyBox
+        Grid.Row="2"
+        Grid.Column="1"
+        Margin="0,0,0,8"
+        Hotkey="{Binding ViewModel.OverlayToggleKey, Mode=TwoWay}" />
+
+      <TextBlock
+        Grid.Row="3"
+        Grid.Column="0"
+        Margin="0,0,12,0"
+        VerticalAlignment="Center"
+        Text="{DynamicResource Settings_Overlay_Interactive}"
+        TextWrapping="Wrap" />
+      <controls:HotkeyBox
+        Grid.Row="3"
+        Grid.Column="1"
+        Hotkey="{Binding ViewModel.OverlayInteractiveKey, Mode=TwoWay}" />
+    </Grid>
+
+    <!-- RegisterHotKey is greedy: once we own a combination, Star Citizen never sees it again and
+         the in-game bind dies with no error anywhere. The user has to be told. -->
+    <TextBlock
+      Margin="0,10,0,0"
+      FontSize="{StaticResource FontSizeCaption}"
+      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+      Text="{DynamicResource Settings_Overlay_GreedyHint}"
+      TextWrapping="Wrap" />
+
+    <ui:InfoBar
+      Margin="0,8,0,0"
+      IsClosable="False"
+      IsOpen="{Binding ViewModel.HasOverlayHotkeyIssue, Mode=OneWay}"
+      Message="{Binding ViewModel.OverlayHotkeyIssue, Mode=OneWay}"
+      Severity="Warning" />
+
+    <!-- Windows does not deliver a global hotkey while a higher-integrity window is in the
+         foreground, and Star Citizen is commonly launched elevated. Nothing reports this: the
+         registration succeeds and the keys simply stop arriving once the game has focus. -->
+    <ui:InfoBar
+      Margin="0,8,0,0"
+      Title="{DynamicResource Settings_Overlay_Elevation_Title}"
+      IsClosable="False"
+      IsOpen="{Binding ViewModel.ShowElevationHint, Mode=OneWay}"
+      Message="{DynamicResource Settings_Overlay_Elevation_Hint}"
+      Severity="Informational">
+      <ui:InfoBar.Content>
+        <ui:Button
+          Margin="0,10,0,4"
+          Command="{Binding ViewModel.RestartElevatedCommand}"
+          Content="{DynamicResource Settings_Overlay_Elevation_Restart}"
+          Icon="{ui:SymbolIcon ShieldTask24}" />
+      </ui:InfoBar.Content>
+    </ui:InfoBar>
+
+    <ui:InfoBar
+      Margin="0,8,0,0"
+      IsClosable="False"
+      IsOpen="{Binding ViewModel.IsElevated, Mode=OneWay}"
+      Message="{DynamicResource Settings_Overlay_Elevation_Active}"
+      Severity="Success" />
+
+    <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
+      <ui:Button
+        Command="{Binding ViewModel.ShowOverlayCommand}"
+        Content="{DynamicResource Settings_Overlay_Show}"
+        Icon="{ui:SymbolIcon Eye24}" />
+      <ui:Button
+        Margin="8,0,0,0"
+        Command="{Binding ViewModel.ResetOverlayPositionCommand}"
+        Content="{DynamicResource Settings_Overlay_ResetPosition}"
+        Icon="{ui:SymbolIcon ArrowReset24}" />
+    </StackPanel>
 
     <!-- Catalog data: game version, last sync, manual update fallback -->
     <TextBlock Margin="0,24,0,8" Text="{DynamicResource Settings_Data}" />

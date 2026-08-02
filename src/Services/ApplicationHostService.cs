@@ -27,6 +27,10 @@ public sealed class ApplicationHostService(IServiceProvider serviceProvider) : I
         // Favorited contracts, so the star state is right on the first paint of the catalog.
         await serviceProvider.GetRequiredService<IFavoritesService>().LoadAsync();
 
+        // Overlay pins, so the inventory page knows which rows are pinned and the hotkey plan knows
+        // how many slot digits to register.
+        await serviceProvider.GetRequiredService<IPinnedItemsService>().LoadAsync();
+
         serviceProvider
             .GetRequiredService<ILocalizationService>()
             .ApplyLanguage(settingsService.Current.Language);
@@ -41,13 +45,38 @@ public sealed class ApplicationHostService(IServiceProvider serviceProvider) : I
             _ = _navigationWindow.Navigate(typeof(Views.Pages.CatalogPage));
         }
 
+        // The hotkey sink is a window, so it has to be created on the UI thread — which this is.
+        serviceProvider.GetRequiredService<IHotkeyService>().Start();
+
+        // Deliberately after MainWindow: WPF assigns Application.MainWindow to the first window
+        // created, and ContractCompletionInteraction centres its dialogs on it.
+        serviceProvider.GetRequiredService<IOverlayService>().Initialize();
+
         // Learn about a pending app update in the background; never block startup on it. Result
         // surfaces through IAppUpdateService.StatusChanged (the Settings page reflects it). No-op
         // in a dev run.
         _ = serviceProvider.GetRequiredService<IAppUpdateService>().CheckAndDownloadAsync();
     }
 
-    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    /// <summary>
+    /// Shutdown teardown. Deliberately synchronous: <c>App.OnExit</c> is <c>async void</c>, so a
+    /// continuation posted back to a dispatcher that is already closing may never run.
+    /// </summary>
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        // Saves the overlay's geometry while the window still exists, then closes it.
+        serviceProvider.GetRequiredService<IOverlayService>().Shutdown();
+
+        // Release the global combinations: they are system-wide, so leaving one held would keep it
+        // dead for every other application until the process is gone.
+        serviceProvider.GetRequiredService<IHotkeyService>().Stop();
+
+        // The inventory store debounces its writes, so the last few seconds of counter edits — the
+        // ones made in-game, right before quitting — may still be in memory only.
+        serviceProvider.GetRequiredService<IInventoryStore>().Flush();
+
+        return Task.CompletedTask;
+    }
 
     private const string BrandDictionaryPathFragment = "/Resources/Theme/Brand.";
 
