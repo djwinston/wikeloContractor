@@ -415,8 +415,9 @@ the app said so. Root cause was a missing concept, not a missing message — fre
       bundled `Resources/img/**` images live in the install dir (replaced on update); persistent
       user edits and personal images go to the `%AppData%` layer.
       **Releases are portable-only until code signing** — an unsigned `Setup.exe`/`.msi` gets
-      hard-blocked on hardened Windows and auto-update is moot while unsigned, so only the portable
-      zip is published (installers unpublished after `vpk pack`; re-enabled with signing). The MSI
+      hard-blocked on hardened Windows, so only the portable zip is published (installers unpublished
+      after `vpk pack`; re-enabled with signing). Note the portable zip still updates itself: Velopack
+      treats that layout as installed, so *Check for updates* works there. The MSI
       (`--msi --instLocation Either`: WiX wizard, arbitrary install folder, Add/Remove Programs) is
       built + verified and returns the day signing lands — see the distribution-signing memory.
 - [x] Versioning: SemVer with git tags (`vX.Y.Z`) on GitHub as the single source of truth;

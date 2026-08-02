@@ -231,7 +231,18 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
     Add/Remove Programs, repair/remove, and Group Policy deploy. WiX ships inside `vpk` (no separate
     install on the runner). Verified from the generated MSI's Dialog/Property tables.
   Auto-updates apply the same way regardless of installer — the installer is only the initial
-  bootstrap, not part of the update path; and portable builds do not auto-update (`IsInstalled` false).
+  bootstrap, not part of the update path. **Portable builds update too**: Velopack treats the
+  portable layout (`.portable` marker + `current\` + `Update.exe`) as installed, so `IsInstalled` is
+  true there and *Check for updates* on the About page really applies a new release. `IsInstalled` is
+  false only in a **dev run**, where nothing was ever installed by Velopack. Verified in the field, not
+  assumed — the earlier "portable builds do not auto-update" note here was wrong.
+- **Known upstream bug, portable launcher gets renamed on update**
+  ([velopack#982](https://github.com/velopack/velopack/issues/982), open against our pinned `1.2.0`):
+  `vpk pack` names the root launcher after `--packTitle` (`Wikelo Contractor.exe`) while `Update.exe`
+  re-creates it from `--mainExe` (`WikeloContractor.exe`), so an updated folder ends up with **two**
+  launchers and any shortcut to the first one keeps starting the stale stub. Fixed upstream in
+  [PR #985](https://github.com/velopack/velopack/pull/985) but only released in the `1.2.110-*`
+  prerelease. The stable workaround is to keep `--packTitle` and the `--mainExe` base name identical.
 - Keep `Resources/img-catalog-overrides.json` as loose `<Content>` (do **not** embed it): it ships in the
   install dir as the editable bundled-defaults layer. It is replaced on each Velopack update, so
   persistent personal edits belong in the `%AppData%` override file, which updates never touch.
