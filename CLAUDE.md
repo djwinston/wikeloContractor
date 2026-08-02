@@ -75,6 +75,14 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
 - **Reuse before writing new code** — check the shared helpers first; adding a second copy
   of one of these is a review finding. Current homes:
   - `Services/AppStorage` — `%AppData%` root, subdirectories, shared `JsonSerializerOptions`
+  - `Services/AppLog` — the file log, and the one place that decides **where** it goes: the install
+    root next to `Update.exe`, never `AppContext.BaseDirectory`, which is `current\` and is replaced
+    wholesale by every Velopack update. Static and dependency-free on purpose — `VelopackApp.Run()`
+    is the first line of startup, before the host exists. `FileLoggerProvider` bridges
+    `Microsoft.Extensions.Logging` into it, `VelopackFileLogger` bridges Velopack's managed side, and
+    `MirrorUpdaterLog` copies `Update.exe`'s own (non-redirectable) log next to ours.
+    `Services/AppVersion` — assembly version without the `+commit` suffix, shared by the log banner
+    and the About page
   - `Services/AppHttp` — the User-Agent constant for every outgoing HttpClient
   - `ViewModels/Localized` — code-side localized strings: `Localized.String(key)` /
     `Localized.Format(key, args)` (XAML uses `{DynamicResource}` directly)

@@ -111,6 +111,13 @@
         Command="{Binding ViewModel.CheckAppUpdateCommand}"
         Content="{DynamicResource Settings_AppUpdate_Check}"
         Icon="{ui:SymbolIcon ArrowDownload24}" />
+      <!-- Diagnostics live next to the update row on purpose: an update that misbehaves is the one
+           time a user needs the log, and the updater's own half is otherwise buried in %LocalAppData%. -->
+      <ui:Button
+        Margin="8,0,0,0"
+        Command="{Binding ViewModel.OpenLogFolderCommand}"
+        Content="{DynamicResource Settings_OpenLogFolder}"
+        Icon="{ui:SymbolIcon DocumentText24}" />
       <ui:ProgressRing
         Width="20"
         Height="20"

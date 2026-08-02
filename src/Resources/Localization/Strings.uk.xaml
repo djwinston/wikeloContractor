@@ -160,6 +160,7 @@
   <sys:String x:Key="Settings_AppUpdate_Ready">Оновлення {0} готове. Перезапустіть, щоб застосувати.</sys:String>
   <sys:String x:Key="Settings_AppUpdate_Restart">Перезапустити для оновлення</sys:String>
   <sys:String x:Key="Settings_AppUpdate_Failed">Не вдалося перевірити оновлення. Спробуйте пізніше.</sys:String>
+  <sys:String x:Key="Settings_OpenLogFolder">Відкрити теку логів</sys:String>
   <sys:String x:Key="Settings_Attribution">Ігрові дані надає Star Citizen Wiki API:</sys:String>
   <sys:String x:Key="Settings_Disclaimer">Неофіційний фанатський застосунок, не пов'язаний з Cloud Imperium Games і не схвалений нею. Усі ігрові дані належать Cloud Imperium Games.</sys:String>
 

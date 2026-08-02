@@ -1,5 +1,6 @@
 using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Velopack;
 using Wpf.Ui;
 using Wpf.Ui.DependencyInjection;
@@ -11,6 +12,11 @@ namespace WikeloContractor;
 public partial class App
 {
     private static readonly IHost _host = Host.CreateDefaultBuilder()
+        .ConfigureLogging(logging =>
+        {
+            // File log next to Update.exe — see AppLog for why not next to the executable.
+            _ = logging.AddProvider(new FileLoggerProvider());
+        })
         .ConfigureServices((context, services) =>
         {
             // WPF UI: page provider for NavigationView
@@ -84,10 +90,18 @@ public partial class App
 
     private async void OnStartup(object sender, StartupEventArgs e)
     {
+        AppLog.Write("Information", $"--- Startup, version {AppVersion.Current} ---");
+
         // Must run before any UI: handles Velopack install/update/uninstall hooks (the installer
         // relaunches the exe with special args) and exits the process for those, so a normal
-        // launch falls straight through to starting the host.
-        VelopackApp.Build().Run();
+        // launch falls straight through to starting the host. The logger is attached here rather
+        // than through DI because those hooks run and exit before the host is ever built.
+        VelopackApp.Build()
+            .SetLogger(new VelopackFileLogger())
+            .Run();
+
+        // After the hooks: the updater's own log is complete for the run that just happened.
+        AppLog.MirrorUpdaterLog();
 
         await _host.StartAsync();
     }
@@ -100,6 +114,8 @@ public partial class App
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
-        // TODO (Phase 5): logging and a friendly error message
+        // Recorded but not swallowed: the crash still surfaces as it did before, it is simply no
+        // longer invisible afterwards. Turning it into a friendly dialog is a separate decision.
+        AppLog.Write("Critical", "Unhandled dispatcher exception.", e.Exception);
     }
 }

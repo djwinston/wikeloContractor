@@ -161,6 +161,7 @@
   <sys:String x:Key="Settings_AppUpdate_Ready">Update {0} is ready. Restart to apply it.</sys:String>
   <sys:String x:Key="Settings_AppUpdate_Restart">Restart to update</sys:String>
   <sys:String x:Key="Settings_AppUpdate_Failed">Could not check for updates. Try again later.</sys:String>
+  <sys:String x:Key="Settings_OpenLogFolder">Open logs folder</sys:String>
   <sys:String x:Key="Settings_Attribution">Game data is provided by the Star Citizen Wiki API:</sys:String>
   <sys:String x:Key="Settings_Disclaimer">Unofficial fan-made app, not affiliated with or endorsed by Cloud Imperium Games. All game data belongs to Cloud Imperium Games.</sys:String>
 

@@ -399,7 +399,14 @@ the app said so. Root cause was a missing concept, not a missing message — fre
 
 - [ ] Tray (WPF-UI.Tray): minimize to tray, quick overlay toggle from the menu
 - [ ] Start with Windows (optional)
-- [ ] File logging (`Microsoft.Extensions.Logging` + a simple file provider)
+- [x] File logging (`Microsoft.Extensions.Logging` + a simple file provider). `Services/AppLog` writes
+      `WikeloContractor.log` **into the install root, next to `Update.exe`** — never beside the exe,
+      because that sits in `current\`, which Velopack replaces wholesale on every update, wiping the
+      log exactly when a failed update needs diagnosing. A dev run falls back to the binaries' folder.
+      `FileLoggerProvider` routes the host's `ILogger` output there, `VelopackFileLogger` adds
+      Velopack's managed side, and `AppLog.MirrorUpdaterLog` copies `Update.exe`'s own log (which
+      cannot be redirected — `ApplyUpdatesAndRestart` builds its command line without `--log`) out of
+      the hidden `%LocalAppData%\velopack\` next to ours. About has an **Open logs folder** button.
 - [x] Velopack: installer + auto-update. Framework-dependent build; the installer bootstraps the
       .NET 10 Desktop Runtime (`--framework net10.0-x64-desktop`) if missing. `VelopackApp.Run()`
       runs first in `App.OnStartup`; `Services/AppUpdateService` wraps `UpdateManager` (GitHub
