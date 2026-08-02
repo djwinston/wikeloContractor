@@ -35,6 +35,11 @@
     <Content Include="..\docs\sourcing\*.md"
              Link="Resources\sourcing\%(Filename)%(Extension)"
              CopyToOutputDirectory="PreserveNewest" />
+    <!-- Shared fragments a guide pulls in with {{include: key}}; kept in their own folder so the
+         guide scan (top directory only) can never mistake one for an item's guide. -->
+    <Content Include="..\docs\sourcing\_shared\*.md"
+             Link="Resources\sourcing\_shared\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

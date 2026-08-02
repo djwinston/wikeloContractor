@@ -5,7 +5,7 @@
 
   <sys:String x:Key="App_Title">Wikelo Contractor</sys:String>
 
-  <sys:String x:Key="Nav_Catalog">Каталог</sys:String>
+  <sys:String x:Key="Nav_Catalog">Контракти</sys:String>
   <sys:String x:Key="Nav_Favorites">Обране</sys:String>
   <sys:String x:Key="Nav_Inventory">Інвентар</sys:String>
   <sys:String x:Key="Nav_Sourcing">Де знайти</sys:String>
@@ -123,13 +123,15 @@
 
   <!-- Sourcing reference ("where to find"): the inventory item set with authored notes -->
   <sys:String x:Key="Sourcing_Title">Де знайти</sys:String>
-  <sys:String x:Key="Sourcing_Subtitle">Де здобути кожен предмет, який просить Wikelo. Нотатки зібрані спільнотою — виправляйте їх у sourcing-notes.json.</sys:String>
+  <sys:String x:Key="Sourcing_Subtitle">Де здобути кожен предмет, який просить Wikelo. Нотатки зібрані спільнотою — виправляйте їх у гайдах джерел.</sys:String>
   <sys:String x:Key="Sourcing_SearchPlaceholder">Пошук предметів або джерел…</sys:String>
   <sys:String x:Key="Sourcing_Empty">Жоден предмет не відповідає фільтрам.</sys:String>
   <sys:String x:Key="Sourcing_NoNote">Нотатки щодо здобуття ще немає.</sys:String>
   <sys:String x:Key="Sourcing_Back">Назад до списку</sys:String>
   <sys:String x:Key="Sourcing_WhereToFind">ДЕ ЗНАЙТИ</sys:String>
   <sys:String x:Key="Sourcing_HowToObtain">ЯК ЗДОБУТИ</sys:String>
+  <sys:String x:Key="Sourcing_Contract">Контракт</sys:String>
+  <sys:String x:Key="Sourcing_Faction">Видає</sys:String>
   <sys:String x:Key="Sourcing_GuidePlaceholder">Покрокову інструкцію для цього предмета ще не написано.</sys:String>
 
   <sys:String x:Key="Settings_Title">Налаштування</sys:String>

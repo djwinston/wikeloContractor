@@ -1,27 +1,15 @@
 ---
 name: "Irradiated Valakkar Pearl (Grade AA)"
-summary: ''
+summary: "Apex Irradiated Valakkar - Storm Breaker Lazarus locations. The grade system is not fully understood."
 ---
-
-<!--
-Everything below renders on the item's detail page as "How to obtain".
-Comments like this one are stripped and never shown, so leaving them here is safe.
-
-Supported: '## Heading', '### Sub-heading', '- bullet', '1. numbered step',
-**bold**, *italic*, `code` and [link](https://example.com).
-
-Suggested shape:
 
 ## Where to find it
 
-Locations, mission names, which containers.
+Harvested from **apex Irradiated Valakkar**. What decides the pearl's grade is **not understood** — AA
+and AAA come from the same creature, so treat the grade as luck rather than something you can target.
 
-## Step by step
-
-1. First step.
-2. Second step.
+{{include: irradiated-valakkar}}
 
 ## Notes
 
-Drop rates, gotchas, patch-specific behaviour.
--->
+- Wikelo trades a **Wikelo Favor** for 15x Irradiated Valakkar Pearl.

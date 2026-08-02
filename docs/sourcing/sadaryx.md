@@ -1,27 +1,15 @@
 ---
 name: "Sadaryx"
-summary: ''
+summary: "Rock Breaker locations."
 ---
-
-<!--
-Everything below renders on the item's detail page as "How to obtain".
-Comments like this one are stripped and never shown, so leaving them here is safe.
-
-Supported: '## Heading', '### Sub-heading', '- bullet', '1. numbered step',
-**bold**, *italic*, `code` and [link](https://example.com).
-
-Suggested shape:
 
 ## Where to find it
 
-Locations, mission names, which containers.
+Found at **Rock Breaker** locations — not in the ordinary mineral deposits, which is why the commodity
+data lists no systems for it.
 
-## Step by step
-
-1. First step.
-2. Second step.
+{{include: rock-breaker}}
 
 ## Notes
 
-Drop rates, gotchas, patch-specific behaviour.
--->
+- Wikelo asks for 10x Sadaryx alongside the plain Monde set for the Crimson Camo trade, and the set drops in the same place.

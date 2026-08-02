@@ -1,27 +1,15 @@
 ---
 name: "Bluemoon Fungus"
-summary: ''
+summary: "Harvested in caves; outposts across Stanton and Pyro."
 ---
-
-<!--
-Everything below renders on the item's detail page as "How to obtain".
-Comments like this one are stripped and never shown, so leaving them here is safe.
-
-Supported: '## Heading', '### Sub-heading', '- bullet', '1. numbered step',
-**bold**, *italic*, `code` and [link](https://example.com).
-
-Suggested shape:
 
 ## Where to find it
 
-Locations, mission names, which containers.
-
-## Step by step
-
-1. First step.
-2. Second step.
+A cave harvestable — picked up while mining underground rather than mined from a deposit. The game data
+records it at outposts across **Stanton** and **Pyro**, including Jumptown (Daymar), Paradise Cove
+(Wala), Raven's Roost (microTech), HDMS-Ryder (Ita), Gonzo (Magda), Adair's Retreat (Euterpe),
+Ashland (Ignis), Shepherd's Rest (Bloom), Stag's Rut (Pyro I) and Sunset Mesa (Monox).
 
 ## Notes
 
-Drop rates, gotchas, patch-specific behaviour.
--->
+- The plant is `harvestable`, not mineable — no mining head needed, just cave access.

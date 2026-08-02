@@ -18,6 +18,12 @@ public enum MarkdownBlockKind
 
     /// <summary><c>1.</c> item — the step-by-step case, which is what a guide mostly is.</summary>
     OrderedItem,
+
+    /// <summary>
+    /// <c>![alt](url)</c> alone on a line — a map slide or screenshot. The target lives in
+    /// <see cref="MarkdownBlock.Url"/>; the alt text stays in the inlines as the fallback caption.
+    /// </summary>
+    Image,
 }
 
 /// <summary>A run of text inside a block, carrying the inline formatting that applies to it.</summary>
@@ -27,7 +33,8 @@ public sealed record MarkdownInline(string Text, bool Bold = false, bool Italic 
 
 /// <summary>One block of a parsed document: its kind, its inline runs, and its list position.</summary>
 /// <param name="Number">1-based position within the current ordered list; 0 for every other kind.</param>
-public sealed record MarkdownBlock(MarkdownBlockKind Kind, IReadOnlyList<MarkdownInline> Inlines, int Number = 0)
+/// <param name="Url">Image target of an <see cref="MarkdownBlockKind.Image"/> block; null otherwise.</param>
+public sealed record MarkdownBlock(MarkdownBlockKind Kind, IReadOnlyList<MarkdownInline> Inlines, int Number = 0, string? Url = null)
 {
     /// <summary>The block's text with all formatting dropped — handy for tests and tooltips.</summary>
     public string PlainText => string.Concat(Inlines.Select(i => i.Text));
@@ -35,8 +42,9 @@ public sealed record MarkdownBlock(MarkdownBlockKind Kind, IReadOnlyList<Markdow
 
 /// <summary>
 /// A deliberately small Markdown subset, enough for the sourcing guides in <c>docs/sourcing/*.md</c>:
-/// <c>##</c>/<c>###</c> headings, paragraphs, <c>-</c>/<c>*</c> bullets, <c>1.</c> ordered steps, and
-/// inline <c>**bold**</c>, <c>*italic*</c>, <c>`code`</c> and <c>[text](url)</c>.
+/// <c>##</c>/<c>###</c> headings, paragraphs, <c>-</c>/<c>*</c> bullets, <c>1.</c> ordered steps,
+/// <c>![alt](url)</c> images, and inline <c>**bold**</c>, <c>*italic*</c>, <c>`code`</c> and
+/// <c>[text](url)</c>.
 /// <para>
 /// Not a CommonMark implementation and not meant to become one — anything unrecognised falls through
 /// as plain text rather than throwing, so a guide can never break the page. Pure by design (no WPF),
@@ -145,6 +153,73 @@ public static class MarkdownDocument
         return result.ToString();
     }
 
+    /// <summary>
+    /// Splices shared fragments into a body, replacing every <c>{{include: key}}</c> line with the
+    /// fragment of that name. Guides for one location repeat the same mechanic verbatim — nine RCMBNT
+    /// samples share one Site B description — and this keeps that text in a single file.
+    /// <para>
+    /// Expansion is **one level deep on purpose**: a marker inside a fragment is dropped rather than
+    /// expanded, so two fragments referencing each other cannot loop. An unknown key also leaves
+    /// nothing behind, because a reader must never be shown raw markup; the data tests fail on the
+    /// dangling reference instead, which surfaces the typo at review time.
+    /// </para>
+    /// </summary>
+    public static string ResolveIncludes(string? body, IReadOnlyDictionary<string, string> fragments)
+    {
+        if (string.IsNullOrEmpty(body))
+        {
+            return string.Empty;
+        }
+
+        var result = new StringBuilder(body.Length);
+
+        foreach (var line in SplitLines(body))
+        {
+            if (!TryIncludeKey(line, out var key))
+            {
+                _ = result.AppendLine(line);
+                continue;
+            }
+
+            if (!fragments.TryGetValue(key, out var fragment))
+            {
+                continue;
+            }
+
+            foreach (var fragmentLine in SplitLines(fragment))
+            {
+                if (!TryIncludeKey(fragmentLine, out _))
+                {
+                    _ = result.AppendLine(fragmentLine);
+                }
+            }
+        }
+
+        return result.ToString();
+    }
+
+    /// <summary>Every fragment name a body references, in order — the seam the data tests check.</summary>
+    public static IReadOnlyList<string> IncludeKeys(string? body) =>
+        string.IsNullOrEmpty(body)
+            ? []
+            : [.. SplitLines(body).Select(line => TryIncludeKey(line, out var key) ? key : null).OfType<string>()];
+
+    private static bool TryIncludeKey(string line, out string key)
+    {
+        key = string.Empty;
+        var trimmed = line.Trim();
+
+        if (!trimmed.StartsWith("{{include:", StringComparison.OrdinalIgnoreCase)
+            || !trimmed.EndsWith("}}", StringComparison.Ordinal)
+            || trimmed.Length <= "{{include:".Length + 2)
+        {
+            return false;
+        }
+
+        key = trimmed["{{include:".Length..^2].Trim();
+        return key.Length > 0;
+    }
+
     /// <summary>Parses body text into blocks. Blank lines separate blocks; unknown syntax stays text.</summary>
     public static IReadOnlyList<MarkdownBlock> Parse(string? body)
     {
@@ -175,6 +250,15 @@ public static class MarkdownDocument
                 blocks.Add(new MarkdownBlock(
                     level == 2 ? MarkdownBlockKind.Heading : MarkdownBlockKind.SubHeading,
                     ParseInlines(headingText)));
+                continue;
+            }
+
+            if (TryImage(line, out var altText, out var imageUrl))
+            {
+                FlushParagraph();
+                // Deliberately does not reset the counter: a screenshot placed between two steps
+                // illustrates them, so "1. / picture / 2." must keep numbering rather than restart.
+                blocks.Add(new MarkdownBlock(MarkdownBlockKind.Image, ParseInlines(altText), Url: imageUrl));
                 continue;
             }
 
@@ -239,6 +323,31 @@ public static class MarkdownDocument
         level = hashes;
         text = line[(hashes + 1)..].Trim();
         return text.Length > 0;
+    }
+
+    /// <summary>
+    /// Matches <c>![alt](url)</c> filling the whole line. Block-level only: an image sitting inside a
+    /// sentence has nowhere sensible to go in a TextBlock stack, so it stays literal text instead.
+    /// </summary>
+    private static bool TryImage(string line, out string alt, out string url)
+    {
+        alt = string.Empty;
+        url = string.Empty;
+
+        if (line.Length < 5 || !line.StartsWith("![", StringComparison.Ordinal) || line[^1] != ')')
+        {
+            return false;
+        }
+
+        var separator = line.IndexOf("](", 2, StringComparison.Ordinal);
+        if (separator < 0)
+        {
+            return false;
+        }
+
+        alt = line[2..separator].Trim();
+        url = line[(separator + 2)..^1].Trim();
+        return url.Length > 0;
     }
 
     private static bool TryBullet(string line, out string text)

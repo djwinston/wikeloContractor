@@ -70,6 +70,14 @@ collects patterns and pitfalls discovered while building the UI.
   comments-only stub correctly reports "no body" and shows `Sourcing_GuidePlaceholder`.
 - `MarkdownViewer` only launches `http`/`https` links. The `%AppData%` layer is user-writable, so a
   `file:` or custom-scheme URI must never reach the shell.
+- Every `##` section is wrapped in a stock `Expander`, **expanded by default** — a long step list can
+  be folded away, but a guide opens readable. The stock control is used on purpose: WPF-UI ships
+  `DefaultExpanderStyle`, so it lands on the token layer without a hand-rolled disclosure control.
+- `![alt](url)` renders as a picture, resolved through `Views/Helpers/ThumbnailLoader` — the same
+  disk-cached path as the reward thumbs, so a remote slide downloads once and a relative path
+  resolves against the install directory. Loading is fire-and-forget and never upscales
+  (`StretchDirection.DownOnly`); a missing image leaves an empty slot instead of failing the page.
+  Image references are limited to `http`/`https`/local paths for the same reason links are.
 
 ## Favourites (Phase 2.5)
 

@@ -5,7 +5,7 @@
 
   <sys:String x:Key="App_Title">Wikelo Contractor</sys:String>
 
-  <sys:String x:Key="Nav_Catalog">Catalog</sys:String>
+  <sys:String x:Key="Nav_Catalog">Contracts</sys:String>
   <sys:String x:Key="Nav_Favorites">Favorites</sys:String>
   <sys:String x:Key="Nav_Inventory">Inventory</sys:String>
   <sys:String x:Key="Nav_Sourcing">Where to Find</sys:String>
@@ -124,13 +124,15 @@
 
   <!-- Sourcing reference ("where to find"): the inventory item set with authored notes -->
   <sys:String x:Key="Sourcing_Title">Where to Find</sys:String>
-  <sys:String x:Key="Sourcing_Subtitle">Where to source every item Wikelo asks for. Notes are community-sourced — correct them in sourcing-notes.json.</sys:String>
+  <sys:String x:Key="Sourcing_Subtitle">Where to source every item Wikelo asks for. Notes are community-sourced — correct them in the sourcing guides.</sys:String>
   <sys:String x:Key="Sourcing_SearchPlaceholder">Search items or sources…</sys:String>
   <sys:String x:Key="Sourcing_Empty">No items match the filters.</sys:String>
   <sys:String x:Key="Sourcing_NoNote">No sourcing note yet.</sys:String>
   <sys:String x:Key="Sourcing_Back">Back to the list</sys:String>
   <sys:String x:Key="Sourcing_WhereToFind">WHERE TO FIND IT</sys:String>
   <sys:String x:Key="Sourcing_HowToObtain">HOW TO OBTAIN IT</sys:String>
+  <sys:String x:Key="Sourcing_Contract">Contract</sys:String>
+  <sys:String x:Key="Sourcing_Faction">Given by</sys:String>
   <sys:String x:Key="Sourcing_GuidePlaceholder">A step-by-step guide for this item has not been written yet.</sys:String>
 
   <sys:String x:Key="Settings_Title">Settings</sys:String>

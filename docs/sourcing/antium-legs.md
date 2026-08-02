@@ -1,27 +1,15 @@
 ---
 name: "Antium Legs"
-summary: ''
+summary: "Align & Mine / Storm Breaker - 300k tan boxes behind locked doors."
 ---
-
-<!--
-Everything below renders on the item's detail page as "How to obtain".
-Comments like this one are stripped and never shown, so leaving them here is safe.
-
-Supported: '## Heading', '### Sub-heading', '- bullet', '1. numbered step',
-**bold**, *italic*, `code` and [link](https://example.com).
-
-Suggested shape:
 
 ## Where to find it
 
-Locations, mission names, which containers.
+Looted at **Align & Mine** and **Storm Breaker** locations. This is the *base* Antium set — the one
+Wikelo takes in trade, not the finished product he hands back.
 
-## Step by step
-
-1. First step.
-2. Second step.
+{{include: locked-tan-boxes}}
 
 ## Notes
 
-Drop rates, gotchas, patch-specific behaviour.
--->
+- All four Antium pieces come from the same boxes, so one good run can fill the set.

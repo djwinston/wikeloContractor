@@ -185,4 +185,103 @@ public class MarkdownDocumentTests
 
         Assert.Equal([MarkdownBlockKind.Heading, MarkdownBlockKind.OrderedItem], kinds);
     }
+
+    [Fact]
+    public void An_image_line_carries_its_url_and_keeps_the_alt_text()
+    {
+        var block = Assert.Single(MarkdownDocument.Parse("![Site B map](https://example.com/map.png)"));
+
+        Assert.Equal(MarkdownBlockKind.Image, block.Kind);
+        Assert.Equal("https://example.com/map.png", block.Url);
+        Assert.Equal("Site B map", block.PlainText);
+    }
+
+    [Fact]
+    public void An_image_may_be_a_bundled_relative_path() =>
+        Assert.Equal(
+            "img/onyx-site-b.png",
+            Assert.Single(MarkdownDocument.Parse("![](img/onyx-site-b.png)")).Url);
+
+    [Fact]
+    public void An_image_between_steps_does_not_restart_the_numbering()
+    {
+        var numbers = MarkdownDocument.Parse("1. first\n![](a.png)\n2. second")
+            .Where(b => b.Kind == MarkdownBlockKind.OrderedItem)
+            .Select(b => b.Number)
+            .ToList();
+
+        Assert.Equal([1, 2], numbers);
+    }
+
+    [Fact]
+    public void An_image_inside_a_sentence_stays_plain_text()
+    {
+        var block = Assert.Single(MarkdownDocument.Parse("see ![map](a.png) here"));
+
+        Assert.Equal(MarkdownBlockKind.Paragraph, block.Kind);
+        Assert.Null(block.Url);
+    }
+
+    [Theory]
+    [InlineData("![alt]()")]
+    [InlineData("![alt](a.png")]
+    [InlineData("![alt]")]
+    public void A_malformed_image_degrades_to_text(string line) =>
+        Assert.NotEqual(MarkdownBlockKind.Image, Assert.Single(MarkdownDocument.Parse(line)).Kind);
+
+    private static readonly Dictionary<string, string> _fragments =
+        new(StringComparer.OrdinalIgnoreCase) { ["shared"] = "Shared prose.\n\n- A bullet." };
+
+    [Fact]
+    public void An_include_is_replaced_by_its_fragment()
+    {
+        var resolved = MarkdownDocument.ResolveIncludes("## Heading\n\n{{include: shared}}\n", _fragments);
+
+        Assert.Contains("Shared prose.", resolved);
+        Assert.Contains("- A bullet.", resolved);
+        Assert.DoesNotContain("{{include", resolved);
+    }
+
+    [Fact]
+    public void An_included_fragment_parses_as_ordinary_blocks()
+    {
+        var kinds = MarkdownDocument
+            .Parse(MarkdownDocument.ResolveIncludes("{{include: shared}}", _fragments))
+            .Select(b => b.Kind)
+            .ToList();
+
+        Assert.Equal([MarkdownBlockKind.Paragraph, MarkdownBlockKind.Bullet], kinds);
+    }
+
+    [Fact]
+    public void An_unknown_include_leaves_no_markup_behind() =>
+        Assert.DoesNotContain("{{", MarkdownDocument.ResolveIncludes("before\n{{include: missing}}\nafter", _fragments));
+
+    [Fact]
+    public void Include_keys_are_case_insensitive() =>
+        Assert.Contains("Shared prose.", MarkdownDocument.ResolveIncludes("{{INCLUDE: SHARED}}", _fragments));
+
+    [Fact]
+    public void A_fragment_referencing_another_fragment_cannot_loop()
+    {
+        var cyclic = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["a"] = "A text.\n{{include: b}}",
+            ["b"] = "B text.\n{{include: a}}",
+        };
+
+        var resolved = MarkdownDocument.ResolveIncludes("{{include: a}}", cyclic);
+
+        Assert.Contains("A text.", resolved);
+        Assert.DoesNotContain("B text.", resolved);
+        Assert.DoesNotContain("{{", resolved);
+    }
+
+    [Fact]
+    public void An_include_inside_a_sentence_is_left_alone() =>
+        Assert.Contains("see {{include: shared}} here", MarkdownDocument.ResolveIncludes("see {{include: shared}} here", _fragments));
+
+    [Fact]
+    public void Include_keys_are_reported_for_validation() =>
+        Assert.Equal(["one", "two"], MarkdownDocument.IncludeKeys("{{include: one}}\ntext\n{{include: two}}"));
 }
