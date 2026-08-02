@@ -13,4 +13,10 @@ public sealed class AppSettings
     public string Language { get; set; } = "en";
 
     public AppTheme Theme { get; set; } = AppTheme.System;
+
+    /// <summary>
+    /// In-game overlay preferences. Never null: a settings file written before the overlay existed
+    /// has no such member, and the initializer supplies the defaults.
+    /// </summary>
+    public OverlaySettings Overlay { get; set; } = new();
 }

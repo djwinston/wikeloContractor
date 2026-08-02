@@ -73,6 +73,17 @@
     <GradientStop Offset="1" Color="#000D95B5" />
   </LinearGradientBrush>
 
+  <!-- In-game overlay. Deliberately NOT a white panel: what sits behind this window is Star Citizen,
+       not the app's light surface, so a light-theme HUD is still dark glass — only a shade lighter
+       and a touch more transparent than the dark one. Inverting it here would produce a white box
+       over a night-side cockpit. Alpha lives in the brushes, never in Window.Opacity. -->
+  <SolidColorBrush x:Key="OverlayBackgroundBrush" Color="#CC141A21" />
+  <SolidColorBrush x:Key="OverlayBorderBrush" Color="#4D53D8F2" />
+  <SolidColorBrush x:Key="OverlayRowBackgroundBrush" Color="#1AFFFFFF" />
+  <SolidColorBrush x:Key="OverlaySlotBadgeBackgroundBrush" Color="#3D53D8F2" />
+  <SolidColorBrush x:Key="OverlaySlotBadgeForegroundBrush" Color="#9BE6F6" />
+  <SolidColorBrush x:Key="OverlayInteractiveBorderBrush" Color="#CC53D8F2" />
+
   <!-- About page hero panel: a branded glow behind the mark and wordmark -->
   <RadialGradientBrush
     x:Key="AboutHeroBackgroundBrush"

@@ -48,6 +48,20 @@ public abstract partial class RequirementListViewModel : ViewModel
 
     protected IContractCatalogService CatalogService { get; }
 
+    /// <summary>
+    /// The row VMs behind <see cref="Items"/>, in projection order. Exposed so a subclass can fan a
+    /// service event onto every row (counts, pin state) without keeping a second list of its own.
+    /// </summary>
+    protected IReadOnlyList<IRequirementItem> ItemVms => _itemVms;
+
+    /// <summary>
+    /// Called after <see cref="ItemVms"/> has been replaced. The rows are new objects, so anything a
+    /// subclass derives from them — a pin counter, a summary line — has to be recomputed here.
+    /// </summary>
+    protected virtual void OnItemsRebuilt()
+    {
+    }
+
     /// <summary>Grouped, filtered view over the items; refreshed in place as the filters change.</summary>
     [ObservableProperty]
     private ICollectionView? _items;
@@ -124,19 +138,16 @@ public abstract partial class RequirementListViewModel : ViewModel
         // A rebuild may drop the previewed item; close the overlay so it can't linger.
         IsPreviewOpen = false;
 
-        _itemVms = contracts
-            .SelectMany(c => c.Requirements)
-            .GroupBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
-            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
-            .Select(g => CreateItem(
-                g.Key,
-                InventoryCategoryClassifier.Classify(g.Key, g.Any(r => r.MinScu is not null || r.MaxScu is not null))))
+        _itemVms = InventoryCategoryClassifier
+            .ClassifyDistinct(contracts)
+            .Select(item => CreateItem(item.Name, item.Category))
             .ToList();
 
         var view = new ListCollectionView(_itemVms) { Filter = FilterItem };
         view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(IRequirementItem.CategoryLabel)));
         Items = view;
         UpdateIsEmpty();
+        OnItemsRebuilt();
     }
 
     private bool FilterItem(object item)

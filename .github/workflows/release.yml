@@ -64,7 +64,14 @@ jobs:
           $vpkArgs = @(
             'pack',
             '--packId', 'WikeloContractor',
-            '--packTitle', 'Wikelo Contractor',
+            # MUST stay identical to the --mainExe base name below. vpk names the portable launcher
+            # after --packTitle, but Update.exe re-creates it from --mainExe, so a prettier title with
+            # a space leaves the updated folder with two launchers ("Wikelo Contractor.exe" and
+            # "WikeloContractor.exe") and any shortcut to the first one keeps starting the stale stub.
+            # Upstream bug: https://github.com/velopack/velopack/issues/982 — fixed in PR #985 but
+            # released only in the 1.2.110-* prerelease, so keeping the two names equal is the fix
+            # that works on the pinned stable 1.2.0.
+            '--packTitle', 'WikeloContractor',
             '--packVersion', $env:VERSION,
             '--packDir', 'publish',
             '--mainExe', 'WikeloContractor.exe',
@@ -94,8 +101,9 @@ jobs:
           # extracted exe as "Modified: 1979-12-31 23:00" (UTC-1980-01-01 in non-UTC zones), which
           # reads as a corrupted/tampered file. Re-zip with the release commit's timestamp instead.
           # Only the portable zip is touched — Setup.exe/.nupkg/RELEASES feed the Velopack update
-          # manifest and portable builds don't auto-update anyway (IsInstalled is false), so nothing
-          # here affects update integrity.
+          # manifest and are left exactly as vpk produced them, so nothing here affects update
+          # integrity. (Portable builds *do* update: Velopack counts the .portable layout as
+          # installed, which is why the manifest must not be repacked.)
           $stamp = [DateTimeOffset]::Parse((git log -1 --format=%cI)).UtcDateTime
 
           $zipPath = (Get-ChildItem -Path Releases -Filter '*-Portable.zip').FullName

@@ -43,6 +43,26 @@ public static class InventoryCategoryDisplay
 /// </summary>
 public static class InventoryCategoryClassifier
 {
+    /// <summary>
+    /// Every distinct required item across a set of contracts, classified, ordered by name. The
+    /// single home for "what items exist and what are they": the inventory grid, the sourcing grid
+    /// and the overlay must agree on both the set and the category, or the same item shows a
+    /// different glyph in different places.
+    /// <para>
+    /// Requirements carry no SCU flag per occurrence, so an item counts as SCU-delivered if <em>any</em>
+    /// contract hauls it that way.
+    /// </para>
+    /// </summary>
+    public static IEnumerable<(string Name, InventoryCategory Category)> ClassifyDistinct(
+        IEnumerable<WikeloContract> contracts) =>
+        contracts
+            .SelectMany(contract => contract.Requirements)
+            .GroupBy(requirement => requirement.Name, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(group => (
+                group.Key,
+                Classify(group.Key, group.Any(r => r.MinScu is not null || r.MaxScu is not null))));
+
     public static InventoryCategory Classify(string name, bool hasScu)
     {
         // Favor / currency-like tokens (Wikelo Favor, MG/Council Scrip, Polaris Bit). "Bit" is matched

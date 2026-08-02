@@ -32,4 +32,15 @@
   <!-- Minimum interactive target (star toggle, icon buttons) -->
   <sys:Double x:Key="SizeHitTarget">28</sys:Double>
 
+  <!-- In-game overlay. The minimums are what OverlayPlacement clamps a restored window up to, so a
+       hand-edited settings file cannot shrink the HUD to an invisible sliver. -->
+  <sys:Double x:Key="SizeOverlayDefaultWidth">280</sys:Double>
+  <sys:Double x:Key="SizeOverlayMinWidth">220</sys:Double>
+  <sys:Double x:Key="SizeOverlayMinHeight">120</sys:Double>
+  <sys:Double x:Key="SizeOverlaySlotBadge">22</sys:Double>
+  <!-- Square on purpose, and it must stay square. A rounded corner on an AllowsTransparency window
+       is anti-aliased against the transparent backdrop rather than against what is behind it, so
+       over a moving game it renders as a visibly ragged step instead of a clean curve. -->
+  <CornerRadius x:Key="RadiusOverlay">0</CornerRadius>
+
 </ResourceDictionary>

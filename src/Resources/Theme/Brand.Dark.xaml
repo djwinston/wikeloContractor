@@ -70,6 +70,19 @@
     <GradientStop Offset="1" Color="#002FD0EE" />
   </LinearGradientBrush>
 
+  <!-- In-game overlay. Fluent has no "translucent panel floating over another application" role, so
+       these are ours. Alpha is carried by the brushes, never by Window.Opacity — fading the window
+       would fade the text with it, and the text is the entire point at 1080p over a bright cockpit.
+       Note this is NOT the #CC000000 page scrim: that value is the project's one design-system
+       violation and must not spread here. -->
+  <SolidColorBrush x:Key="OverlayBackgroundBrush" Color="#D90C0F14" />
+  <SolidColorBrush x:Key="OverlayBorderBrush" Color="#3A2FD0EE" />
+  <SolidColorBrush x:Key="OverlayRowBackgroundBrush" Color="#14FFFFFF" />
+  <SolidColorBrush x:Key="OverlaySlotBadgeBackgroundBrush" Color="#332FD0EE" />
+  <SolidColorBrush x:Key="OverlaySlotBadgeForegroundBrush" Color="#7FDCEF" />
+  <!-- Interactive mode: the border brightens so "can I click this?" is answerable at a glance. -->
+  <SolidColorBrush x:Key="OverlayInteractiveBorderBrush" Color="#B32FD0EE" />
+
   <!-- About page hero panel: a branded glow behind the mark and wordmark -->
   <RadialGradientBrush
     x:Key="AboutHeroBackgroundBrush"

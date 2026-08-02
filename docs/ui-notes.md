@@ -271,6 +271,109 @@ per requirement; reopening shows a warning dialog and lists what was deducted bu
 it (the inventory is the source of truth — the user updates it manually). Deductions fire
 `IInventoryStore.Changed`, so sibling contracts recompute their readiness immediately.
 
+## In-game overlay (Phase 4)
+
+A second window: a small always-on-top HUD listing up to **ten user-pinned items** with their counts,
+driven by global hotkeys so it never needs the mouse while Star Citizen holds the cursor.
+`Models/OverlaySlots.MaxSlots` is the cap and `PinnedItemsService` (`pinned.json`, an ordered name
+list) enforces it — the order **is** the slot assignment, and the slot number is what the hotkey digit
+selects. Unpinning compacts the slots, so unpinning slot 3 renumbers everything below it.
+
+**Layering.** `Views/OverlayWindow` is a plain `Window`, deliberately **not** `ui:FluentWindow`: the
+Mica backdrop and title-bar chrome do not compose with a layered HUD drawn over another application.
+Four settings are load-bearing and must be changed together or not at all:
+
+- `AllowsTransparency="True"` is what makes WPF give the window **`WS_EX_LAYERED`**, which
+  `WS_EX_TRANSPARENT` (click-through) requires. A future "drop transparency for perf" change would
+  silently break click-through with no error anywhere.
+- `ShowActivated="False"` plus **`WS_EX_NOACTIVATE`** — without both, showing the HUD steals focus and
+  can minimise a fullscreen game.
+- `WS_EX_TOOLWINDOW` keeps it out of Alt+Tab.
+- Opacity lives in the **brush alpha**, never `Window.Opacity`: fading the window fades the text, and
+  the text is the whole point at 1080p over a bright cockpit.
+
+**The height always follows the content** (`SizeToContent="Height"`), and the saved height is
+deliberately restored into `OverlayPlacement.Clamp` but **not** applied to the window. Restoring it
+made the HUD a fixed size, so pinning a tenth item just clipped the tenth row — no scrollbar, no sign
+anything was missing, the counter reading 10/10 while the overlay showed nine and the "0" badge never
+appeared. With ten rows maximum the growth is bounded, so growing beats hiding. Only Left/Top/Width
+are restored.
+
+Corners are **square** (`RadiusOverlay` = 0) and must stay square: on an `AllowsTransparency` window a
+rounded corner is anti-aliased against the transparent backdrop rather than against what is behind it,
+which over a moving game reads as a ragged step rather than a curve.
+
+**Placement.** Saved geometry outlives the monitor it was saved on, and a borderless, click-through,
+Alt-Tab-invisible window restored onto a screen that is gone cannot be reached by any means short of
+editing `settings.json`. `Models/OverlayPlacement.Clamp` is the single home for that rule (pure, so it
+is unit-tested without WPF); Settings' **Reset position** is the second escape hatch. The window tracks
+its bounds on `LocationChanged`/`OnRenderSizeChanged` rather than reading `RestoreBounds` on demand —
+`Application.Shutdown` closes every window **before** raising `Exit`, so by the time the host's
+`StopAsync` asks, the window is already gone and the geometry the user just dragged into place would be
+lost on every exit.
+
+**Hotkeys.** `Services/HotkeyService` owns the Win32 surface and nothing about the domain: it registers
+what a `Models/HotkeyPlan` asks for and reports presses as `Pressed`. The sink is a dedicated
+**message-only** `HwndSource`, not MainWindow and not the overlay — WPF destroys windows before
+`StopAsync`, so hooking a real window would make teardown depend on window-close ordering. Two settings
+rows instead of twenty: a modifier **pattern** (`Ctrl+Alt`) plus the slot digit, expanded per pinned
+slot by `HotkeyPlan.Build`, which also detects our own collisions before Win32 turns them into a bare
+"already in use". `MOD_NOREPEAT` is deliberately **not** set — holding the key to add twenty ore in one
+go is the gesture the overlay exists for.
+
+Three things that will bite:
+
+- **`RegisterHotKey` is greedy and global.** Once the app owns `Ctrl+Alt+1`, Star Citizen never sees it
+  again and its in-game bind dies silently. The Settings hint says so; do not remove it.
+- **Partial failure is never rolled back.** Another application may already own one combination;
+  abandoning the other nineteen over it would be worse. `HotkeyApplyResult` carries the losers and the
+  Settings `InfoBar` names them.
+- **The click-through lockout.** If `ToggleInteractive` fails to register and the HUD starts
+  click-through, there is no way back. `OverlayService.Initialize` forces interactive mode in exactly
+  that case — this is the one failure that produces "the app is broken and I can't fix it".
+- **UIPI silently swallows hotkeys under an elevated foreground window.** Registration succeeds, the
+  keys work on the desktop, and nothing arrives once an elevated Star Citizen has focus — no error,
+  anywhere. `Services/AppElevation` detects the unelevated case and Settings offers **Restart as
+  administrator**. The only unelevated workaround would be a low-level keyboard hook, which is exactly
+  what anti-cheat exists to stop, so it is not on the table.
+
+**Testability.** `OverlayViewModel`/`OverlaySlotViewModel` hold no `Window` reference and
+`OverlayService` reaches the window through `IOverlayWindow`, so the whole feature — hotkey to store to
+readiness chip — is exercised by raising `IHotkeyService.Pressed`. See `docs/testing.md`.
+
+Overlay rows use a **category glyph, not `ItemThumbTemplate`**: that template binds
+`RelativeSource AncestorType=Page` and cannot resolve inside a `Window`. Widening it would push a
+page-shaped assumption into a shared dictionary to serve one HUD.
+
+**Anti-cheat:** no injection, no `SetWindowsHookEx`, no reading SC memory — a topmost layered window
+plus `RegisterHotKey` are ordinary windowing APIs. Do not "improve" this into a low-level keyboard
+hook, which is exactly what EAC exists to stop. `uiAccess=true` is also out: it requires signing *and*
+installation under `Program Files`, and the project is portable-and-unsigned until SignPath lands.
+
+### Inventory pins
+
+The pin button is a plain `ui:Button` with a `DataTrigger` on the read-only `IsPinned` — **not**
+`ui:ToggleButton`, same pitfall as the favourite star (a `ToggleButton` writes `IsChecked` locally on
+click and kills the binding). An `Overlay N/10` counter sits beside the search box, because a cap that
+only shows up when the eleventh pin silently fails is not a cap the user can plan around.
+
+`InventoryItemViewModel.RefreshCount` is wired to `IInventoryStore.Changed` through **one**
+subscription on `InventoryViewModel`, fanned onto the rows (the same shape as
+`ContractListViewModel.OnInventoryChanged`). Both halves of its guard earn their place: the equality
+check means 94 of 95 rows exit immediately on every hotkey press, and the `_suppressWrite` flag makes
+"a store-driven refresh must not write back" a readable local invariant rather than something inferred
+from the store's de-duplication.
+
+### Hotkey capture
+
+`Views/Controls/HotkeyBox` is a read-only WPF-UI `TextBox` that captures a combination instead of text,
+in two modes: a full binding, or `PatternOnly` for the two modifier rows. It swallows **every** key
+while focused, Tab included — a capture box that lets Tab escape cannot bind Tab and gives the user no
+clue why. Alt-combinations arrive as `Key.System` with the real key in `SystemKey`. Esc/Delete clears a
+row, which is how a hotkey is disabled: `HotkeyPlan.Build` skips an unparseable entry. Modifier-less
+bindings are rejected — owning a bare "O" globally would swallow the key in every application on the
+machine.
+
 ## Adaptive app icon
 
 `MainWindow.UpdateAppIcon` follows `ApplicationThemeManager.Changed` (unsubscribed in `OnClosed`)

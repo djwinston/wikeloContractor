@@ -1,5 +1,6 @@
 using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Velopack;
 using Wpf.Ui;
 using Wpf.Ui.DependencyInjection;
@@ -11,6 +12,11 @@ namespace WikeloContractor;
 public partial class App
 {
     private static readonly IHost _host = Host.CreateDefaultBuilder()
+        .ConfigureLogging(logging =>
+        {
+            // File log next to Update.exe — see AppLog for why not next to the executable.
+            _ = logging.AddProvider(new FileLoggerProvider());
+        })
         .ConfigureServices((context, services) =>
         {
             // WPF UI: page provider for NavigationView
@@ -45,6 +51,22 @@ public partial class App
             // Personal inventory: counter store + user-supplied item images.
             _ = services.AddSingleton<IInventoryStore, InventoryStore>();
             _ = services.AddSingleton<IInventoryImageOverrideService, InventoryImageOverrideService>();
+
+            // Items the user pinned to the in-game overlay, in slot order.
+            _ = services.AddSingleton<IPinnedItemsService, PinnedItemsService>();
+
+            // Global hotkeys (the overlay's whole point: no alt-tab out of the game).
+            _ = services.AddSingleton<IHotkeyService, HotkeyService>();
+
+            // In-game overlay. The window is TRANSIENT while everything else here is a singleton:
+            // a closed WPF Window is permanently dead (Show() throws after Close()), so a singleton
+            // window could never come back. The coordinator takes a factory rather than the window
+            // itself — that also breaks what would otherwise be a construction cycle, and is the
+            // seam the E2E tests substitute.
+            _ = services.AddSingleton<ViewModels.OverlayViewModel>();
+            _ = services.AddSingleton<IOverlayService, OverlayService>();
+            _ = services.AddTransient<IOverlayWindow, Views.OverlayWindow>();
+            _ = services.AddSingleton<Func<IOverlayWindow>>(provider => provider.GetRequiredService<IOverlayWindow>);
 
             // "Where to find" knowledge base: Markdown files shipped in the install dir, plus a
             // %AppData% layer the user owns. See docs/sourcing/README.md.
@@ -84,10 +106,23 @@ public partial class App
 
     private async void OnStartup(object sender, StartupEventArgs e)
     {
+        AppLog.Write("Information", $"--- Startup, version {AppVersion.Current} ---");
+
         // Must run before any UI: handles Velopack install/update/uninstall hooks (the installer
         // relaunches the exe with special args) and exits the process for those, so a normal
-        // launch falls straight through to starting the host.
-        VelopackApp.Build().Run();
+        // launch falls straight through to starting the host. The logger is attached here rather
+        // than through DI because those hooks run and exit before the host is ever built.
+        VelopackApp.Build()
+            .SetLogger(new VelopackFileLogger())
+            .Run();
+
+        // After the hooks: the updater's own log is complete for the run that just happened.
+        AppLog.MirrorUpdaterLog();
+
+        // The overlay makes this a two-window app, and the default OnLastWindowClose would then make
+        // "does the app exit?" depend on how many windows happen to be open. MainWindow.OnClosed's
+        // Application.Current.Shutdown() stays the single exit trigger.
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
         await _host.StartAsync();
     }
@@ -100,6 +135,8 @@ public partial class App
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
-        // TODO (Phase 5): logging and a friendly error message
+        // Recorded but not swallowed: the crash still surfaces as it did before, it is simply no
+        // longer invisible afterwards. Turning it into a friendly dialog is a separate decision.
+        AppLog.Write("Critical", "Unhandled dispatcher exception.", e.Exception);
     }
 }

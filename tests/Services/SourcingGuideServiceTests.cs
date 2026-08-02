@@ -149,11 +149,13 @@ public sealed class SourcingGuideServiceTests : IDisposable
         Assert.Null(Service().GetGuide("Carinite"));
     }
 
+    private static string FragmentPath(string layer, string file) => Path.Combine(layer, "_shared", file);
+
     private void WriteFragment(string layer, string file, string content)
     {
         var directory = Path.Combine(layer, "_shared");
         _ = Directory.CreateDirectory(directory);
-        File.WriteAllText(Path.Combine(directory, file), content);
+        File.WriteAllText(FragmentPath(layer, file), content);
     }
 
     [Fact]
@@ -239,6 +241,9 @@ public sealed class SourcingGuideServiceTests : IDisposable
         // Only the fragment changes; the guide file is untouched, so this fails unless the
         // reload signature covers the _shared folders too.
         WriteFragment(_bundled, "onyx.md", "---\nname: onyx\n---\n\nSecond wording.");
+        // Force a distinct timestamp: file systems may round write times coarsely, and in a Release
+        // build both writes land inside one clock tick, so the signature would not change at all.
+        File.SetLastWriteTimeUtc(FragmentPath(_bundled, "onyx.md"), DateTime.UtcNow.AddSeconds(2));
 
         Assert.Contains("Second wording.", service.GetGuide("Carinite")!.Body);
     }

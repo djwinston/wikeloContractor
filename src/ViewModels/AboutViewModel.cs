@@ -37,11 +37,7 @@ public partial class AboutViewModel : ViewModel
     };
 
     /// <summary>App version from the assembly (single source: &lt;Version&gt; in the csproj).</summary>
-    public string AppVersion { get; } =
-        typeof(AboutViewModel).Assembly
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-            .InformationalVersion.Split('+')[0]
-        ?? "0.0.0";
+    public string AppVersion => Services.AppVersion.Current;
 
     public AboutViewModel(IAppUpdateService appUpdateService)
     {
@@ -66,4 +62,25 @@ public partial class AboutViewModel : ViewModel
 
     [RelayCommand]
     private void RestartForAppUpdate() => _appUpdateService.ApplyAndRestart();
+
+    /// <summary>
+    /// Opens the folder holding the log files. The updater writes half the story into a hidden
+    /// profile directory, so a button that lands the user in the right place beats a path they have
+    /// to be told over chat.
+    /// </summary>
+    [RelayCommand]
+    private static void OpenLogFolder()
+    {
+        try
+        {
+            _ = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(AppLog.Directory)
+            {
+                UseShellExecute = true,
+            });
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write("Warning", "Could not open the log folder.", ex);
+        }
+    }
 }
