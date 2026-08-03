@@ -34,6 +34,18 @@ public sealed class OverlaySettings
     public bool ShowOnStartup { get; set; }
 
     /// <summary>
+    /// Which mechanism delivers the presses — <c>Auto</c>, <c>RawInput</c> or <c>RegisterHotKey</c>,
+    /// read through <see cref="HotkeyBackendKinds.Parse"/> so a typo degrades to <c>Auto</c>.
+    /// <para>
+    /// A string rather than an enum for the same reason the hotkeys are strings: this file is meant to
+    /// be readable and hand-editable. It exists as an escape hatch — the default resolves itself, and
+    /// forcing <c>RegisterHotKey</c> is how the old behaviour is compared against the new one without
+    /// a rebuild.
+    /// </para>
+    /// </summary>
+    public string HotkeyBackend { get; set; } = nameof(HotkeyBackendKind.Auto);
+
+    /// <summary>
     /// Last position and size in device-independent pixels; null means "never placed" and the overlay
     /// picks its own spot on first show. Restored through <see cref="OverlayPlacement.Clamp"/> so a
     /// since-unplugged monitor cannot strand it off-screen.

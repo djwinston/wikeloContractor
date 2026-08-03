@@ -67,14 +67,6 @@ public partial class SettingsViewModel : ViewModel
     [ObservableProperty]
     private bool _hasOverlayHotkeyIssue;
 
-    /// <summary>
-    /// True when the app is NOT elevated — i.e. when hotkeys can silently stop working the moment an
-    /// elevated Star Citizen takes the foreground. See <see cref="AppElevation"/>.
-    /// </summary>
-    public bool ShowElevationHint => !AppElevation.IsElevated;
-
-    public bool IsElevated => AppElevation.IsElevated;
-
     public SettingsViewModel(
         ISettingsService settingsService,
         ILocalizationService localizationService,
@@ -148,20 +140,6 @@ public partial class SettingsViewModel : ViewModel
     /// </summary>
     [RelayCommand]
     private void ResetOverlayPosition() => _overlayService.ResetPlacement();
-
-    /// <summary>
-    /// Relaunches elevated so global hotkeys survive an elevated game taking the foreground. The UAC
-    /// prompt is the user's confirmation; the current instance exits only once the new one is on its
-    /// way, so a declined prompt leaves everything as it was.
-    /// </summary>
-    [RelayCommand]
-    private void RestartElevated()
-    {
-        if (AppElevation.TryRestartElevated())
-        {
-            Application.Current.Shutdown();
-        }
-    }
 
     public override void OnNavigatedTo()
     {

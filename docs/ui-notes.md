@@ -312,30 +312,51 @@ its bounds on `LocationChanged`/`OnRenderSizeChanged` rather than reading `Resto
 `StopAsync` asks, the window is already gone and the geometry the user just dragged into place would be
 lost on every exit.
 
-**Hotkeys.** `Services/HotkeyService` owns the Win32 surface and nothing about the domain: it registers
-what a `Models/HotkeyPlan` asks for and reports presses as `Pressed`. The sink is a dedicated
-**message-only** `HwndSource`, not MainWindow and not the overlay — WPF destroys windows before
-`StopAsync`, so hooking a real window would make teardown depend on window-close ordering. Two settings
-rows instead of twenty: a modifier **pattern** (`Ctrl+Alt`) plus the slot digit, expanded per pinned
-slot by `HotkeyPlan.Build`, which also detects our own collisions before Win32 turns them into a bare
-"already in use". `MOD_NOREPEAT` is deliberately **not** set — holding the key to add twenty ore in one
-go is the gesture the overlay exists for.
+**Hotkeys.** `Services/HotkeyService` owns the Win32 surface and nothing about the domain: it applies
+what a `Models/HotkeyPlan` asks for and reports presses as `Pressed`. Two settings rows instead of
+twenty: a modifier **pattern** (`Ctrl+Alt`) plus the slot digit, expanded per pinned slot by
+`HotkeyPlan.Build`, which also detects our own collisions up front. Auto-repeat is deliberately kept —
+holding the key to add twenty ore in one go is the gesture the overlay exists for.
 
-Three things that will bite:
+**`RegisterHotKey` does not work in game, and this was learned the hard way.** It delivers through the
+system hotkey table, and a foreground application can take that table out of service for everyone (Raw
+Input's own `RIDEV_NOHOTKEYS` does exactly that). The symptom is the worst kind: registration succeeds,
+no error is reported anywhere, the keys work on the desktop, and nothing arrives once Star Citizen has
+focus. It was first misdiagnosed here as UIPI — Windows not delivering hotkeys to a lower-integrity
+process — and an elevation workaround was built for it. **Running elevated does not fix it**, verified
+in the field. Do not re-add that workaround.
 
-- **`RegisterHotKey` is greedy and global.** Once the app owns `Ctrl+Alt+1`, Star Citizen never sees it
-  again and its in-game bind dies silently. The Settings hint says so; do not remove it.
-- **Partial failure is never rolled back.** Another application may already own one combination;
-  abandoning the other nineteen over it would be worse. `HotkeyApplyResult` carries the losers and the
-  Settings `InfoBar` names them.
+So delivery is a strategy, `Services/IHotkeyBackend`:
+
+- **`RawInputBackend` (default)** — a keyboard subscription with `RIDEV_INPUTSINK`. The system posts
+  `WM_INPUT` straight to the window that asked, whoever is in front; the hotkey table is not involved.
+- **`RegisterHotkeyBackend` (fallback)** — the old path, kept because it is the only one that claims a
+  combination *exclusively*, and because Raw Input's subscription can in principle be refused.
+
+`OverlaySettings.HotkeyBackend` (`Auto` / `RawInput` / `RegisterHotKey`) forces one for comparison;
+`Auto` prefers Raw Input and falls back. The live backend is named in the log at startup — that line is
+the first thing to ask for when someone reports dead hotkeys.
+
+The sink is a dedicated hidden `HwndSource`, not MainWindow and not the overlay — WPF destroys windows
+before `StopAsync`, so hooking a real window would make teardown depend on window-close ordering. It is
+a normal top-level window that is never shown, **not** a message-only one: `WM_HOTKEY` would reach a
+message-only window, but a Raw Input sink registered against one never receives `WM_INPUT` at all.
+
+Four things that will bite:
+
+- **Raw Input does not claim the combination.** Star Citizen still receives the same keystroke, so a
+  binding the player also uses in game fires both. That is the opposite failure to `RegisterHotKey`'s
+  and just as invisible — the Settings hint says so; do not remove it.
+- **The sink sees every keystroke on the machine.** `HotkeyLookup.IsTrigger` runs first for that
+  reason: unrelated input is dropped in one set lookup, before anything is read, stored or logged.
+  Keep it that way.
+- **Partial failure is never rolled back.** Under `RegisterHotKey` another application may already own
+  one combination; abandoning the other nineteen over it would be worse. `HotkeyApplyResult` carries
+  the losers and the Settings `InfoBar` names them. Under Raw Input nothing can fail, so `Failed` is
+  always empty there — conflicts between two of *our* bindings still surface either way.
 - **The click-through lockout.** If `ToggleInteractive` fails to register and the HUD starts
   click-through, there is no way back. `OverlayService.Initialize` forces interactive mode in exactly
   that case — this is the one failure that produces "the app is broken and I can't fix it".
-- **UIPI silently swallows hotkeys under an elevated foreground window.** Registration succeeds, the
-  keys work on the desktop, and nothing arrives once an elevated Star Citizen has focus — no error,
-  anywhere. `Services/AppElevation` detects the unelevated case and Settings offers **Restart as
-  administrator**. The only unelevated workaround would be a low-level keyboard hook, which is exactly
-  what anti-cheat exists to stop, so it is not on the table.
 
 **Testability.** `OverlayViewModel`/`OverlaySlotViewModel` hold no `Window` reference and
 `OverlayService` reaches the window through `IOverlayWindow`, so the whole feature — hotkey to store to
@@ -345,10 +366,12 @@ Overlay rows use a **category glyph, not `ItemThumbTemplate`**: that template bi
 `RelativeSource AncestorType=Page` and cannot resolve inside a `Window`. Widening it would push a
 page-shaped assumption into a shared dictionary to serve one HUD.
 
-**Anti-cheat:** no injection, no `SetWindowsHookEx`, no reading SC memory — a topmost layered window
-plus `RegisterHotKey` are ordinary windowing APIs. Do not "improve" this into a low-level keyboard
-hook, which is exactly what EAC exists to stop. `uiAccess=true` is also out: it requires signing *and*
-installation under `Program Files`, and the project is portable-and-unsigned until SignPath lands.
+**Anti-cheat:** no injection, no `SetWindowsHookEx`, no reading SC memory — a topmost layered window,
+`RegisterHotKey` and a Raw Input sink are ordinary windowing APIs. Raw Input is *passive*: it observes
+and cannot swallow, alter or inject a keystroke, which is exactly what separates it from a hook. Do not
+"improve" this into a low-level keyboard hook, which is what EAC exists to stop. `uiAccess=true` is
+also out: it requires signing *and* installation under `Program Files`, and the project is
+portable-and-unsigned until SignPath lands.
 
 ### Inventory pins
 

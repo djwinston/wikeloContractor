@@ -5,8 +5,14 @@ using Xunit;
 namespace WikeloContractor.Tests.E2E;
 
 /// <summary>
-/// The hotkey service's decoding path. Lives in the WPF tier because the message sink is a real
-/// window and has to be created on an STA dispatcher thread.
+/// The hotkey service's <c>WM_HOTKEY</c> decoding path. Lives in the WPF tier because the message sink
+/// is a real window and has to be created on an STA dispatcher thread.
+/// <para>
+/// Every test here pins the backend to <see cref="HotkeyBackendKind.RegisterHotKey"/>. That is the one
+/// that decodes <c>WM_HOTKEY</c>, and pinning it also keeps the suite off whatever the machine happens
+/// to resolve <see cref="HotkeyBackendKind.Auto"/> to. The Raw Input decode is covered in
+/// <c>tests/Services/RawInputBackendTests</c>, which needs no window at all.
+/// </para>
 /// <para>
 /// What is <b>not</b> asserted: that <c>RegisterHotKey</c> succeeded. Whether the OS grants
 /// <c>Ctrl+Alt+1</c> depends on what else is running on the machine, so a test demanding it would be
@@ -53,6 +59,7 @@ public sealed class HotkeyServiceTests(WpfAppFixture fixture)
         var service = new HotkeyService();
         try
         {
+            service.Start(HotkeyBackendKind.RegisterHotKey);
             return body(service);
         }
         finally
@@ -186,12 +193,76 @@ public sealed class HotkeyServiceTests(WpfAppFixture fixture)
         await fixture.OnUiAsync(() =>
         {
             var service = new HotkeyService();
-            service.Start();
-            service.Start();
+            service.Start(HotkeyBackendKind.RegisterHotKey);
+            service.Start(HotkeyBackendKind.RegisterHotKey);
             service.Stop();
             service.Stop();
             service.Dispose();
             service.Dispose();
         });
+    }
+
+    [Fact]
+    public async Task The_requested_backend_is_the_one_that_runs()
+    {
+        var name = await fixture.OnUiAsync(() =>
+        {
+            var service = new HotkeyService();
+            try
+            {
+                service.Start(HotkeyBackendKind.RegisterHotKey);
+                return service.BackendName;
+            }
+            finally
+            {
+                service.Dispose();
+            }
+        });
+
+        Assert.Equal("RegisterHotKey", name);
+    }
+
+    [Fact]
+    public async Task Auto_resolves_to_a_backend_and_reports_which()
+    {
+        // Which one it lands on is the machine's business — a Raw Input subscription can be refused —
+        // but "some backend is live and says so" must hold, because that log line is the whole
+        // diagnostic when hotkeys go quiet in game.
+        var name = await fixture.OnUiAsync(() =>
+        {
+            var service = new HotkeyService();
+            try
+            {
+                service.Start(HotkeyBackendKind.Auto);
+                return service.BackendName;
+            }
+            finally
+            {
+                service.Dispose();
+            }
+        });
+
+        Assert.Contains(name, new[] { "RawInput", "RegisterHotKey" });
+    }
+
+    [Fact]
+    public async Task Stopping_forgets_the_backend()
+    {
+        var name = await fixture.OnUiAsync(() =>
+        {
+            var service = new HotkeyService();
+            try
+            {
+                service.Start(HotkeyBackendKind.RegisterHotKey);
+                service.Stop();
+                return service.BackendName;
+            }
+            finally
+            {
+                service.Dispose();
+            }
+        });
+
+        Assert.Equal("none", name);
     }
 }

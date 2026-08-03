@@ -31,11 +31,20 @@ public sealed class FakeHotkeyService : IHotkeyService
 
     public HotkeyApplyResult LastResult { get; private set; } = HotkeyApplyResult.None;
 
+    /// <summary>Which backend the host asked for; null until <see cref="Start"/>.</summary>
+    public HotkeyBackendKind? StartedWith { get; private set; }
+
+    public string BackendName => StartedWith?.ToString() ?? "none";
+
     public event EventHandler? ResultChanged;
 
     public event EventHandler<HotkeyPressed>? Pressed;
 
-    public void Start() => StartCount++;
+    public void Start(HotkeyBackendKind kind)
+    {
+        StartCount++;
+        StartedWith = kind;
+    }
 
     public HotkeyApplyResult Apply(HotkeyPlan plan)
     {

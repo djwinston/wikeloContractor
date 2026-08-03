@@ -13,7 +13,7 @@ Two modes: Wikelo contract **Catalog** and **Personal inventory** with an in-gam
 | DI | Microsoft.Extensions.Hosting (Generic Host) |
 | API | `api.star-citizen.wiki` (public, no auth), swagger: `docs.star-citizen.wiki` |
 | Data | Local: JSON in `%AppData%\WikeloContractor\` + API cache |
-| Overlay | Topmost window, global hotkey (`RegisterHotKey`), click-through toggle |
+| Overlay | Topmost window, global hotkeys (Raw Input sink), click-through toggle |
 | UI languages | English (default) + Ukrainian. API data stays in English, not translated |
 
 Reference (what already exists): https://wikelotrades.com , community Excel spreadsheet (outdated).
@@ -389,9 +389,9 @@ twenty. Full rationale in `docs/ui-notes.md` "In-game overlay".
       against the old fixed-temp-path, unlocked, fire-and-forget write would have thrown `IOException`
       into a swallowed task and lost writes.
 - [x] **`Interop/NativeMethods`** — the repo's first and only P/Invoke surface, `[LibraryImport]`.
-      **`Services/HotkeyService`** owns the Win32 side on a dedicated **message-only** `HwndSource`
-      (hooking a real window would make teardown depend on window-close ordering); partial
-      registration failure is reported, never rolled back.
+      **`Services/HotkeyService`** owns the Win32 side on a dedicated hidden `HwndSource` (hooking a
+      real window would make teardown depend on window-close ordering); partial registration failure
+      is reported, never rolled back.
 - [x] **`ShutdownMode = OnExplicitShutdown`** — with a second window the default would make exiting
       window-count-dependent. Verified by smoke run that closing MainWindow still exits cleanly.
 - [x] **`OverlayViewModel`/`OverlaySlotViewModel`/`OverlayService`** — windowless; the coordinator
@@ -406,15 +406,24 @@ twenty. Full rationale in `docs/ui-notes.md` "In-game overlay".
       badge, `Overlay N/10` counter, and the long-orphaned `RefreshCount` finally wired to
       `IInventoryStore.Changed`.
 - [x] **Settings** — overlay section with four `HotkeyBox` capture rows, show-on-startup, a conflict
-      `InfoBar` fed from `IHotkeyService.LastResult`, **Reset position**, and the warning that
-      `RegisterHotKey` is greedy: while the app runs, Star Citizen never sees those combinations.
+      `InfoBar` fed from `IHotkeyService.LastResult`, **Reset position**, and the warning that the
+      game receives the same combinations, so anything already bound in game will fire twice.
+- [x] **Raw Input backend** — `RegisterHotKey` proved not to work in game: it delivers through the
+      system hotkey table, which a foreground application can disable for everyone, with no error
+      reported anywhere. First misdiagnosed as UIPI; **running as administrator does not fix it**, so
+      that workaround (`AppElevation` + the Settings restart button) was removed rather than kept.
+      Delivery is now a strategy behind `Services/IHotkeyBackend` — `RawInputBackend`
+      (`RIDEV_INPUTSINK` → `WM_INPUT`, arrives whoever is in front) by default, `RegisterHotkeyBackend`
+      as fallback, `OverlaySettings.HotkeyBackend` to force one. The matching rule lives in the pure
+      `Models/HotkeyLookup`, whose key-only pre-filter is also what keeps unrelated typing — the sink
+      sees all of it — from ever being read or logged.
 - [x] **Docs** — `docs/ui-notes.md`, `docs/design-system.md`, `docs/testing.md`, `CLAUDE.md`.
-      Tests: 344 green, including `E2E/OverlayScenarios` (the seam is `IHotkeyService.Pressed`, the
-      event — never the real Win32 hotkey table) and `E2E/HotkeyServiceTests` for `WM_HOTKEY` decoding.
-- [ ] **In-game verification (user, cannot be automated)** — draws above SC in Fullscreen (DWM
-      fullscreen optimizations) and Borderless; hotkeys fire while SC has focus and the defaults do
-      not collide with the player's binds; clicks genuinely pass through in HUD mode; showing the HUD
-      does not steal focus or minimise the game; legibility at 1080p/1440p/4K and 125 %/150 % DPI.
+      Tests: 378 green, including `E2E/OverlayScenarios` (the seam is `IHotkeyService.Pressed`, the
+      event — never the real Win32 hotkey table), `E2E/HotkeyServiceTests` for `WM_HOTKEY` decoding
+      and `Services/RawInputBackendTests` for the Raw Input decode.
+- [x] **In-game verification (user, cannot be automated)** — HUD draws above SC, hotkeys fire while
+      the game has focus, increment/decrement and interactive mode all work. Confirmed 2026-08-03,
+      unelevated, on the Raw Input backend.
 
 ### Phase 4.1 — Slot count derived from the monitor (planned, not built)
 

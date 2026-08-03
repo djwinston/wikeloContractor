@@ -46,7 +46,9 @@ public sealed class ApplicationHostService(IServiceProvider serviceProvider) : I
         }
 
         // The hotkey sink is a window, so it has to be created on the UI thread — which this is.
-        serviceProvider.GetRequiredService<IHotkeyService>().Start();
+        serviceProvider
+            .GetRequiredService<IHotkeyService>()
+            .Start(HotkeyBackendKinds.Parse(settingsService.Current.Overlay.HotkeyBackend));
 
         // Deliberately after MainWindow: WPF assigns Application.MainWindow to the first window
         // created, and ContractCompletionInteraction centres its dialogs on it.

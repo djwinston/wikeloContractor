@@ -12,9 +12,11 @@ namespace WikeloContractor.Interop;
 /// </para>
 /// <para>
 /// <b>Nothing here touches Star Citizen.</b> No injection, no <c>SetWindowsHookEx</c>, no reading
-/// another process's memory — a topmost layered window plus <c>RegisterHotKey</c> are ordinary
-/// windowing APIs that anti-cheat has no reason to object to. Keep it that way: a low-level keyboard
-/// hook would look exactly like the thing EAC exists to stop.
+/// another process's memory — a topmost layered window, <c>RegisterHotKey</c> and a Raw Input sink are
+/// ordinary windowing APIs that anti-cheat has no reason to object to. Keep it that way: a low-level
+/// keyboard hook would look exactly like the thing EAC exists to stop. Raw Input is <em>passive</em> —
+/// it observes, it cannot swallow or alter a keystroke, which is precisely what separates it from a
+/// hook.
 /// </para>
 /// </summary>
 internal static partial class NativeMethods
@@ -23,6 +25,13 @@ internal static partial class NativeMethods
 
     /// <summary>Posted to the registering window's message queue when a hotkey fires.</summary>
     internal const int WM_HOTKEY = 0x0312;
+
+    /// <summary>
+    /// Posted when a Raw Input device we subscribed to produced input. Unlike <see cref="WM_HOTKEY"/>
+    /// this must still reach <c>DefWindowProc</c> afterwards so the system can clean the buffer up —
+    /// never mark it handled.
+    /// </summary>
+    internal const int WM_INPUT = 0x00FF;
 
     /// <summary>Index of the extended window style, for <c>Get/SetWindowLongPtr</c>.</summary>
     internal const int GWL_EXSTYLE = -20;
@@ -35,12 +44,6 @@ internal static partial class NativeMethods
 
     /// <summary>The window never takes focus — so showing the HUD cannot minimise a fullscreen game.</summary>
     internal const int WS_EX_NOACTIVATE = 0x08000000;
-
-    /// <summary>
-    /// Parent handle that makes a window <em>message-only</em>: it is never displayed, never enumerated
-    /// and has no z-order, but it still receives posted messages. Exactly what a hotkey sink wants.
-    /// </summary>
-    internal static readonly nint HWND_MESSAGE = -3;
 
     /// <summary>
     /// Claims a system-wide hotkey. Greedy: once this succeeds, no other application — including Star
@@ -62,4 +65,117 @@ internal static partial class NativeMethods
 
     [LibraryImport(_user32, EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
     internal static partial nint SetWindowLongPtr(nint hWnd, int nIndex, nint dwNewLong);
+
+    // ---------------------------------------------------------------------------------------------
+    // Raw Input. The reason it exists here at all: RegisterHotKey delivers through the system's
+    // hotkey table, and a foreground application can shut that path down for everyone (Raw Input's
+    // own RIDEV_NOHOTKEYS does exactly that) — which is why our hotkeys register cleanly, work on the
+    // desktop, and go silent the moment Star Citizen is focused. RIDEV_INPUTSINK does not use that
+    // table: the system posts WM_INPUT straight to the window that asked, whoever is in front.
+    // ---------------------------------------------------------------------------------------------
+
+    /// <summary>HID usage page for generic desktop controls — keyboards, mice, joysticks.</summary>
+    internal const ushort HID_USAGE_PAGE_GENERIC = 0x01;
+
+    /// <summary>HID usage identifying a keyboard within <see cref="HID_USAGE_PAGE_GENERIC"/>.</summary>
+    internal const ushort HID_USAGE_GENERIC_KEYBOARD = 0x06;
+
+    /// <summary>Stops receiving input from a usage page; the target handle must be null with it.</summary>
+    internal const uint RIDEV_REMOVE = 0x00000001;
+
+    /// <summary>
+    /// Deliver input even while the target window is in the background. The whole point of this
+    /// backend — and the reason the target may not be a <em>message-only</em> window, which never
+    /// receives <c>WM_INPUT</c>.
+    /// </summary>
+    internal const uint RIDEV_INPUTSINK = 0x00000100;
+
+    /// <summary><c>GetRawInputData</c> command asking for the input payload rather than the header.</summary>
+    internal const uint RID_INPUT = 0x10000003;
+
+    /// <summary><c>RAWINPUTHEADER.Type</c> for keyboard input (mouse is 0, HID is 2).</summary>
+    internal const uint RIM_TYPEKEYBOARD = 1;
+
+    /// <summary><c>RAWKEYBOARD.Flags</c> bit meaning the key went <em>up</em>.</summary>
+    internal const ushort RI_KEY_BREAK = 0x01;
+
+    /// <summary>
+    /// The "no key" virtual code some keyboards emit as part of a multi-key sequence. Never a real
+    /// press, and must be dropped before it reaches any lookup.
+    /// </summary>
+    internal const int VK_NONE = 0xFF;
+
+    internal const int VK_SHIFT = 0x10;
+    internal const int VK_CONTROL = 0x11;
+    internal const int VK_MENU = 0x12;
+    internal const int VK_LWIN = 0x5B;
+    internal const int VK_RWIN = 0x5C;
+
+    /// <summary><c>RAWINPUTDEVICE</c>: one usage page to subscribe to, and where to deliver it.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct RawInputDevice
+    {
+        internal ushort UsagePage;
+        internal ushort Usage;
+        internal uint Flags;
+        internal nint Target;
+    }
+
+    /// <summary><c>RAWINPUTHEADER</c>: which kind of device produced the payload that follows.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct RawInputHeader
+    {
+        internal uint Type;
+        internal uint Size;
+        internal nint Device;
+        internal nint WParam;
+    }
+
+    /// <summary><c>RAWKEYBOARD</c>: one make/break code and its virtual key.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct RawKeyboard
+    {
+        internal ushort MakeCode;
+        internal ushort Flags;
+        internal ushort Reserved;
+        internal ushort VKey;
+        internal uint Message;
+        internal uint ExtraInformation;
+    }
+
+    /// <summary>
+    /// <c>RAWINPUT</c> narrowed to its keyboard arm. Only keyboards are subscribed to, so the union's
+    /// other members can never arrive and modelling them would only invite reading the wrong one.
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct RawInputKeyboard
+    {
+        internal RawInputHeader Header;
+        internal RawKeyboard Keyboard;
+    }
+
+    /// <summary>
+    /// Subscribes this process to a raw device usage page. Passed by <c>ref</c> rather than as an
+    /// array because exactly one device is ever registered, and a pointer to a single element is the
+    /// same thing to Win32 as a one-element array.
+    /// </summary>
+    [LibraryImport(_user32, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool RegisterRawInputDevices(ref RawInputDevice pRawInputDevices, uint uiNumDevices, uint cbSize);
+
+    /// <summary>
+    /// Copies the payload behind a <c>WM_INPUT</c> handle. Returns the byte count written, or
+    /// <c>(uint)-1</c> on failure — including when the buffer is too small.
+    /// </summary>
+    [LibraryImport(_user32, SetLastError = true)]
+    internal static partial uint GetRawInputData(
+        nint hRawInput, uint uiCommand, ref RawInputKeyboard pData, ref uint pcbSize, uint cbSizeHeader);
+
+    /// <summary>
+    /// Physical key state, independent of which window has focus. Used to read the modifiers at the
+    /// moment a Raw Input key goes down: tracking them from the raw stream ourselves would leave a
+    /// modifier stuck "held" whenever it was released while the secure desktop (a UAC prompt) was up.
+    /// </summary>
+    [LibraryImport(_user32)]
+    internal static partial short GetAsyncKeyState(int vKey);
 }
