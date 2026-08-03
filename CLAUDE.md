@@ -84,9 +84,6 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
     `Services/AppVersion` — assembly version without the `+commit` suffix, shared by the log banner
     and the About page
   - `Services/AppHttp` — the User-Agent constant for every outgoing HttpClient
-  - `Services/AppElevation` — the only place that asks "are we elevated?" and the only place that
-    relaunches with `Verb = "runas"`. Static and dependency-free like `AppLog`; exists for the UIPI
-    hotkey limit described under *Overlay notes*
   - `ViewModels/Localized` — code-side localized strings: `Localized.String(key)` /
     `Localized.Format(key, args)` (XAML uses `{DynamicResource}` directly)
   - `ViewModels/UiThread.Invoke(action)` — the dispatcher hop every service-event fan-out needs
@@ -120,10 +117,16 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
     `[DllImport]`). A second Win32 declaration anywhere else is a review finding: a duplicated
     signature with subtly different marshalling is how that class of bug hides. `AllowUnsafeBlocks`
     is on solely because the `LibraryImport` generator emits unsafe marshalling code
-  - `Services/HotkeyService` — the global-hotkey surface and nothing about the domain; it registers a
-    `Models/HotkeyPlan` and reports presses. `Services/OverlayService` is the coordinator that decides
-    what a press *means* and owns the window through `IOverlayWindow`. Keeping the window out of the
-    decision layer is what makes the overlay testable — see `docs/ui-notes.md` and `docs/testing.md`
+  - `Services/HotkeyService` — the global-hotkey surface and nothing about the domain; it owns the
+    hidden sink window, applies a `Models/HotkeyPlan` and reports presses. *How* a press arrives is a
+    strategy behind `Services/IHotkeyBackend`: `RawInputBackend` (default) and `RegisterHotkeyBackend`
+    (fallback) — a third delivery mechanism implements that interface, it does not fork the service.
+    `Services/OverlayService` is the coordinator that decides what a press *means* and owns the window
+    through `IOverlayWindow`. Keeping the window out of the decision layer is what makes the overlay
+    testable — see `docs/ui-notes.md` and `docs/testing.md`
+  - `Models/HotkeyLookup` — the "is this combination one of ours" decision (`IsTrigger` for the cheap
+    key-only reject, `Match` for the exact modifiers+key answer). Pure, so the matching rule is
+    provable without a window or a keyboard; the Raw Input backend holds no matching logic of its own
   - `Views/Controls/HotkeyBox` — the key-combination capture box (full binding or modifier-only
     `PatternOnly`). A second hotkey-capture control is a review finding
   - `ViewModels/ContractListViewModel` — the base for **any page showing a filterable contract
@@ -236,10 +239,10 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
 rationale. The short version:
 
 - Separate borderless `Topmost` window (`Views/OverlayWindow`, a plain `Window` — **not**
-  `ui:FluentWindow`); global hotkeys via user32 `RegisterHotKey` on a **message-only** `HwndSource`;
-  click-through = toggling `WS_EX_TRANSPARENT`, which only works because `AllowsTransparency="True"`
-  gives the window `WS_EX_LAYERED`. `ShowActivated="False"` + `WS_EX_NOACTIVATE` keep a fullscreen
-  game from minimising when the HUD appears.
+  `ui:FluentWindow`); global hotkeys on a dedicated hidden `HwndSource` (**not** message-only — see
+  the Raw Input bullet); click-through = toggling `WS_EX_TRANSPARENT`, which only works because
+  `AllowsTransparency="True"` gives the window `WS_EX_LAYERED`. `ShowActivated="False"` +
+  `WS_EX_NOACTIVATE` keep a fullscreen game from minimising when the HUD appears.
 - Up to ten user-pinned items (`Models/OverlaySlots.MaxSlots`), one hotkey digit each: two configurable
   modifier **patterns** plus the digit, not twenty separate bindings. Unpinning compacts the slots.
 - `App.ShutdownMode = OnExplicitShutdown` — with a second window the default `OnLastWindowClose`
@@ -251,18 +254,22 @@ rationale. The short version:
   `Func<IOverlayWindow>`, which also breaks what would be a construction cycle.
 - Overlays render above Star Citizen even in its "Fullscreen" mode on Windows 11
   (DWM fullscreen optimizations); confirmed by the SCLOC-Verse community app.
-- **UIPI is why hotkeys "work on the desktop but not in game".** Windows does not deliver a global
-  hotkey to a lower-integrity process while a higher-integrity window is foreground, and Star Citizen
-  is commonly launched elevated. `RegisterHotKey` still *succeeds*, the keys still work while the game
-  is minimised, and nothing reports an error anywhere — so this reads as a bug in our code and is not
-  one. `Services/AppElevation` detects the unelevated case (`WindowsPrincipal.IsInRole(Administrator)`)
-  and Settings offers **Restart as administrator** (`Verb = "runas"`, a declined UAC prompt is a caught
-  `Win32Exception`, not a crash). Reported from the field, not theorised.
-- **No injection, no `SetWindowsHookEx`, no reading SC memory.** A topmost layered window plus
-  `RegisterHotKey` are ordinary windowing APIs; a low-level keyboard hook is exactly what anti-cheat
-  exists to stop — and it is also the only *unelevated* way around the UIPI limit above, so if someone
-  proposes one "to fix hotkeys in game", that is the trade being made. `uiAccess=true` is out too — it
-  needs signing *and* `Program Files`.
+- **`RegisterHotKey` is why hotkeys "work on the desktop but not in game" — Raw Input is the fix.**
+  `RegisterHotKey` delivers through the *system hotkey table*, which a foreground application can take
+  out of service for everyone (Raw Input's own `RIDEV_NOHOTKEYS` does exactly that). Registration
+  succeeds, no error is reported anywhere, and nothing arrives once the game has focus — so it reads as
+  a bug in our code and is not one. This was first misdiagnosed as UIPI and an elevation workaround was
+  built; **running as administrator does not fix it**, verified in the field. Do not re-add it.
+  `Services/RawInputBackend` (`RIDEV_INPUTSINK` → `WM_INPUT`, delivered whoever is in front) is the
+  default, `Services/RegisterHotkeyBackend` the fallback, `OverlaySettings.HotkeyBackend` forces one.
+  Two consequences: Raw Input does **not** claim the combination, so the game still receives the same
+  keystroke; and the sink sees every keystroke on the machine, which is why `Models/HotkeyLookup`
+  filters on the key alone before anything else is read, stored or logged.
+- **No injection, no `SetWindowsHookEx`, no reading SC memory.** A topmost layered window,
+  `RegisterHotKey` and a Raw Input sink are ordinary windowing APIs; Raw Input is *passive* and cannot
+  swallow, alter or inject a keystroke, which is what separates it from a hook. A low-level keyboard
+  hook is exactly what anti-cheat exists to stop, and nothing now needs one. `uiAccess=true` is out
+  too — it needs signing *and* `Program Files`.
 
 ## Distribution & updates (Phase 5)
 

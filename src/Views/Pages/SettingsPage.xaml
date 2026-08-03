@@ -118,8 +118,9 @@
         Hotkey="{Binding ViewModel.OverlayInteractiveKey, Mode=TwoWay}" />
     </Grid>
 
-    <!-- RegisterHotKey is greedy: once we own a combination, Star Citizen never sees it again and
-         the in-game bind dies with no error anywhere. The user has to be told. -->
+    <!-- The Raw Input backend observes rather than claims, so Star Citizen still receives the same
+         keystroke. A combination the player has also bound in game therefore does both things — the
+         opposite failure to RegisterHotKey's, and just as invisible unless the user is told. -->
     <TextBlock
       Margin="0,10,0,0"
       FontSize="{StaticResource FontSizeCaption}"
@@ -133,32 +134,6 @@
       IsOpen="{Binding ViewModel.HasOverlayHotkeyIssue, Mode=OneWay}"
       Message="{Binding ViewModel.OverlayHotkeyIssue, Mode=OneWay}"
       Severity="Warning" />
-
-    <!-- Windows does not deliver a global hotkey while a higher-integrity window is in the
-         foreground, and Star Citizen is commonly launched elevated. Nothing reports this: the
-         registration succeeds and the keys simply stop arriving once the game has focus. -->
-    <ui:InfoBar
-      Margin="0,8,0,0"
-      Title="{DynamicResource Settings_Overlay_Elevation_Title}"
-      IsClosable="False"
-      IsOpen="{Binding ViewModel.ShowElevationHint, Mode=OneWay}"
-      Message="{DynamicResource Settings_Overlay_Elevation_Hint}"
-      Severity="Informational">
-      <ui:InfoBar.Content>
-        <ui:Button
-          Margin="0,10,0,4"
-          Command="{Binding ViewModel.RestartElevatedCommand}"
-          Content="{DynamicResource Settings_Overlay_Elevation_Restart}"
-          Icon="{ui:SymbolIcon ShieldTask24}" />
-      </ui:InfoBar.Content>
-    </ui:InfoBar>
-
-    <ui:InfoBar
-      Margin="0,8,0,0"
-      IsClosable="False"
-      IsOpen="{Binding ViewModel.IsElevated, Mode=OneWay}"
-      Message="{DynamicResource Settings_Overlay_Elevation_Active}"
-      Severity="Success" />
 
     <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
       <ui:Button

@@ -160,15 +160,11 @@
   <sys:String x:Key="Settings_Overlay_Decrement">Відняти одиницю — ці модифікатори плюс цифра слота</sys:String>
   <sys:String x:Key="Settings_Overlay_Toggle">Показати / сховати оверлей</sys:String>
   <sys:String x:Key="Settings_Overlay_Interactive">Заблокувати / розблокувати (клік проходить крізь)</sys:String>
-  <sys:String x:Key="Settings_Overlay_GreedyHint">Глобальні гарячі клавіші є ексклюзивними: доки застосунок працює, Star Citizen більше не отримує наведені вище комбінації. Клацніть поле й натисніть клавіші; Esc очищає поле й вимикає цю гарячу клавішу.</sys:String>
+  <sys:String x:Key="Settings_Overlay_GreedyHint">Глобальні гарячі клавіші є спільними: Star Citizen так само отримує наведені вище комбінації, тож уникайте тих, які прив'язані й у грі. Клацніть поле й натисніть клавіші; Esc очищає поле й вимикає цю гарячу клавішу.</sys:String>
   <!-- {0} the combinations that were dropped -->
   <sys:String x:Key="Settings_Overlay_Conflict">Дві з цих гарячих клавіш претендують на однакову комбінацію, тому {0} вимкнено.</sys:String>
   <!-- {0} the combinations another application already owns -->
   <sys:String x:Key="Settings_Overlay_Failed">Windows відхилила {0} — цю комбінацію вже зайняв інший застосунок. Оберіть іншу.</sys:String>
-  <sys:String x:Key="Settings_Overlay_Elevation_Title">Гарячі клавіші не працюють, коли фокус у грі?</sys:String>
-  <sys:String x:Key="Settings_Overlay_Elevation_Hint">Windows не доставляє глобальні гарячі клавіші звичайному застосунку, доки на передньому плані вікно, запущене від імені адміністратора. Star Citizen зазвичай запускають саме так, тому клавіші працюють на робочому столі й перестають одразу після переходу в гру. Перезапуск цього застосунку від адміністратора це виправляє.</sys:String>
-  <sys:String x:Key="Settings_Overlay_Elevation_Restart">Перезапустити від адміністратора</sys:String>
-  <sys:String x:Key="Settings_Overlay_Elevation_Active">Запущено від адміністратора — гарячі клавіші доходять і до гри з підвищеними правами.</sys:String>
   <sys:String x:Key="Settings_Overlay_Show">Показати оверлей</sys:String>
   <sys:String x:Key="Settings_Overlay_ResetPosition">Скинути позицію</sys:String>
 

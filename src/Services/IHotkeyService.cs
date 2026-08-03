@@ -16,10 +16,17 @@ public sealed record HotkeyPressed(HotkeyAction Action, int Slot);
 public interface IHotkeyService
 {
     /// <summary>
-    /// Creates the message sink. Must be called on the UI thread — the sink is a window, and
-    /// <see cref="Pressed"/> is therefore raised on that thread too, so handlers may touch the UI.
+    /// Creates the message sink and the backend. Must be called on the UI thread — the sink is a
+    /// window, and <see cref="Pressed"/> is therefore raised on that thread too, so handlers may touch
+    /// the UI.
     /// </summary>
-    void Start();
+    /// <param name="kind">Which delivery mechanism to use; see <see cref="HotkeyBackendKind"/>.</param>
+    void Start(HotkeyBackendKind kind);
+
+    /// <summary>
+    /// Which backend is live, for the log and for a field report. "none" until <see cref="Start"/>.
+    /// </summary>
+    string BackendName { get; }
 
     /// <summary>
     /// Replaces the live registrations with the plan's. Combinations another application already owns

@@ -161,15 +161,11 @@
   <sys:String x:Key="Settings_Overlay_Decrement">Subtract one — these modifiers plus the slot digit</sys:String>
   <sys:String x:Key="Settings_Overlay_Toggle">Show / hide the overlay</sys:String>
   <sys:String x:Key="Settings_Overlay_Interactive">Lock / unlock (click-through)</sys:String>
-  <sys:String x:Key="Settings_Overlay_GreedyHint">Global hotkeys are exclusive: while the app runs, Star Citizen no longer receives the combinations above. Click a field and press the keys; Esc clears it and turns that hotkey off.</sys:String>
+  <sys:String x:Key="Settings_Overlay_GreedyHint">Global hotkeys are shared: Star Citizen still receives the combinations above, so avoid anything you have also bound in game. Click a field and press the keys; Esc clears it and turns that hotkey off.</sys:String>
   <!-- {0} the combinations that were dropped -->
   <sys:String x:Key="Settings_Overlay_Conflict">Two of these hotkeys ask for the same combination, so {0} was dropped.</sys:String>
   <!-- {0} the combinations another application already owns -->
   <sys:String x:Key="Settings_Overlay_Failed">Windows refused {0} — another application already owns it. Pick a different combination.</sys:String>
-  <sys:String x:Key="Settings_Overlay_Elevation_Title">Hotkeys don't work while the game has focus?</sys:String>
-  <sys:String x:Key="Settings_Overlay_Elevation_Hint">Windows does not deliver global hotkeys to an ordinary app while a window running as administrator is in the foreground. Star Citizen is usually launched that way, so the keys work on the desktop and stop the moment you switch to the game. Restarting this app as administrator fixes it.</sys:String>
-  <sys:String x:Key="Settings_Overlay_Elevation_Restart">Restart as administrator</sys:String>
-  <sys:String x:Key="Settings_Overlay_Elevation_Active">Running as administrator — hotkeys also reach an elevated game.</sys:String>
   <sys:String x:Key="Settings_Overlay_Show">Show the overlay</sys:String>
   <sys:String x:Key="Settings_Overlay_ResetPosition">Reset position</sys:String>
 

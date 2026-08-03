@@ -63,11 +63,22 @@ state, which is what the XAML binds to; rendering stays covered by the manual sm
 ### Overlay scenarios
 
 **The seam is `IHotkeyService.Pressed`, the event — not the Win32 message.** Two reasons, both
-disqualifying for the alternative: registering global combinations from a test would steal
-`Ctrl+Alt+O` from whoever is at the keyboard, and whether Win32 grants one depends on what else is
-running, so `Assert(RegisterHotKey succeeded)` is flaky everywhere but the author's desk. The
-decoding of `WM_HOTKEY` into an action and slot is covered separately by `E2E/HotkeyServiceTests`,
-which calls the hook directly on the STA fixture and never asks the OS for anything.
+disqualifying for the alternative: claiming global combinations from a test would steal
+`Ctrl+Alt+O` from whoever is at the keyboard, and whether the OS grants one depends on what else is
+running, so `Assert(RegisterHotKey succeeded)` is flaky everywhere but the author's desk.
+
+Decoding is covered below that seam, one file per backend, and neither asks the OS for anything:
+
+- `E2E/HotkeyServiceTests` — `WM_HOTKEY` → action and slot, by calling the hook directly on the STA
+  fixture. Every test pins `HotkeyBackendKind.RegisterHotKey`, both because that is the backend which
+  decodes that message and so the suite does not depend on what `Auto` resolves to on the machine.
+- `Services/RawInputBackendTests` — the Raw Input decode, with **no window at all**. The OS half (the
+  subscription, and a `WM_INPUT` payload only Windows can produce) is left out; what is driven is
+  `RawInputBackend.OnKeyDown` plus an injected modifier reader, which is the whole decision.
+- `Models/HotkeyLookupTests` — the matching rule itself, pure.
+
+The one machine-dependent thing asserted anywhere is that `Auto` resolves to *some* backend and says
+which — that log line is the entire diagnostic when hotkeys go quiet in game, so it has to hold.
 
 That seam is also why `OverlayViewModel` holds no `Window` and `OverlayService` reaches the window
 through `IOverlayWindow`: keeping the window out of the decision layer is what makes the whole

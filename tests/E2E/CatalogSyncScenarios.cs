@@ -63,23 +63,52 @@ public sealed class CatalogSyncScenarios
         return api;
     }
 
-    /// <summary>First run: load and let enrichment settle, leaving a complete cache behind.</summary>
-    private static async Task SettleAsync(CatalogHarness harness)
+    /// <summary>
+    /// Runs <paramref name="trigger"/> and waits until the page holds cards rebuilt from the enriched
+    /// catalog — the only safe point at which to assert on what the list contains.
+    /// <para>
+    /// Waiting on <c>!IsSyncing</c> instead is a race, and the ordering behind it is deliberate on the
+    /// production side: <c>ContractCatalogService</c> raises <c>SyncStateChanged(Idle)</c> <b>before</b>
+    /// <c>CatalogUpdated</c>, so that a <c>CatalogUpdated</c> subscriber never observes the catalog as
+    /// still syncing. Between those two dispatcher hops the page is idle while still showing the
+    /// pre-enrichment cards, whose category is <c>Unknown</c> — so a filter assertion made in that
+    /// window sees an empty list. It cost one intermittent failure of the category-filter scenario to
+    /// find; do not go back to the flag.
+    /// </para>
+    /// <para>
+    /// <c>CatalogUpdated</c> is the honest signal rather than a lucky one: the view model subscribed to
+    /// it first, at harness construction, and rebuilds inside a <b>blocking</b>
+    /// <c>Dispatcher.Invoke</c> — so by the time this handler runs, the new cards are already in place.
+    /// </para>
+    /// </summary>
+    private static async Task WaitForRebuildAsync(CatalogHarness harness, Func<Task> trigger)
     {
-        var enriched = new TaskCompletionSource();
-        void OnUpdated(object? s, EventArgs e) => enriched.TrySetResult();
+        var rebuilt = new TaskCompletionSource();
+        void OnUpdated(object? s, EventArgs e) => rebuilt.TrySetResult();
 
         harness.Catalog.CatalogUpdated += OnUpdated;
         try
         {
-            _ = await harness.Catalog.GetContractsAsync();
-            await enriched.Task.WaitAsync(TimeSpan.FromSeconds(20));
+            await trigger();
+            await rebuilt.Task.WaitAsync(TimeSpan.FromSeconds(20));
         }
         finally
         {
             harness.Catalog.CatalogUpdated -= OnUpdated;
         }
     }
+
+    /// <summary>First run: load and let enrichment settle, leaving a complete cache behind.</summary>
+    private static Task SettleAsync(CatalogHarness harness) =>
+        WaitForRebuildAsync(harness, async () => _ = await harness.Catalog.GetContractsAsync());
+
+    /// <summary>Lets the held enrichment finish, and waits for the cards it produces.</summary>
+    private static Task ReleaseAndSettleAsync(CatalogHarness harness) =>
+        WaitForRebuildAsync(harness, () =>
+        {
+            harness.Api.ReleaseEnrichment();
+            return Task.CompletedTask;
+        });
 
     /// <summary>
     /// Replays the incident up to the point the user is looking at an un-enriched catalog:
@@ -124,8 +153,7 @@ public sealed class CatalogSyncScenarios
             Assert.NotNull(harness.Shell.SyncProgressText);
         });
 
-        harness.Api.ReleaseEnrichment();
-        await _app.WaitUntilAsync(() => !harness.Catalogue.IsSyncing, "the sync to finish");
+        await ReleaseAndSettleAsync(harness);
 
         await _app.OnUiAsync(() =>
         {
@@ -154,8 +182,7 @@ public sealed class CatalogSyncScenarios
                 "the catalog must be blocked while enrichment has not produced the data filters read");
         });
 
-        harness.Api.ReleaseEnrichment();
-        await _app.WaitUntilAsync(() => !harness.Catalogue.IsSyncing, "the sync to finish");
+        await ReleaseAndSettleAsync(harness);
 
         await _app.OnUiAsync(() =>
         {
@@ -188,8 +215,7 @@ public sealed class CatalogSyncScenarios
                 "completing mid-sync would deduct the summary requirements, not the real hauling orders");
         });
 
-        harness.Api.ReleaseEnrichment();
-        await _app.WaitUntilAsync(() => !harness.Catalogue.IsSyncing, "the sync to finish");
+        await ReleaseAndSettleAsync(harness);
 
         await _app.OnUiAsync(() =>
         {
