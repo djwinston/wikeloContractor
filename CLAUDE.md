@@ -7,12 +7,14 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
 ## Stack (decided, do not change without asking)
 
 - **.NET 10**, `net10.0-windows`, WPF, C# (user's SDK: 10.0.301)
-- **WPF-UI (lepoco) 4.x** + `WPF-UI.DependencyInjection` — FluentWindow, NavigationView, Mica
+- **WPF-UI (lepoco) 4.x** + `WPF-UI.DependencyInjection` + `WPF-UI.Tray` — FluentWindow,
+  NavigationView, Mica, notification-area icon (all three versions move together)
 - **CommunityToolkit.Mvvm** — `[ObservableProperty]`, `[RelayCommand]`, `ObservableObject`
 - **Microsoft.Extensions.Hosting** — Generic Host, DI, `IHostedService` startup
 - Data source: `https://api.star-citizen.wiki` (public, no auth), swagger at `https://docs.star-citizen.wiki`
 - Persistence: JSON files in `%AppData%\WikeloContractor\` (settings.json, inventory.json, cache/)
-- No cloud/auth for now (optional Supabase + Discord OAuth is Phase 6)
+- **No cloud, no accounts, no auth** — the `%AppData%` JSON files are the only persistence. The
+  Supabase + Discord OAuth idea was dropped on 2026-08-04; see PLAN.md "Dropped — cloud sync"
 - Package versions are pinned exactly in both csproj files (no floating `*`). `Velopack` is kept in
   lockstep with the `vpk` CLI version in `.github/workflows/release.yml` — bump the two together.
 
@@ -124,6 +126,22 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
     `Services/OverlayService` is the coordinator that decides what a press *means* and owns the window
     through `IOverlayWindow`. Keeping the window out of the decision layer is what makes the overlay
     testable — see `docs/ui-notes.md` and `docs/testing.md`
+  - `ViewModels/TrayViewModel` — the notification-area menu (open the window, toggle the HUD, quit)
+    and the minimize-to-tray rule, over the `Services/ITrayHost` window seam that `MainWindow`
+    implements and hands to it. Same **window seam** idea as `OverlayService`/`IOverlayWindow`, but
+    the coordinator is a VM rather than a service because every decision here is a menu item — the
+    day the tray grows behaviour that is not one, split a `TrayService` out. Reached as
+    `MainWindowViewModel.Tray` so the shell keeps one binding root. Exit **closes the shell** rather
+    than calling `Application.Shutdown()`: `MainWindow.OnClosed` is the single exit trigger and the
+    only path that reaches `StopAsync`. **Hiding is gated on `ITrayHost.IsTrayAvailable`**, read
+    fresh each time — `Hide()` also removes the window from Alt+Tab, so hiding with no icon would
+    leave Task Manager as the only way back; `MainWindow` re-registers the icon on the shell's
+    `TaskbarCreated` broadcast because `Wpf.Ui.Tray` does not. See `docs/ui-notes.md` "Notification
+    area" before touching the icon, the menu's `DataContext`, or the restore path
+  - `Views/WindowRestore.Restore` — bringing a window back from the tray: **`Show()` first, then
+    `WindowState`**. The other order leaves the HWND iconic while WPF reports `Normal`/`IsVisible`,
+    which is a taskbar button and no window. Its own file solely so the ordering is testable against
+    a real `Window`; a second hand-rolled restore sequence is a review finding
   - `Models/HotkeyLookup` — the "is this combination one of ours" decision (`IsTrigger` for the cheap
     key-only reject, `Match` for the exact modifiers+key answer). Pure, so the matching rule is
     provable without a window or a keyboard; the Raw Input backend holds no matching logic of its own

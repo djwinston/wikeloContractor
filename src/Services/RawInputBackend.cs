@@ -72,7 +72,7 @@ internal sealed class RawInputBackend : IHotkeyBackend
         if (!_subscribed)
         {
             AppLog.Write(
-                "Warn",
+                "Warning",
                 $"RegisterRawInputDevices failed, win32 error {Marshal.GetLastWin32Error()} — "
                     + "falling back to the RegisterHotKey backend");
         }

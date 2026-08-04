@@ -22,6 +22,10 @@ public partial class SettingsViewModel : ViewModel
     [ObservableProperty]
     private int _themeIndex;
 
+    /// <summary>Minimizing sends the window to the notification area instead of the taskbar.</summary>
+    [ObservableProperty]
+    private bool _minimizeToTray;
+
     /// <summary>
     /// The API's full version string, build number included (e.g. "4.9.0-LIVE.12232306"). Shown
     /// only here, labelled as the API version: the build tracks API data revisions rather than game
@@ -154,6 +158,7 @@ public partial class SettingsViewModel : ViewModel
         // OnChanged hooks save nothing while _isInitialized == false
         LanguageIndex = _settingsService.Current.Language == "uk" ? 1 : 0;
         ThemeIndex = (int)_settingsService.Current.Theme;
+        MinimizeToTray = _settingsService.Current.MinimizeToTray;
 
         var overlay = _settingsService.Current.Overlay;
         OverlayIncrementPattern = overlay.IncrementPattern;
@@ -176,6 +181,18 @@ public partial class SettingsViewModel : ViewModel
 
     partial void OnOverlayInteractiveKeyChanged(string value) =>
         ApplyOverlayHotkey(overlay => overlay.ToggleInteractiveKey = value);
+
+    partial void OnMinimizeToTrayChanged(bool value)
+    {
+        if (!_isInitialized)
+        {
+            return;
+        }
+
+        // Nothing to re-apply: TrayViewModel reads the setting when a minimize actually happens.
+        _settingsService.Current.MinimizeToTray = value;
+        _ = _settingsService.SaveAsync();
+    }
 
     partial void OnOverlayShowOnStartupChanged(bool value)
     {

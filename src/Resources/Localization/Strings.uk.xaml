@@ -12,6 +12,11 @@
   <sys:String x:Key="Nav_Settings">Налаштування</sys:String>
   <sys:String x:Key="Nav_About">Про застосунок</sys:String>
 
+  <!-- Notification-area menu; the icon's tooltip is App_Title -->
+  <sys:String x:Key="Tray_Open">Відкрити Wikelo Contractor</sys:String>
+  <sys:String x:Key="Tray_Overlay">Ігровий оверлей</sys:String>
+  <sys:String x:Key="Tray_Exit">Вийти</sys:String>
+
   <sys:String x:Key="Catalog_Title">Контракти Wikelo</sys:String>
   <sys:String x:Key="Catalog_Search">Пошук контрактів...</sys:String>
   <sys:String x:Key="Catalog_Filter_AllCategories">Всі категорії</sys:String>
@@ -153,6 +158,10 @@
   <sys:String x:Key="Settings_Theme_System">Системна</sys:String>
   <sys:String x:Key="Settings_Theme_Light">Світла</sys:String>
   <sys:String x:Key="Settings_Theme_Dark">Темна</sys:String>
+  <sys:String x:Key="Settings_Tray">Область сповіщень</sys:String>
+  <sys:String x:Key="Settings_Tray_Description">Значок у треї доступний протягом усього сеансу: він повертає вікно та вмикає чи вимикає оверлей без перемикання між вікнами.</sys:String>
+  <sys:String x:Key="Settings_Tray_MinimizeToTray">Згортати в трей замість панелі задач</sys:String>
+
   <sys:String x:Key="Settings_Overlay">Ігровий оверлей</sys:String>
   <sys:String x:Key="Settings_Overlay_Description">Невелика панель поверх усіх вікон із закріпленими предметами. Керується глобальними гарячими клавішами, тож змінювати кількість можна не виходячи з гри.</sys:String>
   <sys:String x:Key="Settings_Overlay_ShowOnStartup">Показувати оверлей під час запуску</sys:String>

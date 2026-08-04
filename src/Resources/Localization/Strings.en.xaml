@@ -12,6 +12,11 @@
   <sys:String x:Key="Nav_Settings">Settings</sys:String>
   <sys:String x:Key="Nav_About">About</sys:String>
 
+  <!-- Notification-area menu; the icon's tooltip is App_Title -->
+  <sys:String x:Key="Tray_Open">Open Wikelo Contractor</sys:String>
+  <sys:String x:Key="Tray_Overlay">In-game overlay</sys:String>
+  <sys:String x:Key="Tray_Exit">Exit</sys:String>
+
   <sys:String x:Key="Catalog_Title">Wikelo Contracts</sys:String>
   <sys:String x:Key="Catalog_Search">Search contracts...</sys:String>
   <sys:String x:Key="Catalog_Filter_AllCategories">All categories</sys:String>
@@ -154,6 +159,10 @@
   <sys:String x:Key="Settings_Theme_System">System</sys:String>
   <sys:String x:Key="Settings_Theme_Light">Light</sys:String>
   <sys:String x:Key="Settings_Theme_Dark">Dark</sys:String>
+  <sys:String x:Key="Settings_Tray">Notification area</sys:String>
+  <sys:String x:Key="Settings_Tray_Description">The tray icon stays available for the whole session: it brings the window back and switches the overlay on and off without alt-tabbing.</sys:String>
+  <sys:String x:Key="Settings_Tray_MinimizeToTray">Minimize to the tray instead of the taskbar</sys:String>
+
   <sys:String x:Key="Settings_Overlay">In-game overlay</sys:String>
   <sys:String x:Key="Settings_Overlay_Description">A small always-on-top panel with the items you pinned, driven by global hotkeys so you never have to leave the game to update a count.</sys:String>
   <sys:String x:Key="Settings_Overlay_ShowOnStartup">Show the overlay when the app starts</sys:String>

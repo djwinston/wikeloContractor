@@ -57,6 +57,9 @@ public sealed class CatalogHarness : IDisposable
 
     public FakeOverlayWindow OverlayWindow { get; } = new();
 
+    /// <summary>The shell window seen from the tray: shown, hidden or closed.</summary>
+    public FakeTrayHost TrayHost { get; } = new();
+
     public OverlayService Overlay { get; private set; } = null!;
 
     public OverlayViewModel Hud { get; private set; } = null!;
@@ -73,6 +76,9 @@ public sealed class CatalogHarness : IDisposable
 
     /// <summary>The shell: owns the sync overlay and the app-wide navigation lock.</summary>
     public MainWindowViewModel Shell { get; private set; } = null!;
+
+    /// <summary>The notification-area menu, already attached to <see cref="TrayHost"/>.</summary>
+    public TrayViewModel Tray { get; private set; } = null!;
 
     /// <summary>
     /// Builds the graph on the UI thread — <see cref="RateLimitWatcher"/> owns a
@@ -97,8 +103,6 @@ public sealed class CatalogHarness : IDisposable
         {
             var interaction = new ContractCompletionInteraction(harness.Completion, harness.Inventory);
             var navigation = new StubNavigationService();
-
-            harness.Shell = new MainWindowViewModel(harness.Catalog);
 
             harness.Detail = new ContractDetailViewModel(
                 navigation, harness.Catalog, harness.Completion, harness.Favorites, harness.Inventory, interaction);
@@ -132,6 +136,12 @@ public sealed class CatalogHarness : IDisposable
                 harness.Settings,
                 harness.Hud,
                 () => harness.OverlayWindow);
+
+            harness.Tray = new TrayViewModel(harness.Overlay, harness.Hud, harness.Settings);
+            harness.Tray.Attach(harness.TrayHost);
+
+            // Last: the shell owns the tray view model, the way MainWindow reaches it.
+            harness.Shell = new MainWindowViewModel(harness.Catalog, harness.Tray);
         });
 
         return harness;

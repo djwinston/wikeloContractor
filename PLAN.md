@@ -14,6 +14,7 @@ Two modes: Wikelo contract **Catalog** and **Personal inventory** with an in-gam
 | API | `api.star-citizen.wiki` (public, no auth), swagger: `docs.star-citizen.wiki` |
 | Data | Local: JSON in `%AppData%\WikeloContractor\` + API cache |
 | Overlay | Topmost window, global hotkeys (Raw Input sink), click-through toggle |
+| Tray | WPF-UI.Tray `NotifyIcon` — open the window, toggle the overlay, quit |
 | UI languages | English (default) + Ukrainian. API data stays in English, not translated |
 
 Reference (what already exists): https://wikelotrades.com , community Excel spreadsheet (outdated).
@@ -496,7 +497,23 @@ the app said so. Root cause was a missing concept, not a missing message — fre
 
 ## Phase 5 — Polish and distribution
 
-- [ ] Tray (WPF-UI.Tray): minimize to tray, quick overlay toggle from the menu
+- [x] Tray (WPF-UI.Tray): a `NotifyIcon` in `MainWindow.xaml` registered for the whole run, with a
+      three-item menu — open the window, toggle the in-game overlay (check mark = up), quit.
+      `ViewModels/TrayViewModel` holds the menu and the minimize rule; `Services/ITrayHost` is the
+      window seam `MainWindow` implements, so `E2E/TrayScenarios` proves the behaviour without a
+      window. **Minimize to tray is off by default** (`AppSettings.MinimizeToTray`) and read at the
+      moment of the minimize, so the Settings switch needs no restart. Exit **closes the shell**
+      rather than calling `Application.Shutdown()` — `MainWindow.OnClosed` stays the single exit
+      trigger and the only path that reaches `StopAsync`, which flushes the inventory store.
+      `MainWindow.OnContentRendered` logs whether the icon registered: `NotifyIcon` reports that
+      nowhere, and a missing icon is indistinguishable from one in the overflow flyout. **Hiding is
+      refused when there is no icon** (`ITrayHost.IsTrayAvailable`, read fresh each time) — `Hide()`
+      also drops the window from Alt+Tab, so that would leave Task Manager as the only way back;
+      and the shell's `TaskbarCreated` broadcast re-registers the icon after an Explorer restart,
+      which `Wpf.Ui.Tray` 4.3.0 does not handle at all.
+      Restoring from the tray is `Views/WindowRestore` — **`Show()` before `WindowState`**, the other
+      order leaves the HWND iconic while WPF claims otherwise, pinned by `E2E/WindowRestoreTests`
+      against a real window. See `docs/ui-notes.md` "Notification area" for the other traps.
 - [ ] Start with Windows (optional)
 - [x] File logging (`Microsoft.Extensions.Logging` + a simple file provider). `Services/AppLog` writes
       `WikeloContractor.log` **into the install root, next to `Update.exe`** — never beside the exe,
@@ -534,10 +551,15 @@ the app said so. Root cause was a missing concept, not a missing message — fre
       item that re-enables installers. The dormant PFX `--signParams` block is a placeholder — SignPath
       signs in its cloud via a CI step, so it will be replaced, not fed secrets.
 
-## Phase 6 (optional) — Cloud sync
+## Dropped — cloud sync (was Phase 6)
 
-- [ ] Backend (Supabase: Postgres + RLS, as in SCLOC-Verse) + Discord OAuth for identity
-- [ ] Sync inventory and tracked contracts between devices
+A Supabase backend (Postgres + RLS, as in SCLOC-Verse) with Discord OAuth for identity, syncing the
+inventory and tracked contracts between devices.
+
+**Dropped 2026-08-04.** A hosted backend is a recurring cost carried for a single-machine companion
+app, and Discord identity buys nothing when there is nothing shared to identify against. The JSON
+stores in `%AppData%` stay the only persistence — no cloud, no accounts, no auth. Do not re-propose
+this without a use case that actually needs a second device.
 
 ---
 

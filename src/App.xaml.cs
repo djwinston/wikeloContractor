@@ -78,9 +78,12 @@ public partial class App
             // Self-update (Velopack). No-op in a dev run; drives Settings' "Check for updates".
             _ = services.AddSingleton<IAppUpdateService, AppUpdateService>();
 
-            // Main window
+            // Main window. It also implements ITrayHost, which is deliberately not registered:
+            // the window hands itself to the tray view model, so the tray never resolves a window
+            // and the two can be constructed in either order.
             _ = services.AddSingleton<INavigationWindow, Views.MainWindow>();
             _ = services.AddSingleton<ViewModels.MainWindowViewModel>();
+            _ = services.AddSingleton<ViewModels.TrayViewModel>();
 
             // Pages and their ViewModels
             _ = services.AddSingleton<Views.Pages.CatalogPage>();

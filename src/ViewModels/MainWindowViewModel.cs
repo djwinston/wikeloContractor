@@ -11,13 +11,21 @@ public partial class MainWindowViewModel : ObservableObject
 {
     private readonly IContractCatalogService _catalogService;
 
-    public MainWindowViewModel(IContractCatalogService catalogService)
+    public MainWindowViewModel(IContractCatalogService catalogService, TrayViewModel tray)
     {
         _catalogService = catalogService;
+        Tray = tray;
 
         // App-lifetime singletons on both sides — no unsubscription needed.
         _catalogService.SyncStateChanged += OnSyncStateChanged;
     }
+
+    /// <summary>
+    /// The notification-area menu. Shell state like everything else here, and reached through this
+    /// view model rather than as a second property on the window so the shell keeps the one binding
+    /// root the pages have — markup binds <c>ViewModel.Tray.*</c>.
+    /// </summary>
+    public TrayViewModel Tray { get; }
 
     /// <summary>
     /// Navigation is disabled app-wide while catalog data is being fetched.

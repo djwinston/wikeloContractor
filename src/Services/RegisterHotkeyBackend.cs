@@ -68,7 +68,7 @@ internal sealed class RegisterHotkeyBackend : IHotkeyBackend
 
             failed.Add(registration);
             AppLog.Write(
-                "Warn",
+                "Warning",
                 $"RegisterHotKey failed for {registration.Binding.Format()} ({registration.Action}, slot {registration.Slot}), "
                     + $"win32 error {Marshal.GetLastWin32Error()} — most likely another application already owns it");
         }

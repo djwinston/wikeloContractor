@@ -397,6 +397,80 @@ row, which is how a hotkey is disabled: `HotkeyPlan.Build` skips an unparseable 
 bindings are rejected — owning a bare "O" globally would swallow the key in every application on the
 machine.
 
+## Notification area (Phase 5)
+
+`WPF-UI.Tray`'s `NotifyIcon`, declared in `MainWindow.xaml`; `ViewModels/TrayViewModel` holds the
+menu commands **and** the minimize rule, reaching the window only through the `Services/ITrayHost`
+seam — which is what makes the behaviour assertable without a `Window` (`tests/E2E/TrayScenarios`).
+
+The window seam is the same idea as `OverlayService` / `IOverlayWindow`, but note where the
+coordinator sits: the overlay's decisions live in a **service** because hotkeys drive them from
+outside any view, while the tray's live in a **view model** because every one of them is a menu
+item. `OnWindowStateChanged` is the single exception — called from the window, bound to nothing. If
+the tray grows behaviour that is not a menu item (close-to-tray, start minimized, a balloon on
+update), that is the point to split a `TrayService` out; do not keep piling window-lifecycle policy
+into the menu's view model.
+
+**Why a tray at all.** The window is not what the player looks at while playing — the overlay is —
+so the shell spends most of a session out of the way. The menu is therefore three items: open the
+window, toggle the HUD, quit.
+
+Seven things that will bite:
+
+- **`NotifyIcon` registers on its first `OnRender`, not on `Loaded`.** It has to stay in the visual
+  tree; it draws nothing and takes no space, but move it into something collapsed and it silently
+  never appears. `MainWindow.OnContentRendered` logs `IsRegistered` for exactly this reason —
+  failure is reported nowhere else, and "no icon" is indistinguishable from "the user keeps it in
+  the overflow flyout".
+- **A `ContextMenu` is not in the visual tree**, so it inherits no `DataContext` from the window.
+  `NotifyIcon` does forward its own, but only while the menu's is still null and only once it has
+  one itself. `MainWindow` assigns `TrayMenu.DataContext = this` outright — the failure mode of
+  getting this wrong is a menu of greyed-out items, with no binding error that reaches the user.
+- **`FocusOnLeftClick` cannot bring back a hidden window.** WPF-UI's handler un-minimizes and
+  activates, but never calls `Show()`. It is off, and `LeftClick` runs `ShowAppCommand` instead.
+- **`Show()` first, `WindowState` second — the intuitive order silently does not work.** A window
+  hidden to the tray is normally *also* still `Minimized`, because hiding is what the minimize did.
+  Writing `WindowState = Normal` while it is hidden looks like the right way round and leaves the
+  HWND **iconic**: WPF defers a state written to a hidden window, so `WindowState` then reports
+  `Normal` and `IsVisible` reports `true` while the window is not on screen. What the user sees is a
+  taskbar button appearing and nothing else — which is exactly how this shipped and was reported
+  from the field. `Views/WindowRestore.Restore` is the three-line rule, split out of `MainWindow` so
+  the ordering is pinned against a real `Window` in `tests/E2E/WindowRestoreTests`, and those tests
+  assert on `IsIconic` rather than on the managed properties, because trusting the properties is
+  what let it through. `MainWindow` remembers the last non-minimized state, so a window minimized
+  from maximized comes back maximized.
+- **Exit closes the shell, it does not call `Application.Shutdown()`.** `MainWindow.OnClosed` is the
+  app's single exit trigger and the only path that reaches `StopAsync`, which flushes the inventory
+  store. A menu item that shut down directly would drop the counts edited in the last few seconds
+  in game.
+- **Nothing disposes a control**, so `NotifyIcon` never unregisters on its own — `OnClosed` calls
+  `Unregister()` explicitly. Left to the finalizer the icon lingers as a ghost that disappears only
+  when the user hovers over it.
+- **An Explorer restart takes the icon and does not give it back.** The shell rebuilds the
+  notification area from nothing and broadcasts `TaskbarCreated` so applications can put their icons
+  back; `Wpf.Ui.Tray` 4.3.0 does not handle that message anywhere, so the icon is gone for the rest
+  of the session while `IsRegistered` still cheerfully says otherwise. `MainWindow.OnSourceInitialized`
+  hooks the shell window and re-registers on the broadcast — `TrayManager.Register` repopulates the
+  whole `NOTIFYICONDATA`, icon and tooltip included, so nothing has to be re-applied afterwards.
+  Verified by broadcasting the message at a running app, not by restarting Explorer.
+
+## Hiding is conditional on the icon existing
+
+The failure this feature can produce that no other can: `Hide()` takes the window out of the taskbar
+**and** out of Alt+Tab, so hiding into a notification area with no icon of ours leaves Task Manager
+as the only way back to the app.
+
+`ITrayHost.IsTrayAvailable` (`NotifyIcon.IsRegistered`) is therefore read immediately before every
+hide, never cached, and a minimize with no icon simply minimizes normally. This is the same guard
+`OverlayService.Initialize` makes when the interactive-mode hotkey fails to register — the setting is
+a preference, not a promise. `TrayScenarios.A_window_is_never_hidden_when_there_is_no_icon_to_come_back_from`
+pins it.
+
+Minimize-to-tray is **off by default** (`AppSettings.MinimizeToTray`) and read live, at the moment
+of the minimize, so the Settings switch takes effect without a restart. The icon itself is always
+registered — with the shell in the tray, that menu is the only way to reach the overlay, so it must
+be somewhere the user can rely on finding.
+
 ## Adaptive app icon
 
 `MainWindow.UpdateAppIcon` follows `ApplicationThemeManager.Changed` (unsubscribed in `OnClosed`)
@@ -407,6 +481,9 @@ and feeds two surfaces from **different** assets — they are not interchangeabl
   Follows the **app** theme: this app paints that surface.
 - **Taskbar / Alt-Tab** (`Window.Icon`) — must stay a raster `BitmapImage` (WPF hands it to Win32
   as an `HICON`). Follows the **Windows shell** theme, read from `SystemUsesLightTheme`.
+- **Notification area** (`TrayIcon.Icon`) — the same bitmap as the taskbar, by the same rule: both
+  sit on a surface Windows paints. Assigning it after registration is supported; `NotifyIcon`
+  re-sends the icon to the shell.
 
 **The two themes are set independently, so they must not share one signal.** Windows 11 exposes
 `AppsUseLightTheme` and `SystemUsesLightTheme` separately, and this app's own theme setting
