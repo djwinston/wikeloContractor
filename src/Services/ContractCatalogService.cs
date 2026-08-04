@@ -56,6 +56,18 @@ public sealed partial class ContractCatalogService : IContractCatalogService
     /// <summary>Until this moment all API calls are blocked (set after an HTTP 429).</summary>
     private DateTimeOffset _rateLimitedUntil;
 
+    /// <summary>
+    /// The last attempt to reach the API failed. Kept so that serving the cache <em>without</em>
+    /// attempting anything still reports what we last learned — see <see cref="CachedStatus"/>.
+    /// <para>
+    /// In memory only, and deliberately so. A failed attempt is positive evidence that something is
+    /// wrong and must not be forgotten while the app runs; a fresh launch has no such evidence, and
+    /// absence of evidence is not evidence of a problem. Answering that on startup would mean a
+    /// version check on every launch, which is exactly what the 12 h timer exists to avoid.
+    /// </para>
+    /// </summary>
+    private bool _apiUnreachable;
+
     public ContractCatalogService(IStarCitizenWikiClient apiClient)
         : this(apiClient, AppStorage.GetDirectory("cache"))
     {
@@ -101,7 +113,7 @@ public sealed partial class ContractCatalogService : IContractCatalogService
         if (!versionCheckDue)
         {
             StartEnrichmentIfNeeded();
-            return Publish(FromEnvelope(_envelope!, CatalogStatus.Online));
+            return Publish(FromEnvelope(_envelope!, CachedStatus()));
         }
 
         // Rate-limit window still open — no API calls until it elapses.
@@ -152,6 +164,8 @@ public sealed partial class ContractCatalogService : IContractCatalogService
 
             await WriteCacheAsync(_envelope, cancellationToken);
 
+            _apiUnreachable = false;
+
             var result = Publish(FromEnvelope(_envelope, CatalogStatus.Online));
             StartEnrichmentIfNeeded();
             return result;
@@ -160,6 +174,10 @@ public sealed partial class ContractCatalogService : IContractCatalogService
         {
             // Too many requests this minute — tell the user to wait; cache still works.
             _ = RegisterRateLimit(ex.RetryAfter);
+
+            // The server answered, so whatever we knew about it being unreachable is out of date.
+            // The rate limit itself needs no remembering: its window expires on its own.
+            _apiUnreachable = false;
 
             if (_envelope is not null)
             {
@@ -170,7 +188,10 @@ public sealed partial class ContractCatalogService : IContractCatalogService
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or InvalidOperationException)
         {
-            // API unreachable or returned garbage — serve cached data when available.
+            // API unreachable or returned garbage — serve cached data when available, and remember
+            // it: the next load is very likely inside the 12 h window and will not try again.
+            _apiUnreachable = true;
+
             if (_envelope is not null)
             {
                 return Publish(FromEnvelope(_envelope, CatalogStatus.Offline));
@@ -179,6 +200,26 @@ public sealed partial class ContractCatalogService : IContractCatalogService
             throw;
         }
     }
+
+    /// <summary>
+    /// What to report when the cache is served without contacting the API at all — inside the 12 h
+    /// version-check window, which is the usual case.
+    /// <para>
+    /// It reports what the last contact taught us, rather than assuming the best. Reporting
+    /// <see cref="CatalogStatus.Online"/> unconditionally here is what made a failed refresh
+    /// disappear: Settings said "offline", the user opened the Catalog, the timer had not elapsed,
+    /// and the green cloud came back over data nothing had re-validated. The badge has to survive
+    /// navigation, or it is not telling the user anything they can act on.
+    /// </para>
+    /// <para>
+    /// The rate-limit window expires by itself, so it is read live; unreachability does not, so it
+    /// is cleared only by a later answer from the server.
+    /// </para>
+    /// </summary>
+    private CatalogStatus CachedStatus() =>
+        DateTimeOffset.UtcNow < _rateLimitedUntil ? CatalogStatus.RateLimited
+        : _apiUnreachable ? CatalogStatus.Offline
+        : CatalogStatus.Online;
 
     /// <summary>
     /// Loads mission details (rewards) and item classifications in the background,

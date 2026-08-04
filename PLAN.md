@@ -490,10 +490,18 @@ the app said so. Root cause was a missing concept, not a missing message — fre
       version bump, the blocked filter, the refused completion, an aborted enrichment, an offline
       launch, a rate-limited launch, and a 429 mid-enrichment. Written red first.
 - [x] Consolidated the duplicate `IStarCitizenWikiClient` fake into `tests/E2E/ScriptedWikiApi`.
-- [ ] Follow-up found while testing: a failed refresh's status is erased on the next catalog
-      navigation. Settings shows "offline", the user opens Catalog, the 12 h version-check timer
-      has not elapsed, so the cache is re-served as `Online` and the green cloud returns. Same
-      class of dishonesty as the sync badge; needs its own decision on what the badge should say.
+- [x] Follow-up found while testing: a failed refresh's status was erased on the next catalog
+      navigation. Settings showed "offline", the user opened Catalog, the 12 h version-check timer
+      had not elapsed, so the cache was re-served as `Online` and the green cloud returned. Same
+      class of dishonesty as the sync badge. **Decided**: `CatalogStatus` reports what the last
+      contact taught us, not what the current load did — most loads make no API call at all, so the
+      only honest answer for those is the previous outcome. `ContractCatalogService.CachedStatus` is
+      the single home for it: the rate-limit window is read live (it expires on its own), while
+      `_apiUnreachable` is sticky and cleared only by an answer from the server — a 429 counts as
+      one. In memory only: a failed attempt is evidence that must survive navigation, a fresh launch
+      holds no evidence, and answering that at startup would mean a version check on every launch.
+      Covered by `E2E/CatalogAvailabilityScenarios` (the journey) and two `ContractCatalogServiceTests`
+      (the carry-forward and the 429 interaction); the first two fail without the fix.
 
 ## Phase 5 — Polish and distribution
 
@@ -514,7 +522,9 @@ the app said so. Root cause was a missing concept, not a missing message — fre
       Restoring from the tray is `Views/WindowRestore` — **`Show()` before `WindowState`**, the other
       order leaves the HWND iconic while WPF claims otherwise, pinned by `E2E/WindowRestoreTests`
       against a real window. See `docs/ui-notes.md` "Notification area" for the other traps.
-- [ ] Start with Windows (optional)
+- ~~Start with Windows~~ — **dropped 2026-08-04.** A companion app for one game does not belong in
+  every boot; the player starts it when they start playing, and the tray already keeps it out of the
+  way for the rest of the session.
 - [x] File logging (`Microsoft.Extensions.Logging` + a simple file provider). `Services/AppLog` writes
       `WikeloContractor.log` **into the install root, next to `Update.exe`** — never beside the exe,
       because that sits in `current\`, which Velopack replaces wholesale on every update, wiping the
