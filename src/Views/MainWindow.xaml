@@ -6,6 +6,7 @@
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:local="clr-namespace:WikeloContractor.Views"
   xmlns:pages="clr-namespace:WikeloContractor.Views.Pages"
+  xmlns:tray="clr-namespace:Wpf.Ui.Tray.Controls;assembly=Wpf.Ui.Tray"
   xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
   Title="{DynamicResource App_Title}"
   Width="1100"
@@ -37,6 +38,38 @@
       x:Name="TitleBarControl"
       Title="{DynamicResource App_Title}"
       Grid.Row="0" />
+
+    <!-- Notification area. It draws nothing and occupies no space, but it must stay in the visual
+         tree: NotifyIcon registers itself on its first OnRender, not on Load. Registered for the
+         whole run rather than only while the window is hidden — with the shell minimized to the
+         tray this menu is the only way to reach the overlay, and the icon appearing and vanishing
+         would make it one the user cannot rely on finding.
+         The icon itself is set in code-behind, from the same Windows-theme rule as the taskbar one.
+         FocusOnLeftClick is off on purpose: its own handler never calls Show(), so it cannot bring
+         back a window that was hidden to the tray. RestoreWindow does both halves. -->
+    <tray:NotifyIcon
+      x:Name="TrayIcon"
+      Grid.Row="0"
+      FocusOnLeftClick="False"
+      LeftClick="OnTrayIconLeftClick"
+      MenuOnRightClick="True"
+      TooltipText="{DynamicResource App_Title}">
+      <tray:NotifyIcon.Menu>
+        <ContextMenu x:Name="TrayMenu">
+          <MenuItem Command="{Binding ViewModel.Tray.ShowAppCommand}" Header="{DynamicResource Tray_Open}" />
+          <Separator />
+          <!-- IsCheckable stays false: the check mark reports the overlay's state, it is not a
+               control the click owns — the command is what changes it. -->
+          <MenuItem
+            Command="{Binding ViewModel.Tray.ToggleOverlayCommand}"
+            Header="{DynamicResource Tray_Overlay}"
+            IsCheckable="False"
+            IsChecked="{Binding ViewModel.Tray.Hud.IsShown, Mode=OneWay}" />
+          <Separator />
+          <MenuItem Command="{Binding ViewModel.Tray.ExitCommand}" Header="{DynamicResource Tray_Exit}" />
+        </ContextMenu>
+      </tray:NotifyIcon.Menu>
+    </tray:NotifyIcon>
 
     <!-- Locked while catalog data is syncing: see MainWindowViewModel.IsNavigationEnabled for why
          the whole shell is held rather than each page guarding itself. The TitleBar above is

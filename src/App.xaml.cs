@@ -52,8 +52,11 @@ public partial class App
             _ = services.AddSingleton<IInventoryStore, InventoryStore>();
             _ = services.AddSingleton<IInventoryImageOverrideService, InventoryImageOverrideService>();
 
-            // Items the user pinned to the in-game overlay, in slot order.
+            // Items the user pinned to the in-game overlay, in slot order. The budget counter is a
+            // singleton because there is one set of pins: the inventory grid and the Favorites
+            // gathering plan show the same "Overlay 3/10", not two copies of it.
             _ = services.AddSingleton<IPinnedItemsService, PinnedItemsService>();
+            _ = services.AddSingleton<ViewModels.OverlayPinsViewModel>();
 
             // Global hotkeys (the overlay's whole point: no alt-tab out of the game).
             _ = services.AddSingleton<IHotkeyService, HotkeyService>();
@@ -78,9 +81,12 @@ public partial class App
             // Self-update (Velopack). No-op in a dev run; drives Settings' "Check for updates".
             _ = services.AddSingleton<IAppUpdateService, AppUpdateService>();
 
-            // Main window
+            // Main window. It also implements ITrayHost, which is deliberately not registered:
+            // the window hands itself to the tray view model, so the tray never resolves a window
+            // and the two can be constructed in either order.
             _ = services.AddSingleton<INavigationWindow, Views.MainWindow>();
             _ = services.AddSingleton<ViewModels.MainWindowViewModel>();
+            _ = services.AddSingleton<ViewModels.TrayViewModel>();
 
             // Pages and their ViewModels
             _ = services.AddSingleton<Views.Pages.CatalogPage>();

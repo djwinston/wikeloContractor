@@ -71,6 +71,43 @@ public sealed class FakeHotkeyService : IHotkeyService
 }
 
 /// <summary>
+/// Stands in for <c>MainWindow</c> as far as the tray is concerned. Same bargain as
+/// <see cref="FakeOverlayWindow"/>: the decisions worth asserting on — whether a minimize means "to
+/// the tray", how the window comes back, which path Exit takes — are all window-free.
+/// </summary>
+public sealed class FakeTrayHost : ITrayHost
+{
+    public int RestoreCount { get; private set; }
+
+    public int HideCount { get; private set; }
+
+    public int CloseCount { get; private set; }
+
+    /// <summary>Whether the shell is on screen. Starts shown, as it does after startup.</summary>
+    public bool IsVisible { get; private set; } = true;
+
+    /// <summary>
+    /// Settable, because "the icon is not there" is a state the real host reaches on its own — a
+    /// refused registration at startup, or an Explorer restart that could not be recovered from.
+    /// </summary>
+    public bool IsTrayAvailable { get; set; } = true;
+
+    public void RestoreWindow()
+    {
+        RestoreCount++;
+        IsVisible = true;
+    }
+
+    public void HideWindow()
+    {
+        HideCount++;
+        IsVisible = false;
+    }
+
+    public void CloseWindow() => CloseCount++;
+}
+
+/// <summary>
 /// Stands in for <c>OverlayWindow</c>. The coordinator's decisions — when to show, when to make the
 /// window click-through, what geometry to save — are all observable here, without a real
 /// <c>Window</c> and the render stack behind it.

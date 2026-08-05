@@ -58,19 +58,7 @@ public sealed class OverlayScenarios(WpfAppFixture app)
     {
         var harness = await CatalogHarness.CreateAsync(app, MiningCatalog());
 
-        var enriched = new TaskCompletionSource();
-        void OnUpdated(object? s, EventArgs e) => enriched.TrySetResult();
-
-        harness.Catalog.CatalogUpdated += OnUpdated;
-        try
-        {
-            _ = await harness.Catalog.GetContractsAsync();
-            await enriched.Task.WaitAsync(TimeSpan.FromSeconds(20));
-        }
-        finally
-        {
-            harness.Catalog.CatalogUpdated -= OnUpdated;
-        }
+        await harness.LoadAndEnrichAsync();
 
         await app.OnUiAsync(() => harness.Inventoried.OnNavigatedToAsync());
         await app.OnUiAsync(harness.Overlay.Initialize);
@@ -177,12 +165,12 @@ public sealed class OverlayScenarios(WpfAppFixture app)
             }
 
             var row = Row(harness, "Gold");
-            Assert.False(row.CanPin, "the pin button must stop inviting the click once the grid is full");
-            Assert.False(row.TogglePinCommand.CanExecute(null));
+            Assert.False(row.Pin.CanPin, "the pin button must stop inviting the click once the grid is full");
+            Assert.False(row.Pin.ToggleCommand.CanExecute(null));
 
             Assert.False(await harness.Pins.PinAsync("Gold"));
             Assert.Equal(OverlaySlots.MaxSlots, harness.Hud.Slots.Count);
-            Assert.Contains($"{OverlaySlots.MaxSlots}/{OverlaySlots.MaxSlots}", harness.Inventoried.PinSummary);
+            Assert.Contains($"{OverlaySlots.MaxSlots}/{OverlaySlots.MaxSlots}", harness.Inventoried.OverlayPins.Summary);
         });
     }
 
@@ -196,22 +184,22 @@ public sealed class OverlayScenarios(WpfAppFixture app)
             _ = await harness.Pins.PinAsync("Gold");
             _ = await harness.Pins.PinAsync("Carinite (Pure)");
 
-            Assert.True(harness.Inventoried.ClearPinsCommand.CanExecute(null));
+            Assert.True(harness.Inventoried.OverlayPins.ClearCommand.CanExecute(null));
 
             // ExecuteAsync, not Execute: the command is async and Execute fires and forgets, so the
             // assertions below would race the disk write.
-            await harness.Inventoried.ClearPinsCommand.ExecuteAsync(null);
+            await harness.Inventoried.OverlayPins.ClearCommand.ExecuteAsync(null);
         });
 
         await app.OnUiAsync(() =>
         {
             Assert.Empty(harness.Hud.Slots);
             Assert.True(harness.Hud.IsEmpty);
-            Assert.False(Row(harness, "Gold").IsPinned);
-            Assert.Contains($"0/{OverlaySlots.MaxSlots}", harness.Inventoried.PinSummary);
+            Assert.False(Row(harness, "Gold").Pin.IsPinned);
+            Assert.Contains($"0/{OverlaySlots.MaxSlots}", harness.Inventoried.OverlayPins.Summary);
 
             // Nothing left to clear, so the button stops inviting the click.
-            Assert.False(harness.Inventoried.ClearPinsCommand.CanExecute(null));
+            Assert.False(harness.Inventoried.OverlayPins.ClearCommand.CanExecute(null));
         });
     }
 
@@ -263,8 +251,8 @@ public sealed class OverlayScenarios(WpfAppFixture app)
             Assert.Null(harness.Hud.SlotAt(3));
 
             // And the inventory row's badge agrees, so the digit on screen is the digit to press.
-            Assert.Equal("2", Row(harness, "Wikelo Favor").SlotLabel);
-            Assert.False(Row(harness, "Carinite (Pure)").IsPinned);
+            Assert.Equal("2", Row(harness, "Wikelo Favor").Pin.SlotLabel);
+            Assert.False(Row(harness, "Carinite (Pure)").Pin.IsPinned);
         });
     }
 

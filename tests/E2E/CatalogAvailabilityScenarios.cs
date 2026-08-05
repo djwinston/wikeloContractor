@@ -67,6 +67,35 @@ public sealed class CatalogAvailabilityScenarios
         });
     }
 
+    // S9 — the follow-up found while testing S5: a failed refresh used to be erased by the next
+    // navigation. Settings said "offline", the user opened the Catalog, the 12 h version-check timer
+    // had not elapsed, so the cache was re-served as Online and the green cloud came back over data
+    // nothing had re-validated. A badge that a page change resets tells the user nothing.
+    [Fact]
+    public async Task A_failed_refresh_still_reads_offline_after_opening_the_catalog()
+    {
+        using var harness = await CatalogHarness.CreateAsync(_app, SmallCatalog());
+        await SettleAsync(harness);
+
+        await _app.OnUiAsync(() => harness.Catalogue.OnNavigatedToAsync());
+        await _app.OnUiAsync(() => Assert.False(harness.Catalogue.IsOffline));
+
+        // What Settings' "Check for updates" does: forceRefresh, skipping the 12 h timer.
+        harness.Api.GoOffline();
+        _ = await harness.Catalog.GetContractsAsync(forceRefresh: true);
+
+        // …and what the user does next. This load makes no API call at all — the timer is nowhere
+        // near elapsed — so the only honest answer is the one the failed attempt produced.
+        await _app.OnUiAsync(() => harness.Catalogue.OnNavigatedToAsync());
+
+        await _app.OnUiAsync(() =>
+        {
+            Assert.True(harness.Catalogue.IsOffline);
+            Assert.Single(harness.Catalogue.Contracts!.Cast<object>());
+            Assert.False(harness.Catalogue.HasLoadError);
+        });
+    }
+
     // S6 — HTTP 429 on a catalog load: cached data stays, and the shared countdown explains why.
     [Fact]
     public async Task Rate_limited_load_keeps_the_cache_and_starts_the_shared_countdown()

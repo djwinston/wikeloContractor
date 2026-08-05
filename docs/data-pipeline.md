@@ -39,6 +39,22 @@ Every `CatalogLoadResult` carries a single mutually-exclusive `CatalogStatus`
 (`Online` / `Offline` / `RateLimited`), decided once by the service. The UI maps that one
 value to badges/InfoBars, so offline and rate-limited can never be reported together.
 
+**The status reports what the last contact taught us, not what the current load did.** Most loads
+make no API call at all — the 12 h window is the normal case — and reporting `Online` for those
+unconditionally is a lie the moment an earlier attempt failed: Settings said "offline", the user
+opened the Catalog, the timer had not elapsed, and the green cloud came back over data nothing had
+re-validated. `ContractCatalogService.CachedStatus` is the one place that decides it:
+
+- the rate-limit window is read **live**, because it expires on its own;
+- `_apiUnreachable` is sticky, because unreachability does not expire — only an answer from the
+  server clears it. A 429 counts as an answer: the server replied, so a stale "offline" verdict must
+  go, and the window alone represents the 429.
+
+The flag is **in memory only**. A failed attempt is positive evidence that must survive navigation
+while the app runs; a fresh launch holds no such evidence, and absence of evidence is not evidence of
+a problem. Making startup answer it would mean a version check on every launch, which is exactly what
+the 12 h timer exists to avoid.
+
 ## Sync state (completeness — a second, orthogonal axis)
 
 `CatalogStatus` answers *how fresh* the data is. It cannot answer *how complete* it is: the

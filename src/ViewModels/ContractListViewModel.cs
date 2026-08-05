@@ -78,6 +78,12 @@ public abstract partial class ContractListViewModel : ViewModel
     /// <summary>Exposed so <see cref="FavoritesViewModel"/> can narrow the list to flagged contracts.</summary>
     protected IFavoritesService FavoritesService { get; }
 
+    /// <summary>
+    /// Exposed so <see cref="FavoritesViewModel"/> can read held counts for the gathering plan —
+    /// the same instance this base already subscribes to, rather than a second field holding it.
+    /// </summary>
+    protected IInventoryStore InventoryStore => _inventoryStore;
+
     /// <summary>Filtered view over the cards; refreshed in place as filters change.</summary>
     [ObservableProperty]
     private ICollectionView? _contracts;
@@ -96,6 +102,13 @@ public abstract partial class ContractListViewModel : ViewModel
     /// <summary>0 = all resources, 1.. = index into <see cref="ResourceOptions"/>.</summary>
     [ObservableProperty]
     private int _resourceIndex;
+
+    /// <summary>
+    /// 0 = either, 1 = not completed, 2 = completed. A starred contract stays starred once it is
+    /// done, so a working library fills up with finished rows; this hides them without un-starring.
+    /// </summary>
+    [ObservableProperty]
+    private int _completionIndex;
 
     /// <summary>All filters combined produced no results (there ARE cards, they are just filtered out).</summary>
     [ObservableProperty]
@@ -119,12 +132,15 @@ public abstract partial class ContractListViewModel : ViewModel
 
     partial void OnResourceIndexChanged(int value) => RefreshFilter();
 
+    partial void OnCompletionIndexChanged(int value) => RefreshFilter();
+
     [RelayCommand]
     private void ClearFilters()
     {
         SearchText = string.Empty;
         CategoryIndex = 0;
         ResourceIndex = 0;
+        CompletionIndex = 0;
     }
 
     [RelayCommand]
@@ -196,10 +212,11 @@ public abstract partial class ContractListViewModel : ViewModel
     internal ContractFilter CurrentFilter => new(
         SearchText,
         CategoryIndex > 0 && CategoryIndex <= _categoryOrder.Length ? _categoryOrder[CategoryIndex - 1] : null,
-        ResourceIndex > 0 && ResourceIndex < ResourceOptions.Count ? ResourceOptions[ResourceIndex] : null);
+        ResourceIndex > 0 && ResourceIndex < ResourceOptions.Count ? ResourceOptions[ResourceIndex] : null,
+        CompletionIndex switch { 1 => false, 2 => true, _ => null });
 
     private bool FilterContract(object item) =>
-        item is ContractCardViewModel { Contract: var contract } && CurrentFilter.Matches(contract);
+        item is ContractCardViewModel card && CurrentFilter.Matches(card.Contract, card.IsCompleted);
 
     private void UpdateIsEmpty() => IsEmpty = _cards.Count > 0 && (Contracts?.IsEmpty ?? false);
 
@@ -214,6 +231,9 @@ public abstract partial class ContractListViewModel : ViewModel
 
     /// <summary>Runs when enrichment starts or finishes (the two real transitions only).</summary>
     protected virtual void OnSyncStateChangedCore() { }
+
+    /// <summary>Runs after an inventory edit and the cards' readiness refresh.</summary>
+    protected virtual void OnInventoryChangedCore() { }
 
     private void OnCatalogUpdated(object? sender, EventArgs e) =>
         // Enrichment finishes on a background thread.
@@ -256,6 +276,13 @@ public abstract partial class ContractListViewModel : ViewModel
                 card.RefreshCompleted();
             }
 
+            // The completion filter reads a card property the view cannot observe, so completing a
+            // contract while "not completed" is selected would leave its row on screen until
+            // something else re-filtered. Unconditional on purpose: completion changes at click
+            // rate. Deliberately NOT done in OnInventoryChanged — that is the ~30x/s held-hotkey
+            // path, where a collection Reset is exactly the churn this page is written to avoid.
+            RefreshFilter();
+
             OnCompletionChangedCore();
         });
 
@@ -277,5 +304,7 @@ public abstract partial class ContractListViewModel : ViewModel
             {
                 card.RefreshReadiness();
             }
+
+            OnInventoryChangedCore();
         });
 }

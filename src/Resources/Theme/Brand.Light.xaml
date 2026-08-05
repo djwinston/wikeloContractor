@@ -60,6 +60,13 @@
        its own key rather than reusing the XP badge — see the note in Brand.Dark.xaml. -->
   <SolidColorBrush x:Key="FavoriteStarBrush" Color="#B8860B" />
 
+  <!-- Overlay pin badge as an APP PAGE draws it — see the note in Brand.Dark.xaml. The values are
+       the light accent-chip pair, which is already proven on this surface, rather than the
+       OverlaySlotBadge* cyan below: that one is drawn on dark glass even in this theme, so reused
+       here it lands at roughly 1.3:1 on the card. -->
+  <SolidColorBrush x:Key="PinBadgeBackgroundBrush" Color="#E2F4F9" />
+  <SolidColorBrush x:Key="PinBadgeForegroundBrush" Color="#0D7490" />
+
   <!-- Completed catalog row: left marker plus a fade-out wash across the row -->
   <SolidColorBrush x:Key="CompletedRowAccentBrush" Color="#2E8259" />
   <LinearGradientBrush x:Key="CompletedRowWashBrush" StartPoint="0,0" EndPoint="1,0">

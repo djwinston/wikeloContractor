@@ -56,9 +56,14 @@ state, which is what the XAML binds to; rendering stays covered by the manual sm
   test seams). Pass another harness's `Root` to model an
   **app restart** over the same cache, and call `AgeCache()` to backdate the last version check —
   without it the service correctly serves the cache untouched for 12 h and never reaches the API.
-- `E2E/OverlayDoubles` — `FakeHotkeyService` (the one `IHotkeyService` fake — **never add a second**)
-  and `FakeOverlayWindow`. `Press(action, slot)` raises the same event the real service raises from
-  `WM_HOTKEY`.
+  `LoadAndEnrichAsync()` is the **one** way to wait for enrichment: it loads the catalog and blocks
+  on `CatalogUpdated`. Any scenario asserting on requirements needs it or it races a background pass
+  and reads whichever list happened to be current — and waiting on the syncing *flag* instead is the
+  trap, because the flag drops before the enriched contracts are published. Do not hand-roll a
+  second copy of that wait.
+- `E2E/OverlayDoubles` — `FakeHotkeyService` (the one `IHotkeyService` fake — **never add a second**),
+  `FakeOverlayWindow` and `FakeTrayHost`. `Press(action, slot)` raises the same event the real
+  service raises from `WM_HOTKEY`.
 
 ### Overlay scenarios
 
@@ -83,6 +88,10 @@ which — that log line is the entire diagnostic when hotkeys go quiet in game, 
 That seam is also why `OverlayViewModel` holds no `Window` and `OverlayService` reaches the window
 through `IOverlayWindow`: keeping the window out of the decision layer is what makes the whole
 feature — hotkey to store to catalog readiness chip — assertable without rendering anything.
+
+`E2E/TrayScenarios` follows the same shape one layer up, over `FakeTrayHost`: whether a minimize
+means "to the tray", how a hidden window comes back, and that Exit routes through closing the shell
+rather than `Application.Shutdown()` — which in this fixture would take the test host down with it.
 
 Two traps worth knowing before writing a new scenario:
 

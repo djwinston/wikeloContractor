@@ -57,6 +57,9 @@ public sealed class CatalogHarness : IDisposable
 
     public FakeOverlayWindow OverlayWindow { get; } = new();
 
+    /// <summary>The shell window seen from the tray: shown, hidden or closed.</summary>
+    public FakeTrayHost TrayHost { get; } = new();
+
     public OverlayService Overlay { get; private set; } = null!;
 
     public OverlayViewModel Hud { get; private set; } = null!;
@@ -69,10 +72,16 @@ public sealed class CatalogHarness : IDisposable
     /// <summary>The same card list narrowed to starred contracts — shares the base VM's filters.</summary>
     public FavoritesViewModel Favorited { get; private set; } = null!;
 
+    /// <summary>The shared "Overlay N/10" budget, bound by both the inventory grid and Favorites.</summary>
+    public OverlayPinsViewModel OverlayPins { get; private set; } = null!;
+
     public ContractDetailViewModel Detail { get; private set; } = null!;
 
     /// <summary>The shell: owns the sync overlay and the app-wide navigation lock.</summary>
     public MainWindowViewModel Shell { get; private set; } = null!;
+
+    /// <summary>The notification-area menu, already attached to <see cref="TrayHost"/>.</summary>
+    public TrayViewModel Tray { get; private set; } = null!;
 
     /// <summary>
     /// Builds the graph on the UI thread — <see cref="RateLimitWatcher"/> owns a
@@ -98,8 +107,6 @@ public sealed class CatalogHarness : IDisposable
             var interaction = new ContractCompletionInteraction(harness.Completion, harness.Inventory);
             var navigation = new StubNavigationService();
 
-            harness.Shell = new MainWindowViewModel(harness.Catalog);
-
             harness.Detail = new ContractDetailViewModel(
                 navigation, harness.Catalog, harness.Completion, harness.Favorites, harness.Inventory, interaction);
 
@@ -113,6 +120,9 @@ public sealed class CatalogHarness : IDisposable
                 navigation,
                 harness.Detail);
 
+            // One counter for one set of pins — the same object both pages bind, as in App.xaml.cs.
+            harness.OverlayPins = new OverlayPinsViewModel(harness.Pins);
+
             harness.Favorited = new FavoritesViewModel(
                 harness.Catalog,
                 harness.Completion,
@@ -120,9 +130,12 @@ public sealed class CatalogHarness : IDisposable
                 harness.Inventory,
                 interaction,
                 navigation,
-                harness.Detail);
+                harness.Detail,
+                harness.Pins,
+                harness.OverlayPins);
 
-            harness.Inventoried = new InventoryViewModel(harness.Catalog, harness.Inventory, harness.Pins);
+            harness.Inventoried = new InventoryViewModel(
+                harness.Catalog, harness.Inventory, harness.Pins, harness.OverlayPins);
 
             harness.Hud = new OverlayViewModel(harness.Pins, harness.Inventory, harness.Catalog);
 
@@ -132,6 +145,12 @@ public sealed class CatalogHarness : IDisposable
                 harness.Settings,
                 harness.Hud,
                 () => harness.OverlayWindow);
+
+            harness.Tray = new TrayViewModel(harness.Overlay, harness.Hud, harness.Settings);
+            harness.Tray.Attach(harness.TrayHost);
+
+            // Last: the shell owns the tray view model, the way MainWindow reaches it.
+            harness.Shell = new MainWindowViewModel(harness.Catalog, harness.Tray);
         });
 
         return harness;
@@ -139,6 +158,32 @@ public sealed class CatalogHarness : IDisposable
 
     /// <summary>The storage root, so a follow-up harness can restart over the same cache.</summary>
     public string Root => _root;
+
+    /// <summary>
+    /// Loads the catalog and waits for the enrichment pass to finish — the pass that replaces the
+    /// summary-based fallback with the real hauling orders.
+    /// <para>
+    /// Any scenario asserting on requirements has to wait for it or it races a background pass and
+    /// reads whichever list happened to be current. Waiting on <c>CatalogUpdated</c> rather than on
+    /// the syncing flag is deliberate: the flag drops before the new contracts are published.
+    /// </para>
+    /// </summary>
+    public async Task LoadAndEnrichAsync(TimeSpan? timeout = null)
+    {
+        var enriched = new TaskCompletionSource();
+        void OnUpdated(object? sender, EventArgs e) => enriched.TrySetResult();
+
+        Catalog.CatalogUpdated += OnUpdated;
+        try
+        {
+            _ = await Catalog.GetContractsAsync();
+            await enriched.Task.WaitAsync(timeout ?? TimeSpan.FromSeconds(20));
+        }
+        finally
+        {
+            Catalog.CatalogUpdated -= OnUpdated;
+        }
+    }
 
     /// <summary>
     /// Backdates the cache's last version check so the next load actually contacts the API.

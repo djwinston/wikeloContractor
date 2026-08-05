@@ -1,6 +1,8 @@
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Microsoft.Win32;
+using WikeloContractor.Interop;
 using Wpf.Ui;
 using Wpf.Ui.Abstractions;
 using Wpf.Ui.Appearance;
@@ -11,12 +13,18 @@ using WikeloContractor.ViewModels;
 
 namespace WikeloContractor.Views;
 
-public partial class MainWindow : INavigationWindow
+public partial class MainWindow : INavigationWindow, ITrayHost
 {
     public MainWindowViewModel ViewModel { get; }
 
     /// <summary>Last (app theme, shell-light) pair the icons were built for; skips redundant rebuilds.</summary>
     private (ApplicationTheme Theme, bool ShellLight)? _appliedIconState;
+
+    /// <summary>The state to come back to from the tray — normal or maximized, never minimized.</summary>
+    private WindowState _restoreState = WindowState.Normal;
+
+    /// <summary>The runtime number of the shell's <c>TaskbarCreated</c> broadcast; 0 until hooked.</summary>
+    private uint _taskbarCreatedMessage;
 
     /// <summary>Frozen taskbar bitmaps, decoded once per art (navy on a light shell, cyan on a dark one).</summary>
     private BitmapImage? _taskbarLightShellIcon;
@@ -43,6 +51,13 @@ public partial class MainWindow : INavigationWindow
         InitializeComponent();
 
         navigationService.SetNavigationControl(RootNavigation);
+
+        // A ContextMenu is not part of the visual tree, so it inherits nothing from this window.
+        // NotifyIcon does forward its own DataContext to the menu, but only while the menu's is
+        // still null and only once it has one itself — too many conditions for markup that silently
+        // degrades into a menu of greyed-out items when it does not hold.
+        TrayMenu.DataContext = this;
+        ViewModel.Tray.Attach(this);
 
         UpdateAppIcon(ApplicationThemeManager.GetAppTheme());
         ApplicationThemeManager.Changed += OnThemeChanged;
@@ -108,9 +123,16 @@ public partial class MainWindow : INavigationWindow
         // Taskbar/Alt-Tab: must stay a raster bitmap, WPF hands it to Win32 as an HICON. Follows
         // the Windows theme — picking by app theme puts the navy mark on a dark taskbar at a 1.2:1
         // contrast ratio whenever the two disagree.
-        Icon = shellLight
+        var shellArtwork = shellLight
             ? TaskbarIcon(ref _taskbarLightShellIcon, "icon.png")
             : TaskbarIcon(ref _taskbarDarkShellIcon, "icon-light.png");
+
+        Icon = shellArtwork;
+
+        // The notification area sits on the same surface Windows paints, so it takes the same
+        // artwork by the same rule. Assigning after registration is supported — NotifyIcon reacts
+        // by re-sending the icon to the shell.
+        TrayIcon.Icon = shellArtwork;
     }
 
     /// <summary>Decodes a taskbar bitmap once and freezes it; later calls reuse the cached instance.</summary>
@@ -153,10 +175,114 @@ public partial class MainWindow : INavigationWindow
 
     public void CloseWindow() => Close();
 
+    /// <inheritdoc />
+    public void RestoreWindow() => WindowRestore.Restore(this, _restoreState);
+
+    /// <inheritdoc />
+    public void HideWindow() => Hide();
+
+    /// <inheritdoc />
+    public bool IsTrayAvailable => TrayIcon.IsRegistered;
+
+    /// <summary>
+    /// Listens for the shell's <c>TaskbarCreated</c> broadcast. Hooked here, on the shell's own
+    /// window, because that message goes to top-level windows and this is the one the icon belongs to.
+    /// </summary>
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+
+        _taskbarCreatedMessage = NativeMethods.RegisterWindowMessage(NativeMethods.TaskbarCreatedMessage);
+        ((HwndSource)PresentationSource.FromVisual(this)!).AddHook(OnWindowMessage);
+    }
+
+    /// <summary>
+    /// Explorer restarted and rebuilt the notification area, taking every icon in it with it.
+    /// <c>Wpf.Ui.Tray</c> does not handle this at all, so without re-registering here the icon is
+    /// gone for the rest of the session while <c>IsRegistered</c> still claims otherwise — and with
+    /// minimize-to-tray on, that is a window with nowhere to come back from.
+    /// <para>
+    /// Re-registering is enough on its own: <c>TrayManager.Register</c> repopulates the whole
+    /// <c>NOTIFYICONDATA</c>, icon and tooltip included, so nothing has to be re-applied afterwards.
+    /// </para>
+    /// </summary>
+    private nint OnWindowMessage(nint hwnd, int msg, nint wParam, nint lParam, ref bool handled)
+    {
+        // Never marked handled: the broadcast is not ours to consume.
+        if (_taskbarCreatedMessage != 0 && (uint)msg == _taskbarCreatedMessage)
+        {
+            TrayIcon.Register();
+
+            // IsRegistered rather than Register's own answer, because that flag is what
+            // ITrayHost.IsTrayAvailable reports and therefore what actually gates hiding.
+            LogTrayRegistration("re-registered after the notification area was rebuilt");
+        }
+
+        return nint.Zero;
+    }
+
+    /// <summary>
+    /// Left-clicking the tray icon opens the app, the convention every tray application follows.
+    /// This also fires as the first half of a double click, which is harmless — restoring an already
+    /// restored window does nothing.
+    /// </summary>
+    private void OnTrayIconLeftClick(object sender, RoutedEventArgs e) => ViewModel.Tray.ShowAppCommand.Execute(null);
+
+    /// <summary>
+    /// First render done, which is when <c>NotifyIcon</c> registers itself — on <c>OnRender</c>,
+    /// not on load.
+    /// </summary>
+    protected override void OnContentRendered(EventArgs e)
+    {
+        base.OnContentRendered(e);
+        LogTrayRegistration("registered");
+    }
+
+    /// <summary>
+    /// Records whether the icon is in the notification area. It reports a failure nowhere else:
+    /// there is simply no icon, which looks exactly like the user keeping it in the overflow
+    /// flyout. One log line is the whole diagnostic, same as the hotkey backend's.
+    /// </summary>
+    private void LogTrayRegistration(string what)
+    {
+        var registered = TrayIcon.IsRegistered;
+
+        AppLog.Write(
+            registered ? "Info" : "Warning",
+            registered
+                ? $"Tray icon {what}."
+                : $"Tray icon not {what} — the notification area menu is unavailable and the window "
+                  + "will minimize to the taskbar instead.");
+    }
+
+    /// <summary>
+    /// Minimizing is the only state change the tray cares about; the rule itself is the VM's.
+    /// The other states are remembered here, because coming back from the tray has to know which
+    /// one to come back to and by then <see cref="Window.WindowState"/> only says "minimized".
+    /// </summary>
+    protected override void OnStateChanged(EventArgs e)
+    {
+        base.OnStateChanged(e);
+
+        if (WindowState != WindowState.Minimized)
+        {
+            _restoreState = WindowState;
+        }
+
+        ViewModel.Tray.OnWindowStateChanged(WindowState);
+    }
+
     protected override void OnClosed(EventArgs e)
     {
         ApplicationThemeManager.Changed -= OnThemeChanged;
         SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
+
+        // Explicit, because NotifyIcon only unregisters when it is disposed and nothing disposes a
+        // control. Left to the finalizer, the icon lingers in the notification area as a ghost that
+        // disappears only when the user happens to hover over it.
+        ViewModel.Tray.Detach();
+        TrayIcon.Unregister();
+
         base.OnClosed(e);
 
         // Closing the main window shuts down the application

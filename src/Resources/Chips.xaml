@@ -2,7 +2,6 @@
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:controls="clr-namespace:WikeloContractor.Views.Controls"
-  xmlns:converters="clr-namespace:WikeloContractor.Views.Converters"
   xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
 
   <!-- Shared chip, tag and badge chrome, plus the templates whose *content* is identical across
@@ -11,7 +10,7 @@
        on the detail page) stays inline and wraps itself in one of the chrome styles below.
        Colours come from the swapped brand palette — see docs/design-system.md. -->
 
-  <converters:AvailabilityToBrushConverter x:Key="ChipAvailabilityToBrush" />
+  <BooleanToVisibilityConverter x:Key="ChipBoolToVisibility" />
 
   <!-- Solid-bordered chip: requirement / reward roles. Background, border and foreground are set
        by the caller (they vary by availability), so this style only fixes the geometry. -->
@@ -130,20 +129,151 @@
     </Style.Triggers>
   </Style>
 
+  <!-- Self-colouring chip: geometry from ChipStyle, all three chrome brushes driven by the
+       DataContext's Availability. The single home for "availability paints a chip" — the catalog
+       row, the detail page and the Favorites gathering plan all read it from here rather than
+       repeating the mapping, which is how a fourth availability band would otherwise have to be
+       found in three files. The DataContext needs a RequirementAvailability Availability.
+
+       DataTriggers with DynamicResource, NOT a value converter. A converter resolves the key once,
+       at convert time, and returns a concrete Brush — and nothing re-runs it when the brand palette
+       is swapped, because the binding's source (Availability) has not changed. So a light/dark flip
+       at runtime left every availability colour on the old palette while the DynamicResource-bound
+       chrome around it moved, which is exactly as legible as it sounds. DynamicResource re-resolves
+       on the swap, which is the entire point of the palette being swappable.
+
+       The None row is deliberately not a trigger: neutral maps to Fluent theme roles rather than
+       brand tints, so it is the default and the tinted bands override it. -->
+  <Style
+    x:Key="AvailabilityChipStyle"
+    BasedOn="{StaticResource ChipStyle}"
+    TargetType="ContentControl">
+    <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+    <Style.Triggers>
+      <DataTrigger Binding="{Binding Availability}" Value="Partial">
+        <Setter Property="Background" Value="{DynamicResource ChipCautionBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ChipCautionBorderBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource ChipCautionForegroundBrush}" />
+      </DataTrigger>
+      <DataTrigger Binding="{Binding Availability}" Value="Full">
+        <Setter Property="Background" Value="{DynamicResource ChipSuccessBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ChipSuccessBorderBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource ChipSuccessForegroundBrush}" />
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+
+  <!-- The quantity inside the chip — the one part of a requirement read as a number rather than a
+       label, so it gets the stronger brush of the pair. Same DynamicResource argument as above.
+       Kept as a named style rather than folded back into RequirementChipTemplate so the mapping
+       stays one thing: these brushes are picked to read against Chip*BackgroundBrush, so anything
+       reusing them must bring the chip fill with it, and a style is what makes that legible as a
+       rule. The Favorites gathering card tried them as bare text on a card and lost — see
+       docs/design-system.md. -->
+  <Style x:Key="AvailabilityValueStyle" TargetType="Run">
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    <Style.Triggers>
+      <DataTrigger Binding="{Binding Availability}" Value="Partial">
+        <Setter Property="Foreground" Value="{DynamicResource ChipCautionValueBrush}" />
+      </DataTrigger>
+      <DataTrigger Binding="{Binding Availability}" Value="Full">
+        <Setter Property="Foreground" Value="{DynamicResource ChipSuccessValueBrush}" />
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+
   <!-- Requirement chip: identical on the catalog row and the detail page (both bind a
-       ViewModels/RequirementChip list), so the whole template is shared, not just the chrome.
-       Availability drives all four brushes through the converter. -->
+       ViewModels/RequirementChip list), so the whole template is shared, not just the chrome. -->
   <DataTemplate x:Key="RequirementChipTemplate">
-    <ContentControl
-      Background="{Binding Availability, Converter={StaticResource ChipAvailabilityToBrush}, ConverterParameter=Background}"
-      BorderBrush="{Binding Availability, Converter={StaticResource ChipAvailabilityToBrush}, ConverterParameter=Border}"
-      Foreground="{Binding Availability, Converter={StaticResource ChipAvailabilityToBrush}, ConverterParameter=Foreground}"
-      Style="{StaticResource ChipStyle}">
-      <TextBlock FontWeight="Medium"><Run Text="{Binding Name, Mode=OneWay}" /><Run Text=" × " /><Run
-          FontWeight="Bold"
-          Foreground="{Binding Availability, Converter={StaticResource ChipAvailabilityToBrush}, ConverterParameter=Value}"
-          Text="{Binding AmountLabel, Mode=OneWay}" /></TextBlock>
+    <ContentControl Style="{StaticResource AvailabilityChipStyle}">
+      <TextBlock FontWeight="Medium"><Run Text="{Binding Name, Mode=OneWay}" /><Run Text=" × " /><Run Style="{StaticResource AvailabilityValueStyle}" Text="{Binding AmountLabel, Mode=OneWay}" /></TextBlock>
     </ContentControl>
+  </DataTemplate>
+
+  <!-- The overlay pin affordance, shared by the inventory row and the Favorites gathering chip.
+       ViewModels/PinToggle already stops the five VM members drifting; these stop the markup that
+       renders them drifting with it — the symbol, its filled state, the two brushes and the four
+       bindings shipped wrong once on both pages at the same time, which is the whole argument.
+
+       Styles rather than one DataTemplate because the two call sites legitimately differ in
+       geometry (a fixed square badge in the roomy inventory row, a padded pill inside a chip), and
+       a local value beats a style setter — so each page overrides size and spacing and nothing
+       else. The contract is that the DataContext exposes a `PinToggle Pin`. -->
+  <Style x:Key="PinSlotBadgeStyle" TargetType="Border">
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Background" Value="{DynamicResource PinBadgeBackgroundBrush}" />
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusBadge}" />
+    <Setter Property="ToolTip" Value="{Binding Pin.Tooltip}" />
+    <!-- The digit is meaningless until the item actually holds a slot. -->
+    <Setter Property="Visibility" Value="{Binding Pin.IsPinned, Converter={StaticResource ChipBoolToVisibility}}" />
+  </Style>
+
+  <Style x:Key="PinSlotDigitStyle" TargetType="TextBlock">
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+    <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="{DynamicResource PinBadgeForegroundBrush}" />
+    <Setter Property="Text" Value="{Binding Pin.SlotLabel}" />
+  </Style>
+
+  <!-- Same idiom as the favourite star: a plain Button with a state trigger, never a ToggleButton —
+       IsPinned is computed from PinnedItemsService, and a ToggleButton writes IsChecked locally on
+       click, replacing the binding (see docs/ui-notes.md).
+
+       x:Shared="False" is load-bearing, and the reason every other Icon setter in this project sits
+       inline in a DataTemplate instead of a dictionary. Wpf.Ui.Controls.IconElement derives from
+       FrameworkElement, and {ui:SymbolIcon} is a markup extension evaluated once when the Style is
+       built — so a shared Style hands the SAME icon element to all ~120 pin buttons. Measured: 20
+       rows off a shared style yield 1 icon instance, off this one 20. WPF-UI happens not to parent
+       the element today, so it renders anyway; that is luck, not a contract. Re-instantiating the
+       style per request costs one small object per row and removes the whole question. -->
+  <Style
+    x:Key="PinButtonStyle"
+    x:Shared="False"
+    BasedOn="{StaticResource {x:Type ui:Button}}"
+    TargetType="ui:Button">
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Appearance" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Command" Value="{Binding Pin.ToggleCommand}" />
+    <Setter Property="ToolTip" Value="{Binding Pin.Tooltip}" />
+    <Setter Property="Icon" Value="{ui:SymbolIcon Symbol=Pin24}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+    <Style.Triggers>
+      <DataTrigger Binding="{Binding Pin.IsPinned}" Value="True">
+        <Setter Property="Icon" Value="{ui:SymbolIcon Symbol=Pin24, Filled=True}" />
+        <Setter Property="Foreground" Value="{DynamicResource PinBadgeForegroundBrush}" />
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+
+  <!-- "Overlay 3/10" and the button that clears it — the pin budget, on every page that offers pins.
+       ViewModels/OverlayPinsViewModel is a singleton so the two pages cannot disagree on the number;
+       this is the other half of that argument. The outer container stays with the caller: the
+       inventory grid puts it in the filter bar, the gathering plan right-aligns it over the chips.
+       DataContext is the OverlayPinsViewModel itself. -->
+  <DataTemplate x:Key="OverlayPinBudgetTemplate">
+    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+      <ui:SymbolIcon
+        Margin="0,0,6,0"
+        FontSize="14"
+        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+        Symbol="Pin24" />
+      <TextBlock Style="{StaticResource MonoCaptionStyle}" Text="{Binding Summary}" />
+      <ui:Button
+        Margin="8,0,-4,0"
+        Padding="4,0"
+        Appearance="Transparent"
+        BorderThickness="0"
+        Command="{Binding ClearCommand}"
+        Icon="{ui:SymbolIcon Dismiss24}"
+        ToolTip="{DynamicResource Inventory_ClearPins}" />
+    </StackPanel>
   </DataTemplate>
 
   <!-- Wrapping chip list — the panel every chip ItemsControl uses. -->

@@ -387,6 +387,53 @@ public sealed class ContractCatalogServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task A_failed_refresh_keeps_reporting_offline_until_the_api_answers_again()
+    {
+        var client = new ScriptedWikiApi { Missions = [Mission("a", "Real contract")] };
+        var service = new ContractCatalogService(client, _cacheDirectory);
+
+        _ = await service.GetContractsAsync();
+
+        client.GoOffline();
+        Assert.Equal(CatalogStatus.Offline, (await service.GetContractsAsync(forceRefresh: true)).Status);
+
+        // The load that used to erase it: inside the 12 h window, so no call is made at all. Serving
+        // the cache is right; claiming the API is reachable while holding evidence that it is not
+        // hands the user a green badge over data nothing re-validated.
+        var withoutContact = await service.GetContractsAsync();
+
+        Assert.Equal(CatalogStatus.Offline, withoutContact.Status);
+        Assert.Equal(1, client.MissionsCalls);
+
+        // Only an answer from the server clears it — and then the quiet loads agree again.
+        client.GoOnline();
+        Assert.Equal(CatalogStatus.Online, (await service.GetContractsAsync(forceRefresh: true)).Status);
+        Assert.Equal(CatalogStatus.Online, (await service.GetContractsAsync()).Status);
+    }
+
+    [Fact]
+    public async Task A_rate_limited_answer_does_not_leave_the_catalog_looking_offline()
+    {
+        // A 429 is the server answering, so it must clear an earlier unreachable verdict rather than
+        // stack on top of it: the window closes on its own, and the badge has to follow it back.
+        var client = new ScriptedWikiApi { Missions = [Mission("a", "Real contract")] };
+        var service = new ContractCatalogService(client, _cacheDirectory, TimeSpan.FromMilliseconds(20));
+
+        _ = await service.GetContractsAsync();
+
+        client.GoOffline();
+        _ = await service.GetContractsAsync(forceRefresh: true);
+
+        client.GoOnline();
+        client.ThrowRateLimitedOnCall(client.TotalCalls + 1, TimeSpan.FromMilliseconds(20));
+        Assert.Equal(CatalogStatus.RateLimited, (await service.GetContractsAsync(forceRefresh: true)).Status);
+
+        await Task.Delay(100);
+
+        Assert.Equal(CatalogStatus.Online, (await service.GetContractsAsync()).Status);
+    }
+
+    [Fact]
     public async Task Current_schema_cache_is_reused_by_a_new_service_instance()
     {
         var client = new ScriptedWikiApi { Missions = [Mission("a", "Real contract")] };

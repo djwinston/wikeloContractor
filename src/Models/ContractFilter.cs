@@ -12,12 +12,22 @@ namespace WikeloContractor.Models;
 /// <param name="Search">Free text matched against title, description and reward names; null or blank matches everything.</param>
 /// <param name="Category">Required reward category; null matches every category.</param>
 /// <param name="ResourceName">Required item the contract must ask for; null matches every contract.</param>
-public sealed record ContractFilter(string? Search, ContractCategory? Category, string? ResourceName)
+/// <param name="Completed">Required completion state; null matches both.</param>
+public sealed record ContractFilter(
+    string? Search,
+    ContractCategory? Category,
+    string? ResourceName,
+    bool? Completed = null)
 {
     /// <summary>No criteria at all — every contract matches.</summary>
     public static readonly ContractFilter None = new(null, null, null);
 
-    public bool Matches(WikeloContract contract)
+    /// <param name="isCompleted">
+    /// Whether the contract is completed. Passed in rather than read here: completion is
+    /// <see cref="Services.ICompletionService"/> state keyed by UUID, not something the contract
+    /// record carries, and taking a service would cost this type its purity.
+    /// </param>
+    public bool Matches(WikeloContract contract, bool isCompleted)
     {
         if (!string.IsNullOrWhiteSpace(Search)
             && !contract.Title.Contains(Search, StringComparison.OrdinalIgnoreCase)
@@ -39,6 +49,6 @@ public sealed record ContractFilter(string? Search, ContractCategory? Category, 
             return false;
         }
 
-        return true;
+        return Completed is not { } completed || completed == isCompleted;
     }
 }

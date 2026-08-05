@@ -12,10 +12,18 @@
   <sys:String x:Key="Nav_Settings">Налаштування</sys:String>
   <sys:String x:Key="Nav_About">Про застосунок</sys:String>
 
+  <!-- Notification-area menu; the icon's tooltip is App_Title -->
+  <sys:String x:Key="Tray_Open">Відкрити Wikelo Contractor</sys:String>
+  <sys:String x:Key="Tray_Overlay">Ігровий оверлей</sys:String>
+  <sys:String x:Key="Tray_Exit">Вийти</sys:String>
+
   <sys:String x:Key="Catalog_Title">Контракти Wikelo</sys:String>
   <sys:String x:Key="Catalog_Search">Пошук контрактів...</sys:String>
   <sys:String x:Key="Catalog_Filter_AllCategories">Всі категорії</sys:String>
   <sys:String x:Key="Catalog_Filter_AllResources">Всі ресурси</sys:String>
+  <sys:String x:Key="Catalog_Filter_AnyCompletion">Будь-який стан</sys:String>
+  <sys:String x:Key="Catalog_Filter_NotCompleted">Не завершені</sys:String>
+  <sys:String x:Key="Catalog_Filter_Completed">Завершені</sys:String>
   <sys:String x:Key="Catalog_Cat_Ships">Кораблі</sys:String>
   <sys:String x:Key="Catalog_Cat_Vehicles">Наземна техніка</sys:String>
   <sys:String x:Key="Catalog_Cat_Paints">Фарби та лівреї</sys:String>
@@ -58,6 +66,11 @@
        deliberately separate from Catalog_Empty ("filters matched nothing") — different situations. -->
   <sys:String x:Key="Favorites_Title">Обране</sys:String>
   <sys:String x:Key="Favorites_Empty">Обраного ще немає. Натисніть зірочку на контракті, щоб зберегти його тут.</sys:String>
+  <sys:String x:Key="Favorites_Gather_Title">Що ще зібрати</sys:String>
+  <sys:String x:Key="Favorites_Gather_Hint">Сумарно за обраними контрактами, які ви ще не завершили. На кожній картці — скільки є в інвентарі проти того, скільки просять ці контракти; те, чого вже вистачає, у список не потрапляє.</sys:String>
+  <sys:String x:Key="Favorites_Gather_Covered">Інвентарю вже вистачає на всі обрані контракти.</sys:String>
+  <sys:String x:Key="Favorites_Tab_Contracts">Контракти</sys:String>
+  <sys:String x:Key="Favorites_Gather_InStock">Зібрано з того, що просять обрані контракти</sys:String>
   <sys:String x:Key="Catalog_RewardsLabel">НАГОРОДИ</sys:String>
   <!-- {0} is the reputation the contract awards; the UI calls it XP (see docs/design-system.md) -->
   <sys:String x:Key="Catalog_XpBadge">+{0} XP</sys:String>
@@ -153,6 +166,10 @@
   <sys:String x:Key="Settings_Theme_System">Системна</sys:String>
   <sys:String x:Key="Settings_Theme_Light">Світла</sys:String>
   <sys:String x:Key="Settings_Theme_Dark">Темна</sys:String>
+  <sys:String x:Key="Settings_Tray">Область сповіщень</sys:String>
+  <sys:String x:Key="Settings_Tray_Description">Значок у треї доступний протягом усього сеансу: він повертає вікно та вмикає чи вимикає оверлей без перемикання між вікнами.</sys:String>
+  <sys:String x:Key="Settings_Tray_MinimizeToTray">Згортати в трей замість панелі задач</sys:String>
+
   <sys:String x:Key="Settings_Overlay">Ігровий оверлей</sys:String>
   <sys:String x:Key="Settings_Overlay_Description">Невелика панель поверх усіх вікон із закріпленими предметами. Керується глобальними гарячими клавішами, тож змінювати кількість можна не виходячи з гри.</sys:String>
   <sys:String x:Key="Settings_Overlay_ShowOnStartup">Показувати оверлей під час запуску</sys:String>

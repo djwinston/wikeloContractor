@@ -33,6 +33,14 @@ internal static partial class NativeMethods
     /// </summary>
     internal const int WM_INPUT = 0x00FF;
 
+    /// <summary>
+    /// The shell's "the notification area exists again" broadcast, looked up by name because its
+    /// number is assigned at runtime. Explorer sends it to every top-level window after it restarts,
+    /// and it is the only notice an application gets that its tray icon is gone — see
+    /// <c>docs/ui-notes.md</c>, "Notification area".
+    /// </summary>
+    internal const string TaskbarCreatedMessage = "TaskbarCreated";
+
     /// <summary>Index of the extended window style, for <c>Get/SetWindowLongPtr</c>.</summary>
     internal const int GWL_EXSTYLE = -20;
 
@@ -60,6 +68,14 @@ internal static partial class NativeMethods
     // The 64-bit entry points. The release ships x64 only (vpk pack --framework net10.0-x64-desktop),
     // so the 32-bit GetWindowLongW/SetWindowLongW pair is deliberately absent rather than present as
     // an untested dead branch.
+    /// <summary>
+    /// Resolves a system-wide message name to the number it was assigned this boot. Every caller
+    /// asking for the same name gets the same value, which is how a broadcast like
+    /// <see cref="TaskbarCreatedMessage"/> can be recognised in a window procedure.
+    /// </summary>
+    [LibraryImport(_user32, EntryPoint = "RegisterWindowMessageW", StringMarshalling = StringMarshalling.Utf16)]
+    internal static partial uint RegisterWindowMessage(string lpString);
+
     [LibraryImport(_user32, EntryPoint = "GetWindowLongPtrW", SetLastError = true)]
     internal static partial nint GetWindowLongPtr(nint hWnd, int nIndex);
 
