@@ -56,6 +56,11 @@ state, which is what the XAML binds to; rendering stays covered by the manual sm
   test seams). Pass another harness's `Root` to model an
   **app restart** over the same cache, and call `AgeCache()` to backdate the last version check —
   without it the service correctly serves the cache untouched for 12 h and never reaches the API.
+  `LoadAndEnrichAsync()` is the **one** way to wait for enrichment: it loads the catalog and blocks
+  on `CatalogUpdated`. Any scenario asserting on requirements needs it or it races a background pass
+  and reads whichever list happened to be current — and waiting on the syncing *flag* instead is the
+  trap, because the flag drops before the enriched contracts are published. Do not hand-roll a
+  second copy of that wait.
 - `E2E/OverlayDoubles` — `FakeHotkeyService` (the one `IHotkeyService` fake — **never add a second**),
   `FakeOverlayWindow` and `FakeTrayHost`. `Press(action, slot)` raises the same event the real
   service raises from `WM_HOTKEY`.

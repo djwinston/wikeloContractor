@@ -24,8 +24,8 @@
 
 
   <!-- Requirement chip "no stock" (neutral) is intentionally NOT here: the design maps it to the
-       Fluent ControlFillColorSecondaryBrush, so AvailabilityToBrushConverter resolves it straight
-       from the WPF-UI theme. Only the tinted caution/success roles below need brand brushes. -->
+       Fluent ControlFillColorSecondaryBrush, so AvailabilityChipStyle takes it straight from the
+       WPF-UI theme as its default. Only the tinted caution/success roles below need brand brushes. -->
 
   <!-- Requirement chip: partially covered by the inventory -->
   <SolidColorBrush x:Key="ChipCautionBackgroundBrush" Color="#1FE8B84B" />
@@ -56,6 +56,13 @@
   <!-- Favourite star, filled state. Same gold family as the XP badge but its own key: the two are
        different roles and only coincidentally share a hue today. -->
   <SolidColorBrush x:Key="FavoriteStarBrush" Color="#F2C750" />
+
+  <!-- Overlay pin badge as an APP PAGE draws it (inventory row, gathering plan): the slot digit
+       beside a pinned item. Deliberately not the OverlaySlotBadge* pair below — those are tuned for
+       dark glass over the game, which is what the HUD is in BOTH themes, so on a light page they
+       are a pale cyan on a pale surface. Same role, different surface, separate keys. -->
+  <SolidColorBrush x:Key="PinBadgeBackgroundBrush" Color="#332FD0EE" />
+  <SolidColorBrush x:Key="PinBadgeForegroundBrush" Color="#7FDCEF" />
 
   <!-- Completed catalog row: left marker plus a fade-out wash across the row -->
   <SolidColorBrush x:Key="CompletedRowAccentBrush" Color="#4FB98A" />

@@ -85,22 +85,7 @@
         VerticalAlignment="Stretch"
         Background="{DynamicResource ControlFillColorSecondaryBrush}"
         CornerRadius="{StaticResource RadiusControl}">
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-          <ui:SymbolIcon
-            Margin="0,0,6,0"
-            FontSize="14"
-            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-            Symbol="Pin24" />
-          <TextBlock Style="{StaticResource MonoCaptionStyle}" Text="{Binding ViewModel.PinSummary}" />
-          <ui:Button
-            Margin="8,0,-4,0"
-            Padding="4,0"
-            Appearance="Transparent"
-            BorderThickness="0"
-            Command="{Binding ViewModel.ClearPinsCommand}"
-            Icon="{ui:SymbolIcon Dismiss24}"
-            ToolTip="{DynamicResource Inventory_ClearPins}" />
-        </StackPanel>
+        <ContentControl Content="{Binding ViewModel.OverlayPins}" ContentTemplate="{StaticResource OverlayPinBudgetTemplate}" />
       </Border>
     </Grid>
 
@@ -205,9 +190,9 @@
                   </ui:NumberBox.Style>
                 </ui:NumberBox>
 
-                <!-- Overlay pin. Same idiom as the favourite star: a plain Button with a state
-                     trigger, never a ToggleButton — IsPinned is computed from the service, and a
-                     ToggleButton writes IsChecked locally on click, replacing the binding. -->
+                <!-- Overlay pin: the slot digit and the button that sets it, shared verbatim with
+                     the Favorites gathering chip (Resources/Chips.xaml). Only the geometry is here —
+                     a fixed square badge, because this row has the height for one. -->
                 <StackPanel
                   Grid.Column="3"
                   Margin="10,0,0,0"
@@ -217,40 +202,11 @@
                     Width="{StaticResource SizeOverlaySlotBadge}"
                     Height="{StaticResource SizeOverlaySlotBadge}"
                     Margin="0,0,4,0"
-                    Background="{DynamicResource OverlaySlotBadgeBackgroundBrush}"
-                    CornerRadius="{StaticResource RadiusBadge}"
-                    ToolTip="{Binding PinTooltip}"
-                    Visibility="{Binding IsPinned, Converter={StaticResource BoolToVisibility}}">
-                    <TextBlock
-                      HorizontalAlignment="Center"
-                      VerticalAlignment="Center"
-                      FontFamily="{StaticResource MonoFontFamily}"
-                      FontSize="{StaticResource FontSizeCaption}"
-                      FontWeight="Bold"
-                      Foreground="{DynamicResource OverlaySlotBadgeForegroundBrush}"
-                      Text="{Binding SlotLabel}" />
+                    Style="{StaticResource PinSlotBadgeStyle}">
+                    <TextBlock Style="{StaticResource PinSlotDigitStyle}" />
                   </Border>
 
-                  <ui:Button
-                    Padding="4"
-                    VerticalAlignment="Center"
-                    Appearance="Transparent"
-                    BorderThickness="0"
-                    Command="{Binding TogglePinCommand}"
-                    ToolTip="{Binding PinTooltip}">
-                    <ui:Button.Style>
-                      <Style BasedOn="{StaticResource {x:Type ui:Button}}" TargetType="ui:Button">
-                        <Setter Property="Icon" Value="{ui:SymbolIcon Symbol=Pin24}" />
-                        <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
-                        <Style.Triggers>
-                          <DataTrigger Binding="{Binding IsPinned}" Value="True">
-                            <Setter Property="Icon" Value="{ui:SymbolIcon Symbol=Pin24, Filled=True}" />
-                            <Setter Property="Foreground" Value="{DynamicResource OverlaySlotBadgeForegroundBrush}" />
-                          </DataTrigger>
-                        </Style.Triggers>
-                      </Style>
-                    </ui:Button.Style>
-                  </ui:Button>
+                  <ui:Button Padding="4" Style="{StaticResource PinButtonStyle}" />
                 </StackPanel>
               </Grid>
             </Border>

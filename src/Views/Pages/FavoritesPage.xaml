@@ -5,6 +5,7 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:local="clr-namespace:WikeloContractor.Views.Pages"
+  xmlns:converters="clr-namespace:WikeloContractor.Views.Converters"
   xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
   Title="FavoritesPage"
   d:DataContext="{d:DesignInstance local:FavoritesPage, IsDesignTimeCreatable=False}"
@@ -16,18 +17,135 @@
   ScrollViewer.CanContentScroll="False"
   mc:Ignorable="d">
 
-  <!-- The catalog, narrowed to starred contracts. The rows come from the shared
-       ContractCardTemplate and the filters bind the same ContractListViewModel members the catalog
-       binds — only the header and the empty states are page-specific. -->
+  <!-- The catalog, narrowed to starred contracts, plus the gathering plan — one tab each.
+       Tabs rather than one column: the two halves were competing for the same vertical space, and
+       the plan had to ship collapsed because expanding it pushed the contract list down to a single
+       visible card. Neither squeezes the other now, which is also what gives the plan the room to be
+       a grid instead of a mass of chips.
+       The rows come from the shared ContractCardTemplate and the filters bind the same
+       ContractListViewModel members the catalog binds — only the header, the tabs and the empty
+       states are page-specific. -->
 
   <Page.Resources>
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+    <converters:WidthToColumnsConverter x:Key="WidthToColumns" />
+
+    <!-- "Nothing starred yet" — needed by both tabs (each one has to say something when the page is
+         empty), so it is a template instantiated twice rather than markup copied twice. -->
+    <DataTemplate x:Key="NoFavoritesTemplate">
+      <StackPanel Margin="0,40,0,0">
+        <!-- Outline star, matching the un-starred toggle: "nothing here yet", not "disabled". -->
+        <ui:SymbolIcon
+          HorizontalAlignment="Center"
+          FontSize="32"
+          Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+          Symbol="Star28" />
+        <TextBlock
+          Margin="0,12,0,0"
+          HorizontalAlignment="Center"
+          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+          Text="{DynamicResource Favorites_Empty}"
+          TextAlignment="Center"
+          TextWrapping="Wrap" />
+      </StackPanel>
+    </DataTemplate>
+
+    <!-- One item of the gathering plan. A card rather than the chip this used to be: with a tab to
+         itself the plan can show what a chip had no room for — how much is already gathered, and how
+         far along that is.
+         Chrome is the inventory row's (same brushes, same radius, same padding), so a required item
+         looks the same wherever it is counted.
+
+         Deliberately NO "still to gather N" line. It said in words what the tab title already says,
+         on every card, and the shortfall it carried is the gap in the "1 / 5" beside the bar. It was
+         also the one number here that wanted a status colour, which is a fight not worth having on a
+         bare card surface: the chip value brushes are built to sit on a tinted chip fill, and out of
+         that context they are a legibility problem in one theme or the other. Nothing on this card
+         needs colour to be understood now. -->
+    <DataTemplate x:Key="GatheringCardTemplate">
+      <Border
+        Margin="0,0,10,10"
+        Padding="{StaticResource SpacingCardPadding}"
+        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+        BorderThickness="1"
+        CornerRadius="{StaticResource RadiusCard}">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+
+          <TextBlock
+            Grid.Row="0"
+            Grid.Column="0"
+            VerticalAlignment="Center"
+            FontSize="{StaticResource FontSizeBodyStrong}"
+            FontWeight="SemiBold"
+            Text="{Binding Name, Mode=OneWay}"
+            TextTrimming="CharacterEllipsis"
+            TextWrapping="Wrap" />
+
+          <!-- The pin keeps its own corner. In the chip this needed a divider to stop the slot digit
+               reading as a second quantity; a card separates them by position instead. Geometry only
+               — the bindings come from the shared styles, so this cannot drift from the inventory
+               row. Fixed square badge, as there is the room for one here. -->
+          <StackPanel
+            Grid.Row="0"
+            Grid.Column="1"
+            Margin="10,0,0,0"
+            VerticalAlignment="Center"
+            Orientation="Horizontal">
+            <Border
+              Width="{StaticResource SizeOverlaySlotBadge}"
+              Height="{StaticResource SizeOverlaySlotBadge}"
+              Margin="0,0,4,0"
+              Style="{StaticResource PinSlotBadgeStyle}">
+              <TextBlock Style="{StaticResource PinSlotDigitStyle}" />
+            </Border>
+
+            <ui:Button Padding="4" Style="{StaticResource PinButtonStyle}" />
+          </StackPanel>
+
+          <!-- How much is gathered, and how far along that is. The bar is the shared
+               ReadinessBarStyle — the same meter the catalog row and the detail heading use, so
+               coverage reads identically everywhere. -->
+          <Grid
+            Grid.Row="1"
+            Grid.Column="0"
+            Grid.ColumnSpan="2"
+            Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <ProgressBar
+              Grid.Column="0"
+              Style="{StaticResource ReadinessBarStyle}"
+              Value="{Binding Progress, Mode=OneWay}" />
+
+            <!-- "12 / 36" — what is in stock against what the plan asks for. The caption is a
+                 tooltip rather than a visible label: at three or four cards across, a word on every
+                 one of them is noise, and the pair reads as a ratio on sight. -->
+            <TextBlock
+              Grid.Column="1"
+              Margin="10,0,0,0"
+              Style="{StaticResource MonoCaptionStyle}"
+              Text="{Binding StockLabel, Mode=OneWay}"
+              ToolTip="{DynamicResource Favorites_Gather_InStock}" />
+          </Grid>
+        </Grid>
+      </Border>
+    </DataTemplate>
   </Page.Resources>
 
   <Grid Margin="{StaticResource SpacingPagePadding}">
     <Grid.RowDefinitions>
-      <RowDefinition Height="Auto" />
-      <RowDefinition Height="Auto" />
       <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
     </Grid.RowDefinitions>
@@ -47,90 +165,272 @@
         Text="{DynamicResource Favorites_Title}" />
     </StackPanel>
 
-    <!-- Filters: search, reward category, required resource — identical to the catalog's -->
-    <Grid Grid.Row="1" Margin="0,16,0,0">
-      <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="*" />
-        <ColumnDefinition Width="Auto" />
-        <ColumnDefinition Width="Auto" />
-        <ColumnDefinition Width="Auto" />
-      </Grid.ColumnDefinitions>
+    <!-- Stock TabControl, themed by WPF-UI. Neither tab is ever hidden: WPF does not move the
+         selection off a TabItem that disappears, so hiding the selected one leaves a blank page.
+         The states live inside instead. -->
+    <!-- BorderBrush is the strip's own rule: the template draws the line under the tabs as the top
+         edge of the content Border, through {TemplateBinding BorderBrush}. Its default is
+         TabViewBorderBrush — CardStrokeColorDefault again — so it disappeared in dark for the same
+         reason the tab outline did. A plain property beats a resource override where the template
+         offers one. -->
+    <TabControl
+      Grid.Row="1"
+      Margin="0,16,0,0"
+      BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
 
-      <ui:TextBox
-        Grid.Column="0"
-        Icon="{ui:SymbolIcon Search24}"
-        PlaceholderText="{DynamicResource Catalog_Search}"
-        Text="{Binding ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+      <!-- Two more of WPF-UI's tab tokens have no usable answer on this surface, and those the
+           template does NOT expose as properties, so they are re-pointed HERE — scoped to this
+           control, never in a dictionary, and never to a hex.
+           Measured on a real screenshot: the selected tab is SolidBackgroundFillColorTertiary
+           (#282828) against a #202020 page that Mica lightens further, so the fill is a rounding
+           error; and TabViewSelectedItemBorderBrush is CardStrokeColorDefault (#19000000 — 10%
+           BLACK), which on a dark surface is invisible by construction. The tab was legible as
+           neither shape nor outline.
+           Re-pointed to the recipe the cards on this very page already use, so the selected tab
+           reads as the same raised surface: card fill plus the control stroke. Colours, not
+           brushes, and via DynamicResource — the Color keys live in the swapped WPF-UI dictionary,
+           so this still follows a theme change instead of freezing the dark value into light. -->
+      <TabControl.Resources>
+        <SolidColorBrush x:Key="TabViewItemHeaderBackgroundSelected" Color="{DynamicResource CardBackgroundFillColorDefault}" />
+        <SolidColorBrush x:Key="TabViewSelectedItemBorderBrush" Color="{DynamicResource ControlStrokeColorDefault}" />
 
-      <ComboBox
-        Grid.Column="1"
-        MinWidth="170"
-        Margin="8,0,0,0"
-        SelectedIndex="{Binding ViewModel.CategoryIndex, Mode=TwoWay}">
-        <ComboBoxItem Content="{DynamicResource Catalog_Filter_AllCategories}" />
-        <ComboBoxItem Content="{DynamicResource Catalog_Cat_Ships}" />
-        <ComboBoxItem Content="{DynamicResource Catalog_Cat_Vehicles}" />
-        <ComboBoxItem Content="{DynamicResource Catalog_Cat_Paints}" />
-        <ComboBoxItem Content="{DynamicResource Catalog_Cat_Weapons}" />
-        <ComboBoxItem Content="{DynamicResource Catalog_Cat_Armor}" />
-        <ComboBoxItem Content="{DynamicResource Catalog_Cat_Other}" />
-      </ComboBox>
+        <!-- The template leaves its MouseOver state empty, so an unselected tab has no feedback at
+             all. A plain Background setter reaches it: the template binds Background straight
+             through, and the selected tab is unaffected because its own template trigger wins. -->
+        <Style BasedOn="{StaticResource {x:Type TabItem}}" TargetType="TabItem">
+          <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+            </Trigger>
+          </Style.Triggers>
+        </Style>
+      </TabControl.Resources>
 
-      <ComboBox
-        Grid.Column="2"
-        MinWidth="190"
-        Margin="8,0,0,0"
-        ItemsSource="{Binding ViewModel.ResourceOptions}"
-        SelectedIndex="{Binding ViewModel.ResourceIndex, Mode=TwoWay}" />
+      <TabItem Header="{DynamicResource Favorites_Tab_Contracts}">
+        <Grid Margin="0,12,0,0">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+          </Grid.RowDefinitions>
 
-      <ui:Button
-        Grid.Column="3"
-        Margin="8,0,0,0"
-        VerticalAlignment="Stretch"
-        Command="{Binding ViewModel.ClearFiltersCommand}"
-        Icon="{ui:SymbolIcon Dismiss24}"
-        ToolTip="{DynamicResource Catalog_ClearFilters}" />
-    </Grid>
+          <!-- Filters: search, reward category, required resource, completion — identical to the
+               catalog's, and inside this tab because that is exactly what they act on. The gathering
+               plan deliberately ignores them; with the two on separate tabs, nothing implies
+               otherwise. -->
+          <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
 
-    <!-- Two distinct empty states: nothing starred at all, vs. starred contracts that the
-         filters exclude. They are mutually exclusive, so both can live here. -->
-    <StackPanel Grid.Row="2" Margin="0,12,0,0">
-      <StackPanel
-        Margin="0,40,0,0"
-        Visibility="{Binding ViewModel.HasNoFavorites, Converter={StaticResource BoolToVisibility}}">
-        <!-- Outline star, matching the un-starred toggle: "nothing here yet", not "disabled". -->
-        <ui:SymbolIcon
-          HorizontalAlignment="Center"
-          FontSize="32"
-          Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-          Symbol="Star28" />
-        <TextBlock
-          Margin="0,12,0,0"
-          HorizontalAlignment="Center"
-          Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-          Text="{DynamicResource Favorites_Empty}"
-          TextAlignment="Center"
-          TextWrapping="Wrap" />
-      </StackPanel>
-      <TextBlock
-        Margin="0,24,0,0"
-        HorizontalAlignment="Center"
-        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-        Text="{DynamicResource Catalog_Empty}"
-        Visibility="{Binding ViewModel.IsEmpty, Converter={StaticResource BoolToVisibility}}" />
-    </StackPanel>
+            <ui:TextBox
+              Grid.Column="0"
+              Icon="{ui:SymbolIcon Search24}"
+              PlaceholderText="{DynamicResource Catalog_Search}"
+              Text="{Binding ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
-    <!-- Contract list -->
-    <ScrollViewer
-      Grid.Row="3"
-      Margin="0,12,0,0"
-      HorizontalScrollBarVisibility="Disabled"
-      VerticalScrollBarVisibility="Auto">
-      <ItemsControl
-        Margin="0,0,16,0"
-        ItemsSource="{Binding ViewModel.Contracts}"
-        ItemTemplate="{StaticResource ContractCardTemplate}" />
-    </ScrollViewer>
+            <ComboBox
+              Grid.Column="1"
+              MinWidth="170"
+              Margin="8,0,0,0"
+              SelectedIndex="{Binding ViewModel.CategoryIndex, Mode=TwoWay}">
+              <ComboBoxItem Content="{DynamicResource Catalog_Filter_AllCategories}" />
+              <ComboBoxItem Content="{DynamicResource Catalog_Cat_Ships}" />
+              <ComboBoxItem Content="{DynamicResource Catalog_Cat_Vehicles}" />
+              <ComboBoxItem Content="{DynamicResource Catalog_Cat_Paints}" />
+              <ComboBoxItem Content="{DynamicResource Catalog_Cat_Weapons}" />
+              <ComboBoxItem Content="{DynamicResource Catalog_Cat_Armor}" />
+              <ComboBoxItem Content="{DynamicResource Catalog_Cat_Other}" />
+            </ComboBox>
+
+            <ComboBox
+              Grid.Column="2"
+              MinWidth="190"
+              Margin="8,0,0,0"
+              ItemsSource="{Binding ViewModel.ResourceOptions}"
+              SelectedIndex="{Binding ViewModel.ResourceIndex, Mode=TwoWay}" />
+
+            <!-- A starred contract stays starred once it is done, so a working library fills up with
+                 finished rows. This hides them without un-starring. -->
+            <ComboBox
+              Grid.Column="3"
+              MinWidth="150"
+              Margin="8,0,0,0"
+              SelectedIndex="{Binding ViewModel.CompletionIndex, Mode=TwoWay}">
+              <ComboBoxItem Content="{DynamicResource Catalog_Filter_AnyCompletion}" />
+              <ComboBoxItem Content="{DynamicResource Catalog_Filter_NotCompleted}" />
+              <ComboBoxItem Content="{DynamicResource Catalog_Filter_Completed}" />
+            </ComboBox>
+
+            <ui:Button
+              Grid.Column="4"
+              Margin="8,0,0,0"
+              VerticalAlignment="Stretch"
+              Command="{Binding ViewModel.ClearFiltersCommand}"
+              Icon="{ui:SymbolIcon Dismiss24}"
+              ToolTip="{DynamicResource Catalog_ClearFilters}" />
+          </Grid>
+
+          <!-- Two distinct empty states: nothing starred at all, vs. starred contracts that the
+               filters exclude. They are mutually exclusive, so both can live here. -->
+          <StackPanel Grid.Row="1" Margin="0,12,0,0">
+            <ContentControl
+              Content="{Binding ViewModel}"
+              ContentTemplate="{StaticResource NoFavoritesTemplate}"
+              Visibility="{Binding ViewModel.HasNoFavorites, Converter={StaticResource BoolToVisibility}}" />
+            <TextBlock
+              Margin="0,24,0,0"
+              HorizontalAlignment="Center"
+              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+              Text="{DynamicResource Catalog_Empty}"
+              Visibility="{Binding ViewModel.IsEmpty, Converter={StaticResource BoolToVisibility}}" />
+          </StackPanel>
+
+          <!-- Contract list -->
+          <ScrollViewer
+            Grid.Row="2"
+            Margin="0,12,0,0"
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto">
+            <ItemsControl
+              Margin="0,0,16,0"
+              ItemsSource="{Binding ViewModel.Contracts}"
+              ItemTemplate="{StaticResource ContractCardTemplate}" />
+          </ScrollViewer>
+        </Grid>
+      </TabItem>
+
+      <!-- Gathering plan: what every starred, not-yet-completed contract still needs between them.
+           The number on each card is what is still MISSING, not what the contracts ask for. -->
+      <!-- The header is a panel, so the tab has no text of its own to be announced by; without this
+           it reports its own ToString to assistive tech (and to UI Automation in the smoke run). -->
+      <TabItem AutomationProperties.Name="{DynamicResource Favorites_Gather_Title}">
+        <TabItem.Header>
+          <!-- The count rides the tab header, which is the only place it stays glanceable while the
+               other tab is open — the job the expander header used to do. A badge, not "(27)" in the
+               title: it is a number that moves while the player works. Built from the brand caution
+               palette rather than ui:InfoBadge, whose template is sized for a single digit (two
+               clipped on all four sides) and whose Severity colours are the same in both themes.
+               Bound straight to the collection's Count — ObservableCollection raises PropertyChanged. -->
+          <StackPanel Orientation="Horizontal">
+            <TextBlock VerticalAlignment="Center" Text="{DynamicResource Favorites_Gather_Title}" />
+            <Border
+              Margin="10,0,0,0"
+              Padding="8,2"
+              VerticalAlignment="Center"
+              Background="{DynamicResource ChipCautionBackgroundBrush}"
+              BorderBrush="{DynamicResource ChipCautionBorderBrush}"
+              BorderThickness="1"
+              CornerRadius="{StaticResource RadiusBadge}"
+              Visibility="{Binding ViewModel.HasOutstanding, Converter={StaticResource BoolToVisibility}}">
+              <TextBlock
+                FontFamily="{StaticResource MonoFontFamily}"
+                FontSize="{StaticResource FontSizeCaption}"
+                FontWeight="Bold"
+                Foreground="{DynamicResource ChipCautionValueBrush}"
+                Text="{Binding ViewModel.Gathering.Count, Mode=OneWay}" />
+            </Border>
+          </StackPanel>
+        </TabItem.Header>
+
+        <Grid Margin="0,12,0,0">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+
+          <!-- The overlay budget, the same object the inventory grid binds: one set of pins, one
+               counter. It sits with the cards because this is the second place pins are made. -->
+          <Border
+            Grid.Row="0"
+            Padding="10,4"
+            HorizontalAlignment="Right"
+            Background="{DynamicResource ControlFillColorSecondaryBrush}"
+            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="{StaticResource RadiusControl}"
+            Visibility="{Binding ViewModel.HasOutstanding, Converter={StaticResource BoolToVisibility}}">
+            <ContentControl Content="{Binding ViewModel.OverlayPins}" ContentTemplate="{StaticResource OverlayPinBudgetTemplate}" />
+          </Border>
+
+          <ScrollViewer
+            Grid.Row="1"
+            Margin="0,10,0,0"
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="0,0,16,0">
+              <!-- Columns follow the window rather than a fixed count: at a maximised window the
+                   list is three or four across, at a narrow one it degrades to a single column
+                   instead of shrinking the cards below legibility. -->
+              <ItemsControl ItemTemplate="{StaticResource GatheringCardTemplate}" ItemsSource="{Binding ViewModel.Gathering}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <UniformGrid Columns="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource WidthToColumns}, ConverterParameter=280}" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+              </ItemsControl>
+
+              <TextBlock
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                Text="{DynamicResource Favorites_Gather_Covered}"
+                TextWrapping="Wrap"
+                Visibility="{Binding ViewModel.HasNothingToGather, Converter={StaticResource BoolToVisibility}}" />
+
+              <ContentControl
+                Content="{Binding ViewModel}"
+                ContentTemplate="{StaticResource NoFavoritesTemplate}"
+                Visibility="{Binding ViewModel.HasNoFavorites, Converter={StaticResource BoolToVisibility}}" />
+            </StackPanel>
+          </ScrollViewer>
+
+          <!-- Below the list, not above it: this explains how the numbers were reached, which is only
+               a question once you have looked at them.
+               Composed rather than a ui:InfoBar. That control top-aligns its icon with a fixed 2px
+               nudge tuned for the default font size, so shrinking the message to caption size leaves
+               the text riding high against the glyph and there is no way to correct it from outside
+               the template. Two centred elements in a themed Border say the same thing and stay
+               aligned at any size. -->
+          <Border
+            Grid.Row="2"
+            Margin="0,12,16,0"
+            Padding="12,8"
+            Background="{DynamicResource ControlFillColorSecondaryBrush}"
+            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="{StaticResource RadiusControl}"
+            Visibility="{Binding ViewModel.HasGatheringPlan, Converter={StaticResource BoolToVisibility}}">
+            <!-- A Grid, not a horizontal StackPanel: a stack hands its children infinite width in
+                 the stacking direction, so TextWrapping never engages and the sentence is simply
+                 clipped at a narrow window. -->
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+
+              <ui:SymbolIcon
+                Grid.Column="0"
+                Margin="0,0,10,0"
+                VerticalAlignment="Center"
+                FontSize="14"
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                Symbol="Info24" />
+              <TextBlock
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                FontSize="{StaticResource FontSizeCaption}"
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                Text="{DynamicResource Favorites_Gather_Hint}"
+                TextWrapping="Wrap" /></Grid>
+          </Border>
+        </Grid>
+      </TabItem>
+    </TabControl>
 
   </Grid>
 </Page>

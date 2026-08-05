@@ -12,7 +12,6 @@ namespace WikeloContractor.ViewModels;
 public partial class InventoryItemViewModel : ObservableObject, IRequirementItem
 {
     private readonly IInventoryStore _store;
-    private readonly IPinnedItemsService _pins;
 
     /// <summary>True while <see cref="RefreshCount"/> is pushing the store's value into the property.</summary>
     private bool _suppressWrite;
@@ -20,14 +19,16 @@ public partial class InventoryItemViewModel : ObservableObject, IRequirementItem
     public InventoryItemViewModel(string name, InventoryCategory category, IInventoryStore store, IPinnedItemsService pins)
     {
         _store = store;
-        _pins = pins;
         Name = name;
         Category = category;
         _count = store.GetCount(name);
-        RefreshPin();
+        Pin = new PinToggle(name, pins);
     }
 
     public string Name { get; }
+
+    /// <summary>The overlay-pin affordance, shared with the Favorites page's gathering plan.</summary>
+    public PinToggle Pin { get; }
 
     public InventoryCategory Category { get; }
 
@@ -36,21 +37,6 @@ public partial class InventoryItemViewModel : ObservableObject, IRequirementItem
 
     [ObservableProperty]
     private int _count;
-
-    [ObservableProperty]
-    private bool _isPinned;
-
-    /// <summary>The overlay digit this item answers to, or empty when it is not pinned.</summary>
-    [ObservableProperty]
-    private string _slotLabel = string.Empty;
-
-    /// <summary>False only when the overlay is full and this item is not one of the ten.</summary>
-    [ObservableProperty]
-    private bool _canPin = true;
-
-    /// <summary>Pin / unpin / "the overlay is full", as one already-resolved string for the tooltip.</summary>
-    [ObservableProperty]
-    private string _pinTooltip = string.Empty;
 
     /// <summary>
     /// Re-reads the count after the store changed elsewhere (the overlay's hotkeys, a contract
@@ -80,21 +66,6 @@ public partial class InventoryItemViewModel : ObservableObject, IRequirementItem
         }
     }
 
-    /// <summary>Re-reads the pin state after the pinned set changed (this row's, or another's).</summary>
-    public void RefreshPin()
-    {
-        var slot = _pins.SlotOf(Name);
-
-        IsPinned = slot > 0;
-        SlotLabel = IsPinned ? OverlaySlots.DigitLabel(slot) : string.Empty;
-        CanPin = IsPinned || _pins.HasRoom;
-
-        PinTooltip = Localized.String(
-            IsPinned ? "Inventory_Unpin" : CanPin ? "Inventory_Pin" : "Inventory_PinFull") ?? string.Empty;
-
-        TogglePinCommand.NotifyCanExecuteChanged();
-    }
-
     /// <summary>
     /// Persist every count change, whether a direct edit (the NumberBox) or a spin step. The value
     /// can't go negative — the NumberBox has <c>Minimum="0"</c> and <see cref="RefreshCount"/> reads
@@ -108,21 +79,5 @@ public partial class InventoryItemViewModel : ObservableObject, IRequirementItem
         }
 
         _ = _store.SetCountAsync(Name, value);
-    }
-
-    /// <summary>
-    /// Pins or unpins this item. The cap lives in the service, so a full grid simply refuses — this
-    /// only has to keep the button from inviting the click.
-    /// </summary>
-    [RelayCommand(CanExecute = nameof(CanPin))]
-    private async Task TogglePinAsync()
-    {
-        if (IsPinned)
-        {
-            await _pins.UnpinAsync(Name);
-            return;
-        }
-
-        _ = await _pins.PinAsync(Name);
     }
 }

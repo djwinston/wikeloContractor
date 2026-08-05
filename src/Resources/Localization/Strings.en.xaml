@@ -21,6 +21,9 @@
   <sys:String x:Key="Catalog_Search">Search contracts...</sys:String>
   <sys:String x:Key="Catalog_Filter_AllCategories">All categories</sys:String>
   <sys:String x:Key="Catalog_Filter_AllResources">All resources</sys:String>
+  <sys:String x:Key="Catalog_Filter_AnyCompletion">Any status</sys:String>
+  <sys:String x:Key="Catalog_Filter_NotCompleted">Not completed</sys:String>
+  <sys:String x:Key="Catalog_Filter_Completed">Completed</sys:String>
   <sys:String x:Key="Catalog_Cat_Ships">Ships</sys:String>
   <sys:String x:Key="Catalog_Cat_Vehicles">Ground vehicles</sys:String>
   <sys:String x:Key="Catalog_Cat_Paints">Paints &amp; liveries</sys:String>
@@ -63,6 +66,11 @@
        deliberately separate from Catalog_Empty ("filters matched nothing") — different situations. -->
   <sys:String x:Key="Favorites_Title">Favorites</sys:String>
   <sys:String x:Key="Favorites_Empty">No favorites yet. Tap the star on a contract to keep it here.</sys:String>
+  <sys:String x:Key="Favorites_Gather_Title">What to still gather</sys:String>
+  <sys:String x:Key="Favorites_Gather_Hint">Added up across the starred contracts you have not completed yet. Each card shows what your inventory holds against what those contracts ask for; items you already have enough of are left out.</sys:String>
+  <sys:String x:Key="Favorites_Gather_Covered">Your inventory already covers every starred contract.</sys:String>
+  <sys:String x:Key="Favorites_Tab_Contracts">Contracts</sys:String>
+  <sys:String x:Key="Favorites_Gather_InStock">Gathered out of what the starred contracts ask for</sys:String>
   <sys:String x:Key="Catalog_RewardsLabel">REWARDS</sys:String>
   <!-- {0} is the reputation the contract awards; the UI calls it XP (see docs/design-system.md) -->
   <sys:String x:Key="Catalog_XpBadge">+{0} XP</sys:String>

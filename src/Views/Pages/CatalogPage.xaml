@@ -116,10 +116,11 @@
       </Grid>
     </Border>
 
-    <!-- Filters: search, reward category, required resource -->
+    <!-- Filters: search, reward category, required resource, completion -->
     <Grid Grid.Row="2" Margin="0,12,0,0">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="Auto" />
@@ -152,8 +153,20 @@
         ItemsSource="{Binding ViewModel.ResourceOptions}"
         SelectedIndex="{Binding ViewModel.ResourceIndex, Mode=TwoWay}" />
 
-      <ui:Button
+      <!-- Hide what is already done, or review only what is. The same base-VM filter the Favorites
+           page renders — the axis itself lives in Models/ContractFilter. -->
+      <ComboBox
         Grid.Column="3"
+        MinWidth="150"
+        Margin="8,0,0,0"
+        SelectedIndex="{Binding ViewModel.CompletionIndex, Mode=TwoWay}">
+        <ComboBoxItem Content="{DynamicResource Catalog_Filter_AnyCompletion}" />
+        <ComboBoxItem Content="{DynamicResource Catalog_Filter_NotCompleted}" />
+        <ComboBoxItem Content="{DynamicResource Catalog_Filter_Completed}" />
+      </ComboBox>
+
+      <ui:Button
+        Grid.Column="4"
         Margin="8,0,0,0"
         VerticalAlignment="Stretch"
         Command="{Binding ViewModel.ClearFiltersCommand}"

@@ -109,7 +109,7 @@ Reference (what already exists): https://wikelotrades.com , community Excel spre
       success tint (full) — plus a "Ready to turn in" badge and an "X / Y satisfied" count. Computed
       state lives on `ContractCardViewModel` (catalog) and `ContractDetailViewModel` (detail); the math
       is `Models/InventoryReadiness`, chips are `ViewModels/RequirementChip`, color via
-      `Views/Converters/AvailabilityToBrushConverter`. Both VMs refresh on `IInventoryStore.Changed`.
+      `Resources/Chips.xaml`'s `AvailabilityChipStyle`. Both VMs refresh on `IInventoryStore.Changed`.
       Phase 3.6 added `ContractReadiness.Fraction` (→ `ContractCardViewModel.ReadinessFraction`)
       driving the per-row progress bar; a completed contract reads 1 regardless of what is left in
       the inventory, since the items were spent on it
@@ -149,8 +149,32 @@ collection differs.
 - [x] Unit tests: `FavoritesServiceTests` (round-trip, unflagging, `Changed` only on a real change,
       corrupt-file recovery + rewrite) and `ContractFilterTests` (search over title/description/
       rewards, category incl. the enriched multi-category case, resource, and all criteria combined).
-- [ ] Aggregation: combined resource list across all favorited contracts (what to still gather) —
-      a natural follow-up once the page exists.
+- [x] **Two tabs** (`TabControl`, themed by WPF-UI — no style of ours): *Contracts* and *What to
+      still gather*. The plan used to be a collapsed panel above the list, and the two halves fought
+      over the same vertical space — expanding it pushed the contract list down to one visible card.
+      The count badge rides the gathering tab's header, which is where it stays glanceable from the
+      other tab. Never bind `TabItem.Visibility`: WPF does not move the selection off a tab that
+      disappears. See `docs/ui-notes.md` "Two tabs, not one column".
+- [x] **Completed / not completed filter** on both list pages. The axis is `bool? Completed` on
+      `Models/ContractFilter` (`Matches(contract, isCompleted)` — completion is service state, so it
+      is a parameter, not a field), the state is `CompletionIndex` on the shared
+      `ContractListViewModel`. `OnCompletionChanged` refreshes the collection view as well as the
+      cards, or a contract completed under the filter would sit there un-filtered.
+- [x] Aggregation: combined resource list across all favorited contracts (what to still gather).
+      `Models/GatheringPlan` sums the requirements of the starred contracts, subtracts the one shared
+      inventory pool and drops what is already covered. One card per item in a `UniformGrid` whose
+      column count follows the window width (`Views/Converters/WidthToColumnsConverter`). A card
+      states one quantity — what the inventory holds against what the starred contracts ask for
+      (`Have / Required` plus the shared `ReadinessBarStyle` meter) — and leaves the shortfall as
+      the gap between the two, with no status colour anywhere on it. **Completed contracts are
+      excluded** — completing already deducted their items, so counting them again would send the
+      player out for things they handed over. It is deliberately independent of the page's filters,
+      and rebuilds on the four things that move it (starring, completing, an inventory edit,
+      enrichment). Each card also **pins to the overlay
+      from here** — that is where the decision is taken — over the shared `ViewModels/PinToggle` and
+      the singleton `ViewModels/OverlayPinsViewModel` ("Overlay 3/10" + reset, the same object the
+      inventory grid binds); the tenth pin greys out the rest. See `docs/ui-notes.md`
+      "The gathering plan".
 
 ## Phase 3 — Inventory
 
@@ -258,10 +282,14 @@ clarifying an individual element.
       (`#0067C0` solid) — the blueprint chip is now a *dashed purple outline*, and since WPF `Border`
       cannot dash, the shared `Resources/Chips.xaml` templates a `Rectangle` with `StrokeDashArray`.
       Blueprint glyph settled: `Molecule24`, already in use and matching the prototype's node graph.
-- [x] **Availability chips → brand palette**: `Views/Converters/AvailabilityToBrushConverter` is now
-      parameterized (`ConverterParameter=Background|Border|Foreground|Value`) since a chip needs four
-      brushes per state. Requirement chips never truncate — they wrap (`WrapPanel`) — and every
-      requirement amount is prefixed `×` *(the `×` prefix lands with the Catalog screen)*.
+- [x] **Availability chips → brand palette**: a chip needs four brushes per state, so the mapping is
+      `Resources/Chips.xaml`'s `AvailabilityChipStyle` (fill, border, label) plus
+      `AvailabilityValueStyle` (the quantity). `Style.Triggers` + `{DynamicResource}`, **not** a value
+      converter — a converter resolves the key once and nothing re-runs it when the brand palette is
+      swapped, so a runtime light/dark flip stranded every availability colour on the old theme (see
+      `docs/design-system.md`, "Availability colour is a trigger, never a converter"). Requirement
+      chips never truncate — they wrap (`WrapPanel`) — and every requirement amount is prefixed `×`
+      *(the `×` prefix lands with the Catalog screen)*.
 - [x] **Geometry scale** as resources so padding stops being re-typed per page: radius chip 6 /
       control 7–8 / card 10–12, hit target ≥ 28; gaps chip 6, row 15, card 14–16, page 20/26;
       fixed sizes thumb 84×56 (catalog row) and 46×46 (inventory), progress bar height 6,

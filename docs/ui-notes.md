@@ -98,6 +98,148 @@ The Favourites page is the catalog with a narrower source — not a second catal
 - Two mutually exclusive empty states, two keys: `Favorites_Empty` ("nothing starred", from
   `HasNoFavorites`) and `Catalog_Empty` ("filters matched nothing", from the base's `IsEmpty`).
 
+### The completion filter
+
+A starred contract stays starred once it is done, so a working library fills up with finished rows.
+`CompletionIndex` (0 = either, 1 = not completed, 2 = completed) hides them without un-starring, and
+both list pages render the same three-item combo — the axis itself is `bool? Completed` on
+`Models/ContractFilter`, so neither page owns it.
+
+`ContractFilter.Matches` takes the completion flag as a **parameter** rather than reading it:
+completion is `ICompletionService` state keyed by UUID, not something a `WikeloContract` carries, and
+injecting a service would cost that record the purity that makes it testable without a window.
+
+**`OnCompletionChanged` refreshes the collection view, not just the cards.** The filter reads a card
+property the view cannot observe, so completing a contract while "not completed" is selected would
+leave its row on screen until something else happened to re-filter. Unconditional is fine here —
+completion changes at click rate. **Do not copy this into `OnInventoryChanged`**: that is the ~30×/s
+held-hotkey path, where a collection `Reset` is exactly the churn `SyncGathering` exists to avoid.
+
+### Two tabs, not one column
+
+The page is a stock `TabControl`: **Contracts** and **What to still gather**. WPF-UI themes
+`TabControl`/`TabItem`, so the chrome is the token layer's — except that three of WPF-UI's tab
+brushes all resolve to `CardStrokeColorDefault` (`#19000000`, 10 % **black**) or to a `#282828` fill
+on a `#202020` page, which on dark leaves the selected tab, its outline **and the rule under the
+strip** invisible. All three are re-pointed to the card recipe the same page already uses: the strip
+rule through the `BorderBrush` property the template exposes, the other two in `TabControl.Resources`.
+Full rationale and the rules for doing this again: `docs/design-system.md`, "When a WPF-UI token has
+no answer".
+
+It started as a collapsed `Expander` above the list, and the two halves fought over the same
+vertical space: expanding the plan pushed the contract list — the reason the page exists — down to
+one visible card, which is why the panel had to ship collapsed. Tabs remove the cause rather than
+the symptom, and give the plan the room to be a grid instead of a mass of chips.
+
+Three rules learned in the doing:
+
+- **Never bind `TabItem.Visibility`.** WPF does not move the selection off a tab that disappears, so
+  hiding the selected one leaves a blank content area. Both tabs are always present; the states live
+  inside them (`HasOutstanding` → the grid, `HasNothingToGather` → the "already covered" line,
+  `HasNoFavorites` → the "nothing starred yet" block, which both tabs render from one page-local
+  template).
+- **The count badge moved to the tab header.** It is the only place it stays glanceable while the
+  other tab is open, which is the job the expander header used to do.
+- **A `TabItem` whose header is a panel has no accessible name** — it reports its own `ToString` to
+  UI Automation. The gathering tab sets `AutomationProperties.Name` explicitly.
+
+The filters live inside the Contracts tab. "The plan ignores the page's filters" used to be a rule
+stated only in prose; with the two on separate tabs nothing implies otherwise.
+
+### The gathering plan
+
+The **What to still gather** tab is the combined shortfall across the starred contracts. The
+arithmetic is `Models/GatheringPlan`; the page only renders it. A card states **one** quantity —
+`Have / Required` beside the shared `ReadinessBarStyle` meter — and leaves the shortfall as the gap
+between the two.
+
+It briefly also carried a "still to gather N" line, and dropping it is worth recording:
+
+- It repeated the tab's own title on every card, which at six cards across is six copies of the
+  answer to a question the header already answered.
+- The number it held is `Required − Have`, already on the card.
+- It was the only element here that wanted a **status colour**, and that is a fight not worth
+  having. `Chip*ValueBrush` is built to sit on a tinted chip fill; on a bare card surface the caution
+  band is a pale amber that vanishes on white and the neutral band is plain body text — legible in
+  one theme at the cost of the other. Nothing on the card needs colour to be understood now.
+
+Cards in a `UniformGrid` whose `Columns` come from the window width via
+`Views/Converters/WidthToColumnsConverter` (minimum column width as `ConverterParameter`). Not a
+`WrapPanel` with a fixed `ItemWidth`: that flows items at their own width and leaves a ragged gutter
+on the right, where uniform columns stretch to fill the row.
+
+Four rules, each of which is wrong in an obvious-in-hindsight way if reversed:
+
+- **Completed contracts are excluded.** Completing already deducted their items, so counting them
+  again sends the player out for things they have handed over. This is the correctness of the whole
+  feature.
+- **The inventory is one pool.** Two contracts asking for 36 SCU of Gold need 72 between them —
+  precisely what a per-contract readiness chip cannot say, and the reason the panel exists.
+- **Fully covered items are left out**, and the amounts are the same whole units
+  `InventoryReadiness.RequiredCount` deducts, so the list a player mines against is the list
+  completing will actually consume.
+- **It ignores the page's filters.** They are a way to find a row; a shopping list that changes
+  because a search box has text in it is not a shopping list. The rebuild instead hangs off the four
+  things that genuinely move the number — starring, completing, an inventory edit, enrichment — via
+  `OnContractsSet` / `OnCompletionChangedCore` / `OnInventoryChangedCore` / `OnSyncStateChangedCore`.
+
+**The rows are reconciled, never cleared and refilled** (`FavoritesViewModel.SyncGathering`). One of
+those four triggers is `IInventoryStore.Changed`, which a held overlay hotkey raises about thirty
+times a second — so a clear-and-refill would discard every row and every `PinToggle` on it (a
+resource lookup apiece) and raise a collection `Reset` that re-materializes every card, all to move
+one number. Rows are keyed by name and both sequences are ordered by name, so one walk reconciles
+them and an edit touches only the row that actually changed. This is the same concern
+`InventoryViewModel.ForEachRow` is written around; keep the two consistent.
+
+Chrome decisions, each measured on a real screen rather than reasoned about:
+
+- Card chrome is the **inventory row's** (same brushes, radius and padding), so a required item looks
+  the same wherever it is counted, and no new design token was needed.
+- **No status colour anywhere on the card.** See above — the availability brushes are chip-context
+  brushes, and the card is not a chip.
+- The `Have / Required` pair labels itself through a **tooltip**. At six cards across, a word on
+  every one of them is noise, and the pair reads as a ratio on sight.
+- The count is a **badge built from the brand caution palette**, bound straight to `Gathering.Count`
+  (`ObservableCollection` raises `PropertyChanged` for it, so no mirrored property). It has to stay
+  legible on an unselected tab, which "(27)" appended to the header does not.
+  **Not `ui:InfoBadge`**: its template is sized for a single digit, so a two-digit value is clipped on
+  all four sides, and its `Severity` colours are identical in both themes — the brand palette is the
+  layer that has a light and a dark answer.
+- The explanation sits at the **bottom**, at caption size — it answers "how were these numbers
+  reached", which is only a question once you have looked at them. It is a composed icon + text row,
+  **not `ui:InfoBar`**: that control top-aligns its glyph with a fixed 2 px nudge tuned for the
+  default font size, so shrinking the message leaves the text riding high against the icon, and the
+  offset cannot be corrected from outside the template. Its icon and text sit in a **`Grid`, not a
+  horizontal `StackPanel`** — a stack hands its children infinite width in the stacking direction, so
+  `TextWrapping` never engages and the sentence is simply clipped at a narrow window.
+- The budget counter is **right-aligned and outlined**. It is the same pill shape as the chips under
+  it, so left-aligned and borderless it read as the first chip of the list rather than as its budget.
+
+### Pinning from the plan
+
+The plan is the second place overlay pins are made, because it is where the decision is actually
+taken: the player reads what they still need and picks what to count in game from that same list.
+Sending them to the Inventory page to find each name again was the manual step this removes.
+
+- `ViewModels/PinToggle` is the affordance — pinned state, slot digit, `CanPin`, tooltip, command —
+  shared by the inventory row and the gathering row. A second copy of those five members is the drift
+  this repo treats as a review finding: the tooltip keys and the "full" rule would have to agree by
+  hand forever.
+- `ViewModels/OverlayPinsViewModel` is the "Overlay 3/10" budget and its reset, a **singleton** bound
+  by both pages. One set of pins, one counter; two would only be two things to keep in step.
+- `GatheringCardTemplate` is page-local; only the pin **styles** it uses are shared. The button is a
+  plain `ui:Button` with a `DataTrigger` — never `ui:ToggleButton`, for the documented reason.
+- The tenth pin greys out every remaining button (`CanPin`), and the cap itself stays in
+  `PinnedItemsService`, so a full overlay refuses no matter which page asks.
+- The slot digit uses `PinBadge*`, **not** `OverlaySlotBadge*`. The latter is drawn on the HUD's dark
+  glass, which stays dark in the light theme too, so on a page it is a pale cyan on a pale card. Both
+  pages got this wrong first — see `docs/design-system.md`, "Brand palette".
+- The digit sits **beside the pin button**, and the pair keeps its own corner of the card — never
+  leading the row. Leading, it was read as a second quantity ("how many I have" against the amount
+  after it). Same grouping the inventory row uses, and the reason it is worth copying rather than
+  inventing a new arrangement. As a chip this needed an explicit divider to separate the two
+  meanings; a card separates them by position, so the divider went away with it.
+
 ## Status surface pattern (CatalogPage)
 
 One `StackPanel` row hosts all transient states; each is an InfoBar/element bound to its
@@ -258,7 +400,7 @@ image that has one opens a full-window preview (`InventoryPreview.PreviewItemNam
 pattern below).
 
 **Readiness** compares requirements against inventory counts (`Models/InventoryReadiness`). On the
-catalog card and detail page, each requirement chip is colored by `AvailabilityToBrushConverter`
+catalog card and detail page, each requirement chip is colored by `AvailabilityChipStyle`
 (none → default, partial → caution tint, full → success tint), plus a "Ready to turn in" badge and an
 "X / Y satisfied" count. Both `ContractCardViewModel` and `ContractDetailViewModel` recompute on
 `IInventoryStore.Changed`; `ShowReadiness` hides the badge/count once a contract is completed (its

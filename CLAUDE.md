@@ -148,22 +148,26 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
   - `Views/Controls/HotkeyBox` — the key-combination capture box (full binding or modifier-only
     `PatternOnly`). A second hotkey-capture control is a review finding
   - `ViewModels/ContractListViewModel` — the base for **any page showing a filterable contract
-    list**: the cards, the `ICollectionView` over them, the search/category/resource filters, the
-    empty state, `OpenDetails`, and the fan-out of the completion/favorites/inventory/sync `Changed`
-    events onto every card. `CatalogViewModel` (everything) and `FavoritesViewModel` (starred only)
-    differ solely in `RebuildFromCatalog`. A third list page subclasses this — it does not re-filter
+    list**: the cards, the `ICollectionView` over them, the search/category/resource/completion
+    filters, the empty state, `OpenDetails`, and the fan-out of the completion/favorites/inventory/
+    sync `Changed` events onto every card. `CatalogViewModel` (everything) and `FavoritesViewModel`
+    (starred only) differ solely in `RebuildFromCatalog`. A third list page subclasses this — it does
+    not re-filter. **`OnCompletionChanged` refreshes the view, not only the cards** — the completion
+    filter reads a card property the `ICollectionView` cannot observe. Do **not** add the same
+    refresh to `OnInventoryChanged`: that is the ~30×/s held-hotkey path
   - `ViewModels/RequirementListViewModel` — the item-grid analogue: the base for **any page showing
     the catalog's required items as a category-grouped grid** (the distinct-item projection, the
     grouped `ICollectionView`, the search + category filter, the empty state, the image-preview
     overlay). Rows implement `IRequirementItem` (`Name`/`Category`/`CategoryLabel`).
     `InventoryViewModel` (adds a count store + overlay pins) and `SourcingViewModel` (adds a sourcing
-    note + detail nav) override only `CreateItem` (and Sourcing widens `MatchesSearch`, Inventory
-    `OnItemsRebuilt`). A third item-grid page subclasses this — it does not re-implement the
-    grouping/filter/preview. `ItemVms` + `OnItemsRebuilt` are the seams for fanning a service event
-    onto every row without keeping a second list
-  - `Models/ContractFilter` — the pure search/category/resource matching decision
-    (`Matches(contract)`), deliberately free of UI notions so it is testable without a WPF
-    `Application`; the VM maps combo box indices onto it. A second copy of this is a review finding
+    note + detail nav) override only `CreateItem` (and Sourcing widens `MatchesSearch`). A third
+    item-grid page subclasses this — it does not re-implement the grouping/filter/preview. `ItemVms`
+    is the seam for fanning a service event onto every row without keeping a second list
+  - `Models/ContractFilter` — the pure search/category/resource/completion matching decision
+    (`Matches(contract, isCompleted)`), deliberately free of UI notions so it is testable without a
+    WPF `Application`; the VM maps combo box indices onto it (index 0 → `null` → "all"). Completion
+    is a **parameter**, not a field read here: it is `ICompletionService` state keyed by UUID, and
+    taking a service would cost this record its purity. A second copy of this is a review finding
   - `Resources/ContractCard.xaml` — the catalog row `DataTemplate` (`ContractCardTemplate`), shared
     verbatim by `CatalogPage` and `FavoritesPage`. Merged **after** `Chips.xaml` in `App.xaml`
     because it resolves the chip styles via `StaticResource`, which only looks backwards
@@ -204,11 +208,30 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
     holding observable completion state and the inventory-readiness state (colored requirement
     chips, `IsReady`, `ReadinessLabel`). `ViewModels/ReputationSummary` — display-ready reputation
     standing for the bar
+  - `ViewModels/PinToggle` — one item's overlay-pin affordance (pinned state, slot digit, `CanPin`,
+    tooltip, toggle command), shared by the inventory row and the Favorites gathering row.
+    `ViewModels/OverlayPinsViewModel` is its companion: the "Overlay 3/10" budget and reset, a
+    **singleton** both pages bind — one set of pins, one counter. A second copy of either is a
+    review finding, and so is a second copy of the markup rendering them — see `Resources/Chips.xaml`
+  - `Models/GatheringPlan.Build` — the combined "what to still gather" shortfall across a set of
+    contracts (sum the requirements, subtract the one shared inventory pool, drop what is covered).
+    Pure; the caller decides which contracts belong in the plan — `FavoritesViewModel` passes the
+    starred, **not-yet-completed** ones, because completing already deducted their items. A second
+    place summing requirements across contracts is a review finding. Its output is ordered by name,
+    which `FavoritesViewModel.SyncGathering` relies on to reconcile the displayed rows **in place**:
+    the plan is recomputed off `IInventoryStore.Changed`, which a held overlay hotkey raises ~30×/s,
+    so clearing and refilling would rebuild every row and every `PinToggle` to move one number.
+    `GatheringItem` also carries `Have`/`Required` and `CoveredFraction` — the card states
+    "gathered out of asked for" and leaves the shortfall as the gap between them, so the derived
+    ratio belongs with the rest of the arithmetic rather than being recomputed in the row VM
   - `Models/InventoryReadiness` — the requirement-vs-inventory readiness math (`RequiredAmount`,
     `RequiredCount` for deduction, `Availability` → `RequirementAvailability`), unit-tested; the single
     home for that decision. `ViewModels/RequirementChip` is the display wrapper (name/amount/availability)
-    both the catalog card and `ContractDetailViewModel` build; `Views/Converters/AvailabilityToBrushConverter`
-    colors it
+    both the catalog card and `ContractDetailViewModel` build; `Resources/Chips.xaml`'s
+    `AvailabilityChipStyle` + `AvailabilityValueStyle` color it — **`Style.Triggers` +
+    `DynamicResource`, never an `IValueConverter`**: a converter resolves a theme key once and
+    nothing re-runs it on a palette swap, so the colour survives a runtime light/dark flip only this
+    way (see `docs/design-system.md`, "Availability colour is a trigger, never a converter")
   - `ViewModels/ContractCompletionInteraction` — the single home for the complete/reopen flow: confirms
     and deducts inventory on completion, warns (no restore) on reopen. Both the catalog card and detail
     page call it; completion is gated on `IsReady`. Uses `Wpf.Ui.Controls.MessageBox` (aliased to avoid
@@ -227,15 +250,22 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
     `Resources/Metrics.xaml` (radii/spacing/sizes) and `Resources/Chips.xaml` are the
     theme-independent companions — see `docs/design-system.md`
   - `Resources/Chips.xaml` — **anything two pages render the same way**: chrome styles
-    (`ChipStyle`, `BlueprintChipStyle`, `TagStyle`, `ReadinessBarStyle`) plus whole shared templates
-    (`RequirementChipTemplate`, `ChipWrapPanel`) and the `StatusBadge` default style. Re-declaring
-    one of these in a page's `Page.Resources` is a review finding — that is exactly the drift this
-    dictionary exists to stop
+    (`ChipStyle`, `AvailabilityChipStyle`, `BlueprintChipStyle`, `TagStyle`, `ReadinessBarStyle`,
+    the `PinSlotBadgeStyle`/`PinSlotDigitStyle`/`PinButtonStyle` trio) plus whole shared templates
+    (`RequirementChipTemplate`, `OverlayPinBudgetTemplate`, `ChipWrapPanel`) and the `StatusBadge`
+    default style. Re-declaring one of these in a page's `Page.Resources` is a review finding — that
+    is exactly the drift this dictionary exists to stop. The pin trio is **styles, not one
+    template**, on purpose: the inventory row and the gathering chip differ only in badge geometry,
+    and a local value beats a style setter, so each page overrides size and spacing and nothing
+    else. Their contract is a `PinToggle Pin` on the DataContext; `OverlayPinBudgetTemplate` binds
+    the `OverlayPinsViewModel` itself and leaves the outer container to the page
   - `Views/Controls/StatusBadge` — the COMPLETED / READY badge (icon + label). A control, not
     repeated markup; `Role` (`Success`/`Caution`) picks the whole brush set so the three brushes
     cannot be mismatched. A new status marker adds a `Role`, it doesn't hand-roll a `Border`
   - `Views/Converters/` — one parameterized converter per concern
-    (e.g. `PresenceToVisibilityConverter` with `Invert`), not inverse-twin classes
+    (e.g. `PresenceToVisibilityConverter` with `Invert`), not inverse-twin classes.
+    `WidthToColumnsConverter` is the "how many columns fit this width" home for any `UniformGrid`
+    that should follow the window (minimum column width as `ConverterParameter`)
   - `Views/Pages/ContractDetailPage.xaml` `ChipListStyle` resource — the reward card's
     Weapons/Components chip lists; page-local because only that page has them
   - `tests/Services/StubHandler` — shared HTTP stub for client tests

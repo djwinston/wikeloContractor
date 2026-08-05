@@ -54,14 +54,6 @@ public abstract partial class RequirementListViewModel : ViewModel
     /// </summary>
     protected IReadOnlyList<IRequirementItem> ItemVms => _itemVms;
 
-    /// <summary>
-    /// Called after <see cref="ItemVms"/> has been replaced. The rows are new objects, so anything a
-    /// subclass derives from them — a pin counter, a summary line — has to be recomputed here.
-    /// </summary>
-    protected virtual void OnItemsRebuilt()
-    {
-    }
-
     /// <summary>Grouped, filtered view over the items; refreshed in place as the filters change.</summary>
     [ObservableProperty]
     private ICollectionView? _items;
@@ -147,7 +139,6 @@ public abstract partial class RequirementListViewModel : ViewModel
         view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(IRequirementItem.CategoryLabel)));
         Items = view;
         UpdateIsEmpty();
-        OnItemsRebuilt();
     }
 
     private bool FilterItem(object item)

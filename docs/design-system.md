@@ -37,6 +37,41 @@ design spec are **reference only** — they document what the theme already prod
 
 App-owned resources exist only where Fluent has no equivalent. That is a short list, below.
 
+The same holds for **controls**: WPF-UI's `ControlsDictionary` styles the stock WPF controls, not
+only its own `ui:` ones — `TabControl`/`TabItem` (the Favorites tabs) and `ProgressBar` among them.
+Reach for the stock control first and check whether it already themes; writing a style for one that
+does is the same mistake as re-declaring a brush. When a style *is* needed on a themed control,
+`BasedOn="{StaticResource {x:Type X}}"` is mandatory — assigning a bare `Style` replaces the
+implicit one outright and drops the control back to WPF's 2006 template (see `ReadinessBarStyle`).
+
+### When a WPF-UI token has no answer: re-point it, scoped
+
+Occasionally one of WPF-UI's own tokens is simply wrong for our surface. The Favorites tab strip is
+the worked example, and the shape of the fix is the precedent:
+
+- **Measured, not guessed.** The selected tab is `TabViewItemHeaderBackgroundSelected` =
+  `SolidBackgroundFillColorTertiary` (`#282828`) on a `#202020` page that Mica lightens further, and
+  its outline is `TabViewSelectedItemBorderBrush` = `CardStrokeColorDefault` = `#19000000` — **10 %
+  black**, invisible on a dark surface by construction. The tab read as neither shape nor outline.
+- **Fix the whole strip, not the part you noticed.** The same `CardStrokeColorDefault` also draws the
+  rule under the tabs (the top edge of the content `Border`), so the first pass made the tab legible
+  and left it floating over an invisible line. A themed control is a composition; check every edge of
+  it in the failing theme before declaring it fixed.
+- **Prefer a property over a resource override** where the template exposes one. That rule is
+  `{TemplateBinding BorderBrush}`, so setting `BorderBrush` on the `TabControl` is enough — no
+  re-pointed key, nothing scoped to reason about later.
+- **Re-point the key in the control's own `Resources`** only for what the template does *not* expose,
+  and never in a dictionary. The templates use `DynamicResource`, so a key declared on the
+  `TabControl` is found by its descendants and by nothing else. That is an override in one place, not
+  a redefinition of a shared token.
+- **Point it at a recipe already proven on that screen** — here the card fill plus the control
+  stroke, which the cards on the same page use — rather than inventing a value.
+- **Colours through `DynamicResource`, never a brush alias.** `<SolidColorBrush Color="{DynamicResource
+  CardBackgroundFillColorDefault}" />` keeps following the theme swap; a `StaticResource` alias to a
+  `…Brush` key resolves once and would freeze the dark value into the light theme.
+- **Check both themes on a real screenshot** before calling it done. The two are not symmetric: the
+  fault above exists only in dark, because the token is a black tint.
+
 ### The one exception: light-theme legibility
 
 Three Fluent keys **are** overridden, only in `Brand.Light.xaml`, because measurement on the real
@@ -101,10 +136,9 @@ Keys, and why each one is not just a Fluent brush:
   design calls for a low-alpha tint plus a stronger border plus a readable foreground, which is
   three derived values Fluent does not provide. `…ValueBrush` is the brighter colour used for the
   quantity inside the chip. The **neutral** ("not in stock") requirement chip is deliberately *not*
-  here: the spec maps it to `ControlFillColorSecondaryBrush`, so `AvailabilityToBrushConverter`
-  (and the detail page's neutral chips) resolve it straight from the WPF-UI theme — a hardcoded
-  navy read as a dark hole on our Mica surface, and re-declaring a Fluent role would violate the
-  one rule above.
+  here: the spec maps it to `ControlFillColorSecondaryBrush`, so `AvailabilityChipStyle` takes it
+  straight from the WPF-UI theme as its default state — a hardcoded navy read as a dark hole on our
+  Mica surface, and re-declaring a Fluent role would violate the one rule above.
 - `ChipReward{Background,Border,Foreground}Brush` — the cyan reward role.
 - `ChipBlueprint{Background,Border,Foreground}Brush` — no Fluent equivalent at all.
 - `XpBadgeForegroundBrush` — the `+N XP` badge.
@@ -121,6 +155,14 @@ Keys, and why each one is not just a Fluent brush:
     it, and the text is the only thing the overlay exists to show.
   Do **not** copy the `#CC000000` full-window scrim value into these: that literal is the project's
   one design-system violation and already appears in three pages — do not make it four.
+- `PinBadge{Background,Foreground}Brush` — the overlay slot digit as an **app page** draws it
+  (the inventory row, the Favorites gathering plan). A separate pair from `OverlaySlotBadge*` on
+  purpose, and the reason is the trap above read from the other side: because the HUD is dark glass
+  in *both* themes, its light-theme cyan (`#9BE6F6`) is tuned for a dark backdrop, and reusing it on
+  the light page surface lands at roughly 1.3:1 — the badge is there, and unreadable. **Same role,
+  different surface, separate keys.** This shipped wrong once on both pages because every colour
+  choice was checked against the dark theme only; when picking a value, look at the element on
+  `#F9F9F9` as well, not just on the dark surface.
 
 ### Theme application
 
@@ -214,6 +256,26 @@ Chrome styles (caller supplies the content):
 
 - `ChipStyle` — solid-bordered chip. Geometry only; the caller sets `Background`, `BorderBrush`
   and `Foreground`, because those vary by availability.
+- `AvailabilityChipStyle` — `ChipStyle` plus those three brushes, driven off the DataContext's
+  `Availability` by `Style.Triggers` + `{DynamicResource}` (see "Availability colour is a trigger,
+  never a converter" below — this is the only shape that survives a runtime theme swap). The single
+  home for "availability paints a chip": the catalog row and the detail page both read it from here,
+  so a fourth availability band is one edit rather than a hunt through the pages.
+- `AvailabilityValueStyle` — the same mapping for the quantity `Run` inside the chip, which takes the
+  stronger `…ValueBrush` of each pair. Only ever used **with** the chip fill behind it; these brushes
+  are picked to read against `Chip*BackgroundBrush` and are a legibility problem on any other surface.
+- `PinSlotBadgeStyle` / `PinSlotDigitStyle` / `PinButtonStyle` — the overlay pin affordance: the
+  slot digit and the button that sets it, on the inventory row and the Favorites gathering card.
+  **Styles rather than one template on purpose** — the sites differ only in badge geometry, and a
+  local value beats a style setter, so each page overrides size and spacing and nothing else. Their
+  contract is a `PinToggle Pin` on the DataContext.
+  `PinButtonStyle` carries `x:Shared="False"`, and that is not decoration: `IconElement` derives
+  from `FrameworkElement` and `{ui:SymbolIcon}` is evaluated once per Style, so a shared style hands
+  the *same* icon element to all ~120 pin buttons (measured: 20 rows → 1 instance shared, 20 with
+  the flag). WPF-UI happens not to parent it today, so it still renders — that is luck, not a
+  contract. **Any dictionary-level style with an `Icon` setter needs this flag**; that is why every
+  other `Icon` setter in the project sits inline in a `DataTemplate`, which re-instantiates on its
+  own.
 - `BlueprintChipStyle` — the blueprint chip, fully self-colouring from the blueprint brand brushes.
   Same solid-bordered geometry as `ChipStyle`; the purple hue is the schematic cue. (It was a dashed
   outline earlier — a `Rectangle` with `StrokeDashArray`, since `Border` cannot dash — but the dash
@@ -222,14 +284,30 @@ Chrome styles (caller supplies the content):
   and the detail page's reward rarity. Set `Content` to a plain string; the style's font and colour
   setters inherit into the generated `TextBlock`, so no nested `TextBlock` is needed.
 - `ReadinessBarStyle` — the requirement-coverage `ProgressBar`. Height/scale are fixed here; only
-  `Width` stays with the caller (360 on a catalog row, 200 in the detail heading).
+  `Width` stays with the caller (360 on a catalog row, 200 in the detail heading, the card width on
+  a gathering card), so coverage reads the same wherever it is shown.
 
 Whole templates (identical on both pages):
 
 - `RequirementChipTemplate` — the `Name × Amount` chip. Both pages bind a `ViewModels/RequirementChip`
-  list, so the template is shared outright; availability drives all four brushes through
-  `ChipAvailabilityToBrush`.
+  list, so the template is shared outright; it wears `AvailabilityChipStyle` for the chrome and only
+  the value `Run` sets a brush of its own.
+- `OverlayPinBudgetTemplate` — the "Overlay 3/10" counter and its reset button, on every page that
+  offers pins. `OverlayPinsViewModel` is a singleton so the two pages cannot disagree on the number;
+  this is the other half of that argument. DataContext is the view model itself, and the outer
+  container stays with the caller (the inventory grid puts it in the filter bar, the gathering tab
+  right-aligns it over the cards).
 - `ChipWrapPanel` — the `ItemsPanelTemplate` every chip list uses.
+
+Two layout rules the gathering tab paid for, worth stating once:
+
+- **A width-driven grid is a `UniformGrid` whose `Columns` come from
+  `Views/Converters/WidthToColumnsConverter`** (minimum column width as `ConverterParameter`), bound
+  to the hosting `ItemsControl.ActualWidth`. A `WrapPanel` with a fixed `ItemWidth` needs no code at
+  all and was rejected on looks: items keep their width and leave a ragged gutter on the right.
+- **Wrapping text does not belong in a horizontal `StackPanel`.** A stack hands its children infinite
+  width in the stacking direction, so `TextWrapping` never engages and the text is clipped instead —
+  invisible until the window is narrow enough. Use a `Grid` with an `Auto` and a `*` column.
 
 `Views/Controls/StatusBadge` is the COMPLETED / READY badge — a control, not markup, because the
 icon-plus-label composition is identical on both pages and only `Symbol`, `Text` and `Role` vary.
@@ -240,8 +318,36 @@ Named text styles live in `Typography.xaml`, not per page: `OverlineTextStyle` (
 label — `REWARDS`, tags, badge text) and `MonoCaptionStyle` (technical values — readiness counts,
 the API version, reputation progress; override `Foreground` when the value carries a status colour).
 
-Requirement chip colour is chosen by `Views/Converters/AvailabilityToBrushConverter` from
-`Models/InventoryReadiness`' `RequirementAvailability`.
+Requirement chip colour is chosen from `Models/InventoryReadiness`' `RequirementAvailability` by
+`AvailabilityChipStyle` (chrome) and `AvailabilityValueStyle` (the quantity).
+
+### Availability colour is a trigger, never a converter
+
+This was a value converter — `Availability` → `Brush`, with the part chosen by `ConverterParameter`
+— and that is a **theme-swap trap** worth stating once, because it applies to any converter that
+resolves a resource key:
+
+> A converter runs when its binding evaluates. It returns a resolved `Brush`, and **nothing re-runs
+> it when a resource dictionary is swapped** — the binding's source has not changed. So after a
+> runtime light/dark flip, every converter-supplied colour stays on the old palette while the
+> `DynamicResource`-supplied chrome around it moves.
+
+The symptom is a mismatch that no single element explains: on the Favorites gathering card the
+shortfall number kept its dark-theme brush (pale amber, or plain white for the neutral band) against
+a live light card, i.e. was invisible. Chips hid the same fault for months because a chip's fill,
+border and text all came from the converter — they went stale *together* and stayed internally
+legible, just in the wrong palette.
+
+The replacement is `Style.Triggers` + `{DynamicResource}`, which re-resolve on the swap. **Do not
+resolve a theme resource inside an `IValueConverter`.** If a mapping needs the theme, it belongs in
+triggers.
+
+A second lesson from the same episode: **`Chip*ForegroundBrush` / `Chip*ValueBrush` are
+chip-context brushes.** They are picked to read against `Chip*BackgroundBrush`, not against a card or
+the page. Used as bare text on any other surface they are a legibility problem in one theme or the
+other, whatever the swap does. If a value outside a chip wants a status colour, either give it the
+chip (fill, border and text together) or give it no colour at all — the gathering card took the
+second option and lost nothing.
 
 ## Icons
 
