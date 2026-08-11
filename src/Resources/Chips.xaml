@@ -341,9 +341,11 @@
     <WrapPanel />
   </ItemsPanelTemplate>
 
-  <!-- Readiness meter: how much of the requirement list the inventory covers. Width stays with the
-       caller (the catalog row gives it 360, the detail heading 200); everything else is fixed here
-       so the two bars cannot drift in height or scale.
+  <!-- The app's 0..1 meter. Named for its first use — how much of the requirement list the
+       inventory covers — but it is the shape every progress bar here has, so the catalog's rank
+       banner wears it too rather than re-declaring the same four values one pixel off. Width stays
+       with the caller (the catalog row gives it 360, the detail heading 200, the rank banner the
+       column); everything else is fixed here so the bars cannot drift in height or scale.
        BasedOn is mandatory: assigning a Style replaces the theme's implicit style outright, and
        without it the bar silently falls back to the stock WPF template — square corners, bright
        green fill — instead of the Fluent one. Resolves because App.xaml merges Chips.xaml after

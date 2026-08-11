@@ -20,14 +20,23 @@ public static class ReputationTierDisplay
     };
 }
 
-/// <summary>Current standing computed from accumulated reputation.</summary>
+/// <summary>
+/// Current standing computed from accumulated reputation.
+/// <para>
+/// <b>Reputation, not XP.</b> The UI renders these numbers as "XP" — see docs/design-system.md,
+/// "Terminology" — but that is a display mask over the API's value, applied in the localization
+/// strings and nowhere else. This member was called <c>TotalXp</c>, which put the label in the one
+/// layer the rule exists to keep clean: if the game ever renames what it shows, the point is that
+/// only the resource strings change.
+/// </para>
+/// </summary>
 /// <param name="Tier">The rank the total falls into.</param>
-/// <param name="TotalXp">Accumulated Wikelo reputation.</param>
+/// <param name="TotalReputation">Accumulated Wikelo reputation.</param>
 /// <param name="NextThreshold">Reputation that unlocks the next rank; null at the top rank.</param>
 /// <param name="Fraction">Progress toward the next rank in [0, 1]; 1 at the top rank.</param>
 public readonly record struct ReputationStatus(
     ReputationTier Tier,
-    int TotalXp,
+    int TotalReputation,
     int? NextThreshold,
     double Fraction);
 
@@ -42,27 +51,27 @@ public static class ReputationLevels
 
     public const int VeryBestThreshold = 999;
 
-    public static ReputationStatus Compute(int totalXp)
+    public static ReputationStatus Compute(int totalReputation)
     {
-        if (totalXp >= VeryBestThreshold)
+        if (totalReputation >= VeryBestThreshold)
         {
-            return new ReputationStatus(ReputationTier.VeryBestCustomer, totalXp, null, 1.0);
+            return new ReputationStatus(ReputationTier.VeryBestCustomer, totalReputation, null, 1.0);
         }
 
-        if (totalXp >= VeryGoodThreshold)
+        if (totalReputation >= VeryGoodThreshold)
         {
             var span = VeryBestThreshold - VeryGoodThreshold;
             return new ReputationStatus(
                 ReputationTier.VeryGoodCustomer,
-                totalXp,
+                totalReputation,
                 VeryBestThreshold,
-                (double)(totalXp - VeryGoodThreshold) / span);
+                (double)(totalReputation - VeryGoodThreshold) / span);
         }
 
         return new ReputationStatus(
             ReputationTier.NewCustomer,
-            totalXp,
+            totalReputation,
             VeryGoodThreshold,
-            (double)totalXp / VeryGoodThreshold);
+            (double)totalReputation / VeryGoodThreshold);
     }
 }

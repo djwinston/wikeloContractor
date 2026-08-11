@@ -287,9 +287,11 @@ Chrome styles (caller supplies the content):
 - `TagStyle` — the small outline marker that qualifies a title: the catalog row's contract category
   and the detail page's reward rarity. Set `Content` to a plain string; the style's font and colour
   setters inherit into the generated `TextBlock`, so no nested `TextBlock` is needed.
-- `ReadinessBarStyle` — the requirement-coverage `ProgressBar`. Height/scale are fixed here; only
-  `Width` stays with the caller (360 on a catalog row, 200 in the detail heading, the card width on
-  a gathering card), so coverage reads the same wherever it is shown.
+- `ReadinessBarStyle` — the app's 0..1 meter, named for its first use (requirement coverage) but
+  worn by every progress bar of that shape, the catalog's rank banner included. Height/scale are
+  fixed here; only `Width` stays with the caller (360 on a catalog row, 200 in the detail heading,
+  the card width on a gathering card, the column on the rank banner), so a meter reads the same
+  wherever it is shown.
 
 Whole templates (identical on both pages):
 
@@ -447,7 +449,21 @@ the API. The badge always shows what the contract *awards*, on every row regardl
 
 The **domain model stays `reputation`** (`Models/ReputationLevels`, `TotalReputation`,
 `completed.json`): it matches the API and the in-game rank names. Do not rename the model to match
-the label.
+the label. The point of the mask is that if the game ever renames what it shows, **only the
+resource strings change** — so every identifier named after the label is one more place to chase.
+`ReputationStatus.TotalXp` was exactly that and is now `TotalReputation`; its own XML doc had said
+"accumulated Wikelo reputation" the whole time.
+
+The mask lives in the localization strings and nowhere else: `Catalog_XpBadge` (`+{0} XP`),
+`Reputation_Progress` (`{0} / {1} XP`) and `Reputation_Max` (`{0} XP · Max rank`), identical keys in
+both dictionaries. The rank names (`Reputation_Tier_*`) stay **English in Ukrainian too** — they are
+in-game standing names, like item names.
+
+**A contract that awards nothing still shows `+0 XP`.** The API sends an explicit null for top-rank
+trades and 12 of the 67 contracts in the 4.9.0 catalog are in that group, so this is a real state,
+not a parse failure. Hiding the badge at zero was considered and rejected: an absent badge and a row
+whose data has not arrived look identical, and "+0" is the honest answer to "what does this pay". The
+`+0 XP` in design prototype 3a was placeholder data and is unrelated to this decision.
 
 ## Adding something new
 

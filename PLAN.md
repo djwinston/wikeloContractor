@@ -361,12 +361,27 @@ clarifying an individual element.
       **`Ribbon24`** — on the detail page's Blueprints chip only; the catalog card's `BP · name` chip
       stays text-only. `Reward24` was the alternative and lost to a name collision with the Rewards
       section right below it. Recorded in `docs/design-system.md`.
-- [ ] **Terminology — UI says "XP"**: the badge is the display mask `+{reputation} XP` over the
-      existing API value — always what the contract *awards*, on every row regardless of completion
-      (`+0 XP` in prototype 3a is placeholder data, not a rule). Rank bar reads `110 / 340 XP`.
-      Localization strings in both `Strings.en.xaml` and `Strings.uk.xaml` change accordingly. The
-      **domain model stays `reputation`** (`ReputationLevels`, `TotalReputation`, `completed.json`) —
-      it matches the API and the in-game ranks; do not rename it to chase a label.
+- [x] **Terminology — UI says "XP"**: the badge is the display mask `+{reputation} XP` over the
+      existing API value — always what the contract *awards*, on every row regardless of completion.
+      Rank bar reads `110 / 340 XP`. Localization strings in both `Strings.en.xaml` and
+      `Strings.uk.xaml` change accordingly. The **domain model stays `reputation`**
+      (`ReputationLevels`, `TotalReputation`, `completed.json`) — it matches the API and the in-game
+      ranks; do not rename it to chase a label.
+
+      The strings had been right for a while; the audit found the rule broken in the one place it
+      exists to protect. `ReputationStatus.TotalXp` and `ReputationLevels.Compute(int totalXp)` were
+      named after the label while every neighbour (`ICompletionService.TotalReputation`,
+      `WikeloContract.ReputationAmount`, `MissionDto.ReputationAmount`) was not — and the record's
+      own XML doc read "accumulated Wikelo reputation". Renamed to `TotalReputation`.
+
+      Two decisions taken here rather than left open (both recorded in `docs/design-system.md`):
+      - **`+0 XP` stays.** 12 of the 67 contracts in the 4.9.0 catalog genuinely award nothing (the
+        API sends an explicit null for top-rank trades), so it is a real state, not a parse failure.
+        Hiding the badge would make "awards nothing" and "not loaded yet" look the same. The `+0 XP`
+        in prototype 3a was placeholder data and never bore on this.
+      - **The rank bar wears `ReadinessBarStyle`.** It was declaring `Height="5"`, `Maximum`,
+        `Minimum` and alignment inline — the same four values that style fixes, one pixel off the
+        `SizeProgressBarHeight` token every other bar uses.
 - [x] **Migrate page by page**: Catalog, Contract detail (incl. the shared `ChipListStyle`),
       Inventory, Settings, About. (Favorites is Phase 2.5, still to come.) Verified in **Light and
       Dark** and in **en and uk** — light is the separate palette, not dark inverted, and the uk
