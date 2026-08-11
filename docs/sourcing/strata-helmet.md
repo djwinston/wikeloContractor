@@ -1,5 +1,6 @@
 ---
 name: "Strata Helmet"
+uuid: "29a98f61-d24a-46de-9284-c863ee69fb26"
 summary: "Bought at a shop."
 ---
 

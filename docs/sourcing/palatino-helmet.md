@@ -1,5 +1,6 @@
 ---
 name: "Palatino Helmet"
+uuid: "138ffa9b-26b2-4b6f-b831-425948234fb2"
 summary: "Orange lootboxes at hostile Distribution Centers."
 ---
 

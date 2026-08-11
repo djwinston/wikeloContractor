@@ -1,5 +1,6 @@
 ---
 name: "ASD Secure Drive"
+uuid: "60a09784-0e4c-40f3-945e-daba453f81c8"
 summary: "Onyx Sites mission reward; also a very rare drop on NPCs."
 contract: "Jorrit Dossier: Onyx Personnel Files"
 faction: "Hockrow Agency"

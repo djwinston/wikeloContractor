@@ -195,7 +195,7 @@ public class SourcingGuideDataTests
     {
         // The service ignores anything it does not recognise, so a typo like "factin:" would simply
         // never render — silently, and only on the one page nobody thought to re-check.
-        string[] known = ["name", "summary", "contract", "faction"];
+        string[] known = ["name", "summary", "contract", "faction", "uuid", "vehicle"];
 
         var unknown = LoadEntries()
             .SelectMany(entry => entry.Front.Keys.Select(key => (entry.File, Key: key)))
@@ -218,6 +218,33 @@ public class SourcingGuideDataTests
             .ToList();
 
         Assert.True(blanks.Count == 0, $"Blank optional keys: [{string.Join("; ", blanks)}]");
+    }
+
+    [Fact]
+    public void A_recorded_uuid_is_a_uuid()
+    {
+        // Both outbound links are built from this value, so a mistyped one is a button that opens a
+        // 404. ItemLinks drops a malformed value at runtime; catching it here says which file.
+        var malformed = LoadEntries()
+            .Where(entry => entry.Front.TryGetValue("uuid", out var value) && !ItemLinks.IsUuid(value?.Trim()))
+            .Select(entry => entry.File)
+            .ToList();
+
+        Assert.True(malformed.Count == 0, $"Malformed uuid front matter: [{string.Join("; ", malformed)}]");
+    }
+
+    [Fact]
+    public void The_vehicle_flag_only_appears_where_a_uuid_backs_it()
+    {
+        // On its own the flag does nothing — it only picks which wiki namespace the UUID is looked
+        // up in. Set without one it is a note to nobody, and most likely a half-finished edit.
+        var stray = LoadEntries()
+            .Where(entry => entry.Front.ContainsKey("vehicle"))
+            .Where(entry => !entry.Front.TryGetValue("uuid", out var value) || !ItemLinks.IsUuid(value?.Trim()))
+            .Select(entry => entry.File)
+            .ToList();
+
+        Assert.True(stray.Count == 0, $"vehicle: set without a usable uuid: [{string.Join("; ", stray)}]");
     }
 
     [Fact]

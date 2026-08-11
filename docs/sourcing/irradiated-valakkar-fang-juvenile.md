@@ -1,5 +1,6 @@
 ---
 name: "Irradiated Valakkar Fang (Juvenile)"
+uuid: "72eca4eb-23b8-43b0-94b0-72d31b6ba358"
 summary: "Juvenile Irradiated Valakkar - Storm Breaker Lazarus locations."
 ---
 

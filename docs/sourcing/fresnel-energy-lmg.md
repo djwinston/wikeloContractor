@@ -1,5 +1,6 @@
 ---
 name: "Fresnel Energy LMG"
+uuid: "af55f514-d7fd-49fd-89c8-6aee01f25859"
 summary: "Gun racks in Onyx Facility Site B."
 ---
 

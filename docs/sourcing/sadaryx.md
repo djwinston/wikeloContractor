@@ -1,5 +1,6 @@
 ---
 name: "Sadaryx"
+uuid: "21ff77df-951a-42a8-a9d9-d80c4f845f68"
 summary: "Rock Breaker locations."
 ---
 

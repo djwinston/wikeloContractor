@@ -18,6 +18,9 @@ public partial class SourcingDetailViewModel(INavigationService navigationServic
     [NotifyPropertyChangedFor(nameof(Contract))]
     [NotifyPropertyChangedFor(nameof(Faction))]
     [NotifyPropertyChangedFor(nameof(HasContractDetails))]
+    [NotifyPropertyChangedFor(nameof(WikiUrl))]
+    [NotifyPropertyChangedFor(nameof(ShopFinderUrl))]
+    [NotifyPropertyChangedFor(nameof(HasLinks))]
     [NotifyPropertyChangedFor(nameof(CategoryLabel))]
     private SourcingItemViewModel? _item;
 
@@ -51,6 +54,18 @@ public partial class SourcingDetailViewModel(INavigationService navigationServic
     /// its heading test one value instead of repeating the "either field is present" condition.
     /// </summary>
     public bool HasContractDetails => Contract is not null || Faction is not null;
+
+    /// <summary>The item's page on star-citizen.wiki; null when the guide records no UUID.</summary>
+    public string? WikiUrl => Item?.WikiUrl;
+
+    /// <summary>The item's page on the cstone.space finder; null on the same condition.</summary>
+    public string? ShopFinderUrl => Item?.ShopFinderUrl;
+
+    /// <summary>
+    /// Whether there is an outbound link row to show at all. Both come from the same UUID, so in
+    /// practice this is one condition — hoisted rather than testing either URL in two bindings.
+    /// </summary>
+    public bool HasLinks => WikiUrl is not null || ShopFinderUrl is not null;
 
     /// <summary>Sets the item to display; call right before navigating to the page.</summary>
     public void Show(SourcingItemViewModel item) => Item = item;

@@ -1,5 +1,6 @@
 ---
 name: "Novikov Backpack Mire"
+uuid: "0bcd0305-b5a4-4ddc-b69c-861886a6b3ee"
 summary: "Orange lootboxes in the Site B section of Onyx Facility."
 contract: "Jorrit Dossier: Project Hyperion"
 faction: "Hockrow Agency"

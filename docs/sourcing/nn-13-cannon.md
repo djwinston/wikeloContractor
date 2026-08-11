@@ -1,5 +1,6 @@
 ---
 name: "NN-13 Cannon"
+uuid: "3fc83638-fbe5-4d75-8e18-678736fefbc4"
 summary: "Bought at a shop."
 ---
 

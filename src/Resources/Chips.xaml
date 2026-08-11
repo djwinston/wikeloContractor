@@ -336,6 +336,16 @@
     </StackPanel>
   </DataTemplate>
 
+  <!-- External links read as the accent, everywhere. ui:HyperlinkButton hard-codes its text colour
+       through these three keys and ignores Foreground, so the only way to recolour it is to
+       re-point them — and a Style cannot do it, because FrameworkElement.Resources is not a
+       dependency property and has no setter. Declared once here rather than copied into every page
+       that links out: it was already a local block on the contract detail page, and the pledge link
+       two hundred lines below it had quietly stayed the stock colour. -->
+  <SolidColorBrush x:Key="HyperlinkButtonForeground" Color="{DynamicResource SystemAccentColorPrimary}" />
+  <SolidColorBrush x:Key="HyperlinkButtonForegroundPointerOver" Color="{DynamicResource SystemAccentColorSecondary}" />
+  <SolidColorBrush x:Key="HyperlinkButtonForegroundPressed" Color="{DynamicResource SystemAccentColorTertiary}" />
+
   <!-- Wrapping chip list — the panel every chip ItemsControl uses. -->
   <ItemsPanelTemplate x:Key="ChipWrapPanel">
     <WrapPanel />

@@ -1,5 +1,6 @@
 ---
 name: "Strata Backpack"
+uuid: "a5bb46f9-c728-46c6-a4b2-53f21d96813a"
 summary: "Bought at a shop."
 ---
 

@@ -200,21 +200,15 @@
           </StackPanel>
         </ContentControl>
 
-        <!-- HyperlinkButton hard-codes its text color via these theme keys and ignores Foreground,
-             so recolor it to the accent by overriding the keys locally (per state). -->
+        <!-- Accent colouring comes from Resources/Chips.xaml, which re-points the three keys
+             ui:HyperlinkButton hard-codes its text colour through. -->
         <ui:HyperlinkButton
           Margin="0,0,0,6"
           Padding="10,2"
           Content="{DynamicResource Details_OpenWiki}"
           FontSize="12"
           NavigateUri="{Binding ViewModel.Contract.WebUrl}"
-          Visibility="{Binding ViewModel.Contract.WebUrl, Converter={StaticResource NotNullToVisibility}}">
-          <ui:HyperlinkButton.Resources>
-            <SolidColorBrush x:Key="HyperlinkButtonForeground" Color="{DynamicResource SystemAccentColorPrimary}" />
-            <SolidColorBrush x:Key="HyperlinkButtonForegroundPointerOver" Color="{DynamicResource SystemAccentColorSecondary}" />
-            <SolidColorBrush x:Key="HyperlinkButtonForegroundPressed" Color="{DynamicResource SystemAccentColorTertiary}" />
-          </ui:HyperlinkButton.Resources>
-        </ui:HyperlinkButton>
+          Visibility="{Binding ViewModel.Contract.WebUrl, Converter={StaticResource NotNullToVisibility}}" />
       </WrapPanel>
 
       <!-- Contract description -->

@@ -1,5 +1,6 @@
 ---
 name: "Irradiated Valakkar Pearl (Grade AA)"
+uuid: "e738c605-8ef7-4238-8170-5db0c4c9c15d"
 summary: "Apex Irradiated Valakkar - Storm Breaker Lazarus locations. The grade system is not fully understood."
 ---
 

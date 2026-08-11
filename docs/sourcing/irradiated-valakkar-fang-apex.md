@@ -1,5 +1,6 @@
 ---
 name: "Irradiated Valakkar Fang (Apex)"
+uuid: "f8cb1253-585f-40fe-8359-6b5de284c47e"
 summary: "Apex Irradiated Valakkar - Storm Breaker Lazarus locations."
 ---
 

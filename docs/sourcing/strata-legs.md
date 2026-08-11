@@ -1,5 +1,6 @@
 ---
 name: "Strata Legs"
+uuid: "245424cb-f2fc-4ac5-8959-a971009e8607"
 summary: "Bought at a shop."
 ---
 

@@ -1,5 +1,6 @@
 ---
 name: "Corbel Legs Mire"
+uuid: "f9c95695-1aff-4963-8432-f43fe65249be"
 summary: "Orange lootboxes in the Site B section of Onyx Facility."
 contract: "Jorrit Dossier: Project Hyperion"
 faction: "Hockrow Agency"

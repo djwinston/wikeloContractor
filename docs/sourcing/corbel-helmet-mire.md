@@ -1,5 +1,6 @@
 ---
 name: "Corbel Helmet Mire"
+uuid: "00638fba-f80d-4848-8807-b70d0035992c"
 summary: "Orange lootboxes in the Site B section of Onyx Facility."
 contract: "Jorrit Dossier: Project Hyperion"
 faction: "Hockrow Agency"

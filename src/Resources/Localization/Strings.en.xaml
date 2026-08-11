@@ -164,6 +164,11 @@
   <sys:String x:Key="Sourcing_HowToObtain">HOW TO OBTAIN IT</sys:String>
   <sys:String x:Key="Sourcing_Contract">Contract</sys:String>
   <sys:String x:Key="Sourcing_Faction">Given by</sys:String>
+  <!-- Live lookups on the item page, both built from the guide's uuid front matter. The finder's
+       label names the destination rather than the content: it is an item database that lists shops
+       only for things that are sold, and most of this corpus is mission loot. -->
+  <sys:String x:Key="Sourcing_OpenFinder">Open on cstone</sys:String>
+  <sys:String x:Key="Sourcing_OpenFinder_Tooltip">Item details on the cstone.space Universal Item Finder, including which shops stock it when that is recorded</sys:String>
   <sys:String x:Key="Sourcing_GuidePlaceholder">A step-by-step guide for this item has not been written yet.</sys:String>
 
   <sys:String x:Key="Settings_Title">Settings</sys:String>

@@ -1,5 +1,6 @@
 ---
 name: "Palatino Core"
+uuid: "cef54c0b-81d1-4ccb-a67f-f7304f198184"
 summary: "Orange lootboxes at hostile Distribution Centers."
 ---
 

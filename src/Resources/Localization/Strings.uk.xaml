@@ -163,6 +163,11 @@
   <sys:String x:Key="Sourcing_HowToObtain">ЯК ЗДОБУТИ</sys:String>
   <sys:String x:Key="Sourcing_Contract">Контракт</sys:String>
   <sys:String x:Key="Sourcing_Faction">Видає</sys:String>
+  <!-- Live lookups on the item page, both built from the guide's uuid front matter. The finder's
+       label names the destination rather than the content: it is an item database that lists shops
+       only for things that are sold, and most of this corpus is mission loot. -->
+  <sys:String x:Key="Sourcing_OpenFinder">Відкрити на cstone</sys:String>
+  <sys:String x:Key="Sourcing_OpenFinder_Tooltip">Деталі предмета в cstone.space Universal Item Finder — і які магазини його тримають, якщо це записано</sys:String>
   <sys:String x:Key="Sourcing_GuidePlaceholder">Покрокову інструкцію для цього предмета ще не написано.</sys:String>
 
   <sys:String x:Key="Settings_Title">Налаштування</sys:String>

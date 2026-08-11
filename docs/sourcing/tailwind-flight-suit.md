@@ -1,5 +1,6 @@
 ---
 name: "Tailwind Flight Suit"
+uuid: "e7ba6337-2972-46db-b122-df73c4176027"
 summary: "Bought at a shop, or looted on the Tactical Strike Group mission."
 contract: "Tactical Strike Group Needed — InterSec Defense Solutions"
 faction: "InterSec Defense Solutions"

@@ -1,5 +1,6 @@
 ---
 name: "RCMBNT-PWL-3"
+uuid: "5eac0c3e-ff6c-46f3-8067-898ad9fd5929"
 summary: "Site B experiment sample, Onyx Sites."
 contract: "Jorrit Dossier: Project Hyperion"
 faction: "Hockrow Agency"

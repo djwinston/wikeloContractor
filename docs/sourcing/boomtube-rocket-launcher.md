@@ -1,5 +1,6 @@
 ---
 name: "Boomtube Rocket Launcher"
+uuid: "70f30988-ff59-4c12-93b4-449b887ac7ca"
 summary: "Nyx QV logistic station during the Retrieve Additional Smuggler Intel mission."
 contract: "Retrieve Additional Smuggler Intel / Vanduul-Tech Smugglers"
 ---

@@ -1,5 +1,6 @@
 ---
 name: "Expired Quantanium Fuel Canister"
+uuid: "ea9cdef8-a8c8-444f-8aeb-3f582326cff2"
 summary: "Cargo A at QV Extraction stations during Seeking Tactical Strike Group contracts."
 contract: "Seeking Tactical Strike Group"
 ---

@@ -238,8 +238,30 @@ primary source.
       Smuggler Intel* is a stage of Vanduul-Tech Smugglers, whether the contract wants Warden Backpack
       *Monde* or *Epoque*, and whether the Fresnel LMG comes from Site B gun racks or a shop.
       Authoring rules and the research dead-ends live in `.claude/skills/sourcing-guide/SKILL.md`.
-- [ ] Still to do from the original scope: a link to the wiki (`web_url`) when available, and a
-      per-item deep-link into cstone Finder (investigate whether it supports a query URL).
+- [x] **Outbound links from the original scope** — both, as two buttons on the item's detail page.
+      The investigation turned out to answer both halves at once.
+      - cstone Finder has **no name search in its URL**: its inline script never reads the query
+        string (`?search=` is accepted and ignored), and a name in the path redirects to the home
+        page. Its only per-item address is `/Search/{guid}` — and that GUID is **the game's own item
+        UUID**, the same one the wiki API returns. Verified across an item, an armour piece, a
+        commodity and a vehicle.
+      - The wiki's `web_url` for an item is `api.star-citizen.wiki/items/{slug}` — a real
+        player-facing page (description, stats, images, crafting) — and the same page answers to the
+        UUID. So **one identifier gives both links**.
+      - Therefore `uuid` is a front matter key (`docs/sourcing/README.md`), not two stored URLs:
+        the shapes belong to sites we do not control and live once in `Models/ItemLinks`. **94 of 95
+        guides** were seeded from the API's exact-name search — real values, never typed by hand.
+        `Tungsten` has no API entry under that name; its guide simply shows no buttons.
+      - `vehicle: true` accompanies the three ATLS UUIDs: the wiki files vehicles in their own
+        namespace and `/items/{vehicle-uuid}` only redirects. The finder needs no such flag.
+      - The shared `shop-purchase` fragment keeps pointing at the finder's **root**: prose has no
+        per-item substitution, and the per-item link is a page affordance. Both rules are now in
+        `docs/sourcing/README.md` so this is not re-litigated per guide.
+      - **Both buttons are named for the destination, not the content** — "Open on the wiki" /
+        "Open on cstone". The finder shipped for an hour as "Where it is sold" and that was wrong:
+        it lists shops only for things that are sold, and most of this corpus is mission loot, so
+        the label promised a shop list that for an item like the Ace Interceptor Helmet does not
+        exist. The tooltip carries the nuance.
 - [ ] The sheet also covers items the 4.9.0 catalog never requires (Atlasium, Janalite, Picoball,
       Scourge Railgun, Advocacy Badge, Finley plushie, Wowblast pistol, Xanthule Helmet/Suit). No files
       were authored for them — add one if a patch turns any into a requirement.

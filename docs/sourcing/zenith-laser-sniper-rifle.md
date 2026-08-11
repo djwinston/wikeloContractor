@@ -1,5 +1,6 @@
 ---
 name: "Zenith Laser Sniper Rifle"
+uuid: "0c37582b-ab78-440d-911e-c39322bccf1f"
 summary: "Weapon racks at Onyx Sites."
 ---
 

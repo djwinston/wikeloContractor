@@ -1,5 +1,6 @@
 ---
 name: "Bluemoon Fungus"
+uuid: "ac659f18-1681-4406-8eff-4bd9173b94a7"
 summary: "Harvested in caves; outposts across Stanton and Pyro."
 ---
 
