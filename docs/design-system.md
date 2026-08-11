@@ -142,7 +142,9 @@ Keys, and why each one is not just a Fluent brush:
 - `ChipReward{Background,Border,Foreground}Brush` — the cyan reward role.
 - `ChipBlueprint{Background,Border,Foreground}Brush` — no Fluent equivalent at all.
 - `XpBadgeForegroundBrush` — the `+N XP` badge.
-- `CompletedRow{Accent,Wash}Brush` — the completed catalog row's left marker and gradient wash.
+- `CompletedRow{Accent,Wash}Brush` — "this line is done": a left marker and a gradient wash, shared
+  by the completed catalog row and the fully gathered card on the Favorites plan. One role, one
+  pair of keys — a second green for the second surface is how two shades of "done" get shipped.
 - `ReputationBannerBrush` — the rank banner above the contract list.
 - `Overlay{Background,Border,RowBackground,InteractiveBorder}Brush`,
   `OverlaySlotBadge{Background,Foreground}Brush` — the in-game HUD. Fluent has no "translucent panel

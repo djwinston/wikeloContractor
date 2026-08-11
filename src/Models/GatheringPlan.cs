@@ -15,6 +15,13 @@ public sealed record GatheringItem
     public int Outstanding => Math.Max(0, Required - Have);
 
     /// <summary>
+    /// The inventory already holds everything the plan asks for. The state the list marks rather
+    /// than hides: an item can be gathered and still be pinned to the overlay, and a row that
+    /// vanishes the moment its last unit is counted takes its pin's only visible handle with it.
+    /// </summary>
+    public bool IsCovered => Outstanding == 0;
+
+    /// <summary>
     /// How much of the requirement the inventory already covers, in [0, 1] — the progress meter's
     /// value. Clamped at 1 for the same reason <see cref="Outstanding"/> floors at 0: holding double
     /// what the plan asks for is still just "done", not 200% done.
@@ -40,11 +47,20 @@ public sealed record GatheringItem
 public static class GatheringPlan
 {
     /// <summary>
-    /// Items still missing across <paramref name="contracts"/>, ordered by name.
+    /// Every item <paramref name="contracts"/> ask for between them, ordered by name.
     /// <para>
-    /// Fully covered items are left out: the list answers "what do I still need", and an item that
-    /// needs nothing is not an answer to it. Alphabetical rather than by size, so the list does not
-    /// reshuffle itself under the player while they are working through it.
+    /// <b>Covered items stay in the list</b> and carry <see cref="GatheringItem.IsCovered"/>. They
+    /// used to be dropped here — the list answered "what do I still need", and an item needing
+    /// nothing is not an answer to it. What that reasoning missed is that the same list is where
+    /// overlay pins are made: a pinned item that reaches its target disappeared, taking the only
+    /// place it could be unpinned from with it, while the budget counter went on counting it.
+    /// Presenting the two states differently is the page's job (see
+    /// <c>FavoritesViewModel.GatheringView</c>); deciding which rows exist is this one's, and both
+    /// answers belong in it.
+    /// </para>
+    /// <para>
+    /// Alphabetical rather than by size, so the list does not reshuffle itself under the player
+    /// while they are working through it.
     /// </para>
     /// </summary>
     /// <param name="have">How many of an item the player holds, by name.</param>
@@ -60,7 +76,6 @@ public static class GatheringPlan
                 Required = group.Sum(InventoryReadiness.RequiredCount),
                 Have = have(group.Key),
             })
-            .Where(item => item.Outstanding > 0)
             .OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 }

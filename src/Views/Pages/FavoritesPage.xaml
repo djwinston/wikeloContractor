@@ -60,86 +60,107 @@
          on every card, and the shortfall it carried is the gap in the "1 / 5" beside the bar. It was
          also the one number here that wanted a status colour, which is a fight not worth having on a
          bare card surface: the chip value brushes are built to sit on a tinted chip fill, and out of
-         that context they are a legibility problem in one theme or the other. Nothing on this card
-         needs colour to be understood now. -->
+         that context they are a legibility problem in one theme or the other.
+
+         The one state that IS coloured is "fully gathered", and it borrows the completed catalog
+         row's treatment wholesale — same left accent, same wash — because it is the same statement:
+         this line is done. Chrome, not text, so none of the legibility problem above comes back. -->
     <DataTemplate x:Key="GatheringCardTemplate">
       <Border
         Margin="0,0,10,10"
-        Padding="{StaticResource SpacingCardPadding}"
         Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
         BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
         BorderThickness="1"
         CornerRadius="{StaticResource RadiusCard}">
-        <Grid>
-          <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-          </Grid.RowDefinitions>
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
-          </Grid.ColumnDefinitions>
-
-          <TextBlock
-            Grid.Row="0"
-            Grid.Column="0"
-            VerticalAlignment="Center"
-            FontSize="{StaticResource FontSizeBodyStrong}"
-            FontWeight="SemiBold"
-            Text="{Binding Name, Mode=OneWay}"
-            TextTrimming="CharacterEllipsis"
-            TextWrapping="Wrap" />
-
-          <!-- The pin keeps its own corner. In the chip this needed a divider to stop the slot digit
-               reading as a second quantity; a card separates them by position instead. Geometry only
-               — the bindings come from the shared styles, so this cannot drift from the inventory
-               row. Fixed square badge, as there is the room for one here. -->
-          <StackPanel
-            Grid.Row="0"
-            Grid.Column="1"
-            Margin="10,0,0,0"
-            VerticalAlignment="Center"
-            Orientation="Horizontal">
-            <Border
-              Width="{StaticResource SizeOverlaySlotBadge}"
-              Height="{StaticResource SizeOverlaySlotBadge}"
-              Margin="0,0,4,0"
-              Style="{StaticResource PinSlotBadgeStyle}">
-              <TextBlock Style="{StaticResource PinSlotDigitStyle}" />
-            </Border>
-
-            <ui:Button Padding="4" Style="{StaticResource PinButtonStyle}" />
-          </StackPanel>
-
-          <!-- How much is gathered, and how far along that is. The bar is the shared
-               ReadinessBarStyle — the same meter the catalog row and the detail heading use, so
-               coverage reads identically everywhere. -->
-          <Grid
-            Grid.Row="1"
-            Grid.Column="0"
-            Grid.ColumnSpan="2"
-            Margin="0,12,0,0">
+        <!-- The gathered state lives on an inner border so its left accent does not have to share a
+             BorderBrush with the card's own outline. Same shape as ContractCardTemplate: the 2 px
+             accent is reserved (transparent) on every card, so becoming gathered swaps colours
+             without moving the content one pixel. -->
+        <Border Padding="{StaticResource SpacingCardPadding}">
+          <Border.Style>
+            <Style TargetType="Border">
+              <Setter Property="CornerRadius" Value="{StaticResource RadiusCard}" />
+              <Setter Property="BorderThickness" Value="2,0,0,0" />
+              <Setter Property="BorderBrush" Value="Transparent" />
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding IsCovered}" Value="True">
+                  <Setter Property="Background" Value="{DynamicResource CompletedRowWashBrush}" />
+                  <Setter Property="BorderBrush" Value="{DynamicResource CompletedRowAccentBrush}" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="*" />
               <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <ProgressBar
-              Grid.Column="0"
-              Style="{StaticResource ReadinessBarStyle}"
-              Value="{Binding Progress, Mode=OneWay}" />
-
-            <!-- "12 / 36" — what is in stock against what the plan asks for. The caption is a
-                 tooltip rather than a visible label: at three or four cards across, a word on every
-                 one of them is noise, and the pair reads as a ratio on sight. -->
             <TextBlock
+              Grid.Row="0"
+              Grid.Column="0"
+              VerticalAlignment="Center"
+              FontSize="{StaticResource FontSizeBodyStrong}"
+              FontWeight="SemiBold"
+              Text="{Binding Name, Mode=OneWay}"
+              TextTrimming="CharacterEllipsis"
+              TextWrapping="Wrap" />
+
+            <!-- The pin keeps its own corner. In the chip this needed a divider to stop the slot
+                 digit reading as a second quantity; a card separates them by position instead.
+                 Geometry only — the bindings come from the shared styles, so this cannot drift from
+                 the inventory row. Fixed square badge, as there is the room for one here. -->
+            <StackPanel
+              Grid.Row="0"
               Grid.Column="1"
               Margin="10,0,0,0"
-              Style="{StaticResource MonoCaptionStyle}"
-              Text="{Binding StockLabel, Mode=OneWay}"
-              ToolTip="{DynamicResource Favorites_Gather_InStock}" />
+              VerticalAlignment="Center"
+              Orientation="Horizontal">
+              <Border
+                Width="{StaticResource SizeOverlaySlotBadge}"
+                Height="{StaticResource SizeOverlaySlotBadge}"
+                Margin="0,0,4,0"
+                Style="{StaticResource PinSlotBadgeStyle}">
+                <TextBlock Style="{StaticResource PinSlotDigitStyle}" />
+              </Border>
+
+              <ui:Button Padding="4" Style="{StaticResource PinButtonStyle}" />
+            </StackPanel>
+
+            <!-- How much is gathered, and how far along that is. The bar is the shared
+                 ReadinessBarStyle — the same meter the catalog row and the detail heading use, so
+                 coverage reads identically everywhere. -->
+            <Grid
+              Grid.Row="1"
+              Grid.Column="0"
+              Grid.ColumnSpan="2"
+              Margin="0,12,0,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+
+              <ProgressBar
+                Grid.Column="0"
+                Style="{StaticResource ReadinessBarStyle}"
+                Value="{Binding Progress, Mode=OneWay}" />
+
+              <!-- "12 / 36" — what is in stock against what the plan asks for. The caption is a
+                   tooltip rather than a visible label: at three or four cards across, a word on
+                   every one of them is noise, and the pair reads as a ratio on sight. -->
+              <TextBlock
+                Grid.Column="1"
+                Margin="10,0,0,0"
+                Style="{StaticResource MonoCaptionStyle}"
+                Text="{Binding StockLabel, Mode=OneWay}"
+                ToolTip="{DynamicResource Favorites_Gather_InStock}" />
+            </Grid>
           </Grid>
-        </Grid>
+        </Border>
       </Border>
     </DataTemplate>
   </Page.Resources>
@@ -315,7 +336,8 @@
                title: it is a number that moves while the player works. Built from the brand caution
                palette rather than ui:InfoBadge, whose template is sized for a single digit (two
                clipped on all four sides) and whose Severity colours are the same in both themes.
-               Bound straight to the collection's Count — ObservableCollection raises PropertyChanged. -->
+               It counts what is still SHORT, not the rows: the list carries the gathered items too
+               now, so the collection's own Count would sit still while the player fills their hold. -->
           <StackPanel Orientation="Horizontal">
             <TextBlock VerticalAlignment="Center" Text="{DynamicResource Favorites_Gather_Title}" />
             <Border
@@ -332,7 +354,7 @@
                 FontSize="{StaticResource FontSizeCaption}"
                 FontWeight="Bold"
                 Foreground="{DynamicResource ChipCautionValueBrush}"
-                Text="{Binding ViewModel.Gathering.Count, Mode=OneWay}" />
+                Text="{Binding ViewModel.OutstandingCount, Mode=OneWay}" />
             </Border>
           </StackPanel>
         </TabItem.Header>
@@ -344,19 +366,44 @@
             <RowDefinition Height="Auto" />
           </Grid.RowDefinitions>
 
-          <!-- The overlay budget, the same object the inventory grid binds: one set of pins, one
-               counter. It sits with the cards because this is the second place pins are made. -->
-          <Border
-            Grid.Row="0"
-            Padding="10,4"
-            HorizontalAlignment="Right"
-            Background="{DynamicResource ControlFillColorSecondaryBrush}"
-            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
-            BorderThickness="1"
-            CornerRadius="{StaticResource RadiusControl}"
-            Visibility="{Binding ViewModel.HasOutstanding, Converter={StaticResource BoolToVisibility}}">
-            <ContentControl Content="{Binding ViewModel.OverlayPins}" ContentTemplate="{StaticResource OverlayPinBudgetTemplate}" />
-          </Border>
+          <!-- Tab controls: the coverage filter on the left, the overlay budget on the right. Both
+               are shown whenever there is a plan at all, not only while something is short — a
+               finished plan is exactly when the gathered cards are all there is to look at, and the
+               pins on them still need a counter and a way off. -->
+          <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Gathered / not gathered, over the whole plan. This is what makes keeping the covered
+                 rows affordable: the shopping list is one selection away, and a pinned item that is
+                 finished is still reachable to unpin. -->
+            <ComboBox
+              Grid.Column="0"
+              MinWidth="170"
+              SelectedIndex="{Binding ViewModel.GatheringFilterIndex, Mode=TwoWay}"
+              Visibility="{Binding ViewModel.HasGatheringPlan, Converter={StaticResource BoolToVisibility}}">
+              <ComboBoxItem Content="{DynamicResource Favorites_Gather_Filter_All}" />
+              <ComboBoxItem Content="{DynamicResource Favorites_Gather_Filter_Gathered}" />
+              <ComboBoxItem Content="{DynamicResource Favorites_Gather_Filter_NotGathered}" />
+            </ComboBox>
+
+            <!-- The overlay budget, the same object the inventory grid binds: one set of pins, one
+                 counter. It sits with the cards because this is the second place pins are made. -->
+            <Border
+              Grid.Column="1"
+              Padding="10,4"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Center"
+              Background="{DynamicResource ControlFillColorSecondaryBrush}"
+              BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+              BorderThickness="1"
+              CornerRadius="{StaticResource RadiusControl}"
+              Visibility="{Binding ViewModel.HasGatheringPlan, Converter={StaticResource BoolToVisibility}}">
+              <ContentControl Content="{Binding ViewModel.OverlayPins}" ContentTemplate="{StaticResource OverlayPinBudgetTemplate}" />
+            </Border>
+          </Grid>
 
           <ScrollViewer
             Grid.Row="1"
@@ -367,7 +414,7 @@
               <!-- Columns follow the window rather than a fixed count: at a maximised window the
                    list is three or four across, at a narrow one it degrades to a single column
                    instead of shrinking the cards below legibility. -->
-              <ItemsControl ItemTemplate="{StaticResource GatheringCardTemplate}" ItemsSource="{Binding ViewModel.Gathering}">
+              <ItemsControl ItemTemplate="{StaticResource GatheringCardTemplate}" ItemsSource="{Binding ViewModel.GatheringView}">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate>
                     <UniformGrid Columns="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource WidthToColumns}, ConverterParameter=280}" />
@@ -376,10 +423,23 @@
               </ItemsControl>
 
               <TextBlock
+                Margin="0,4,0,0"
                 Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                 Text="{DynamicResource Favorites_Gather_Covered}"
                 TextWrapping="Wrap"
                 Visibility="{Binding ViewModel.HasNothingToGather, Converter={StaticResource BoolToVisibility}}" />
+
+              <!-- The tab filter matched nothing — a different situation from "you have it all"
+                   above it (which is about the plan, not the selection) and from having nothing
+                   starred below it. Only the last one is exclusive with the other two: a finished
+                   plan viewed through "Not gathered" is legitimately both. -->
+              <TextBlock
+                Margin="0,24,0,0"
+                HorizontalAlignment="Center"
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                Text="{DynamicResource Favorites_Gather_FilterEmpty}"
+                TextWrapping="Wrap"
+                Visibility="{Binding ViewModel.IsGatheringEmpty, Converter={StaticResource BoolToVisibility}}" />
 
               <ContentControl
                 Content="{Binding ViewModel}"

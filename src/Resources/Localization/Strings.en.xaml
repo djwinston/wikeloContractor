@@ -67,10 +67,15 @@
   <sys:String x:Key="Favorites_Title">Favorites</sys:String>
   <sys:String x:Key="Favorites_Empty">No favorites yet. Tap the star on a contract to keep it here.</sys:String>
   <sys:String x:Key="Favorites_Gather_Title">What to still gather</sys:String>
-  <sys:String x:Key="Favorites_Gather_Hint">Added up across the starred contracts you have not completed yet. Each card shows what your inventory holds against what those contracts ask for; items you already have enough of are left out.</sys:String>
+  <sys:String x:Key="Favorites_Gather_Hint">Added up across the starred contracts you have not completed yet. Each card shows what your inventory holds against what those contracts ask for; items you already have enough of are marked green and stay in the list.</sys:String>
   <sys:String x:Key="Favorites_Gather_Covered">Your inventory already covers every starred contract.</sys:String>
   <sys:String x:Key="Favorites_Tab_Contracts">Contracts</sys:String>
   <sys:String x:Key="Favorites_Gather_InStock">Gathered out of what the starred contracts ask for</sys:String>
+  <!-- Gathering tab filter. Index 0 is "all", matching the contract filters' convention. -->
+  <sys:String x:Key="Favorites_Gather_Filter_All">All items</sys:String>
+  <sys:String x:Key="Favorites_Gather_Filter_Gathered">Gathered</sys:String>
+  <sys:String x:Key="Favorites_Gather_Filter_NotGathered">Not gathered</sys:String>
+  <sys:String x:Key="Favorites_Gather_FilterEmpty">No item matches this filter.</sys:String>
   <sys:String x:Key="Catalog_RewardsLabel">REWARDS</sys:String>
   <!-- {0} is the reputation the contract awards; the UI calls it XP (see docs/design-system.md) -->
   <sys:String x:Key="Catalog_XpBadge">+{0} XP</sys:String>

@@ -151,7 +151,7 @@ public sealed class GatheringScenarios(WpfAppFixture app)
     }
 
     [Fact]
-    public async Task A_fully_stocked_plan_says_so_instead_of_showing_an_empty_list()
+    public async Task A_fully_stocked_plan_says_so_over_a_list_of_gathered_cards()
     {
         using var harness = await ReadyAsync();
 
@@ -164,9 +164,112 @@ public sealed class GatheringScenarios(WpfAppFixture app)
 
         await app.OnUiAsync(() =>
         {
-            Assert.Empty(harness.Favorited.Gathering);
+            // The rows stay — the badge is what goes to zero.
+            Assert.Equal(2, harness.Favorited.Gathering.Count);
+            Assert.All(harness.Favorited.Gathering, row => Assert.True(row.IsCovered));
+            Assert.Equal(0, harness.Favorited.OutstandingCount);
             Assert.True(harness.Favorited.HasNothingToGather);
             Assert.True(harness.Favorited.HasGatheringPlan);
+        });
+    }
+
+    [Fact]
+    public async Task An_item_the_inventory_covers_stays_on_the_list_with_its_pin()
+    {
+        // The bug this replaced: the row vanished the moment its last unit was counted, so a pinned
+        // item lost the only place it could be unpinned from while the budget went on counting it.
+        using var harness = await ReadyAsync();
+
+        await app.OnUiAsync(async () =>
+        {
+            await harness.Favorites.SetFavoriteAsync("m1", true);
+            await Line(harness, "Gold")!.Pin.ToggleCommand.ExecuteAsync(null);
+            await harness.Inventory.SetCountAsync("Gold", 36);
+        });
+
+        await app.OnUiAsync(() =>
+        {
+            var gold = Line(harness, "Gold")!;
+
+            Assert.True(gold.IsCovered);
+            Assert.Equal("36 / 36", gold.StockLabel);
+            Assert.True(gold.Pin.IsPinned);
+
+            // One item short of the two, so the badge counts one.
+            Assert.Equal(1, harness.Favorited.OutstandingCount);
+            Assert.False(harness.Favorited.HasNothingToGather);
+        });
+    }
+
+    [Fact]
+    public async Task The_tab_filter_splits_the_plan_without_changing_it()
+    {
+        using var harness = await ReadyAsync();
+
+        await app.OnUiAsync(async () =>
+        {
+            await harness.Favorites.SetFavoriteAsync("m1", true);
+            await harness.Inventory.SetCountAsync("Gold", 36);
+        });
+
+        await app.OnUiAsync(() =>
+        {
+            harness.Favorited.GatheringFilterIndex = 1;
+            Assert.Equal(["Gold"], harness.Favorited.GatheringView.Cast<GatheringRowViewModel>().Select(r => r.Name));
+
+            harness.Favorited.GatheringFilterIndex = 2;
+            Assert.Equal(
+                ["Carinite (Pure)"],
+                harness.Favorited.GatheringView.Cast<GatheringRowViewModel>().Select(r => r.Name));
+
+            harness.Favorited.GatheringFilterIndex = 0;
+            Assert.Equal(2, harness.Favorited.GatheringView.Cast<GatheringRowViewModel>().Count());
+
+            // The source never moved — the filter is a way to look at the plan, not part of it.
+            Assert.Equal(2, harness.Favorited.Gathering.Count);
+        });
+    }
+
+    [Fact]
+    public async Task Finishing_an_item_drops_it_out_of_the_not_gathered_filter_right_away()
+    {
+        // The row is reconciled in place rather than re-added, so nothing else raises a change the
+        // collection view could notice — the coverage flip has to refresh it.
+        using var harness = await ReadyAsync();
+
+        await app.OnUiAsync(async () =>
+        {
+            await harness.Favorites.SetFavoriteAsync("m1", true);
+            await harness.Inventory.SetCountAsync("Gold", 30);
+        });
+
+        await app.OnUiAsync(() => harness.Favorited.GatheringFilterIndex = 2);
+
+        await app.OnUiAsync(() => harness.Inventory.SetCountAsync("Gold", 36));
+
+        await app.OnUiAsync(() =>
+        {
+            Assert.DoesNotContain(
+                harness.Favorited.GatheringView.Cast<GatheringRowViewModel>(),
+                row => row.Name == "Gold");
+            Assert.NotNull(Line(harness, "Gold"));
+        });
+    }
+
+    [Fact]
+    public async Task A_filter_that_matches_nothing_says_so_rather_than_showing_a_blank_tab()
+    {
+        using var harness = await ReadyAsync();
+
+        await app.OnUiAsync(() => harness.Favorites.SetFavoriteAsync("m1", true));
+
+        await app.OnUiAsync(() =>
+        {
+            Assert.False(harness.Favorited.IsGatheringEmpty);
+
+            // Nothing is gathered yet, so "Gathered" is empty while the plan itself is not.
+            harness.Favorited.GatheringFilterIndex = 1;
+            Assert.True(harness.Favorited.IsGatheringEmpty);
         });
     }
 

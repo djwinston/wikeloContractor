@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Windows.Data;
 using WikeloContractor.Models;
 using WikeloContractor.Services;
 using Wpf.Ui;
@@ -30,6 +32,11 @@ public partial class FavoritesViewModel : ContractListViewModel
         _pins = pins;
         OverlayPins = overlayPins;
 
+        // Built once and never replaced: SyncGathering reconciles the source in place, so the view
+        // follows it through INotifyCollectionChanged and the page keeps one ItemsSource for the
+        // lifetime of the app.
+        GatheringView = new ListCollectionView(Gathering) { Filter = FilterGatheringRow };
+
         // Pinning from the inventory grid must show up here too, and the tenth pin has to grey out
         // every remaining button. Refresh in place rather than rebuild: the plan itself did not move.
         _pins.Changed += (_, _) => UiThread.Invoke(() =>
@@ -49,8 +56,41 @@ public partial class FavoritesViewModel : ContractListViewModel
     [ObservableProperty]
     private bool _hasNoFavorites = true;
 
-    /// <summary>Everything still missing across the starred contracts, each with its overlay pin.</summary>
+    /// <summary>
+    /// Everything the starred contracts ask for between them — gathered and not — each with its
+    /// overlay pin. The page binds <see cref="GatheringView"/>; this is the unfiltered source, and
+    /// what the tests read.
+    /// </summary>
     public ObservableCollection<GatheringRowViewModel> Gathering { get; } = [];
+
+    /// <summary>
+    /// <see cref="Gathering"/> through the tab's own All / Gathered / Not gathered filter. Separate
+    /// from the contract list's filters on purpose: those act on the Contracts tab, and the plan is
+    /// still summed from every open starred contract regardless of what is selected here.
+    /// </summary>
+    public ICollectionView GatheringView { get; }
+
+    /// <summary>
+    /// 0 = every item, 1 = only what is fully gathered, 2 = only what is still short. Same
+    /// "index 0 means all" convention the contract filters use.
+    /// </summary>
+    [ObservableProperty]
+    private int _gatheringFilterIndex;
+
+    /// <summary>
+    /// Items still short — the tab's badge. Not <see cref="Gathering"/>'s count since the plan
+    /// started listing gathered items too: the badge answers "how much is left", and a number that
+    /// never moves as the player fills their hold is not that answer.
+    /// </summary>
+    [ObservableProperty]
+    private int _outstandingCount;
+
+    /// <summary>
+    /// There are rows, and this tab's filter excludes all of them — the "no match" state, distinct
+    /// from having nothing starred and from having gathered everything.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isGatheringEmpty;
 
     /// <summary>
     /// The shared "Overlay 3/10" counter and its reset — the same object the inventory grid shows,
@@ -60,13 +100,14 @@ public partial class FavoritesViewModel : ContractListViewModel
     public OverlayPinsViewModel OverlayPins { get; }
 
     /// <summary>
-    /// There are starred contracts left to do and the inventory already covers all of them. A state
-    /// worth stating: an empty gathering list otherwise looks like a feature that failed to load.
+    /// There are starred contracts left to do and the inventory already covers all of them. Still
+    /// worth stating now that the covered rows stay on screen: a grid of green cards is the same
+    /// picture whether the plan is finished or the filter is hiding the rest.
     /// </summary>
     [ObservableProperty]
     private bool _hasNothingToGather;
 
-    /// <summary>There is a shortfall to show — so there is something to pin, and a budget to show.</summary>
+    /// <summary>There is a shortfall left — what the tab's badge is shown for.</summary>
     [ObservableProperty]
     private bool _hasOutstanding;
 
@@ -114,7 +155,7 @@ public partial class FavoritesViewModel : ContractListViewModel
     protected override void OnSyncStateChangedCore() => RebuildGatheringPlan();
 
     /// <summary>
-    /// Recomputes the combined shortfall.
+    /// Recomputes the combined plan.
     /// <para>
     /// <b>Completed contracts are excluded</b>, and that is the whole correctness of the feature:
     /// completing already deducted their items from the inventory, so counting them again would send
@@ -129,18 +170,34 @@ public partial class FavoritesViewModel : ContractListViewModel
     private void RebuildGatheringPlan()
     {
         var open = Cards.Where(card => !card.IsCompleted).ToList();
-        var outstanding = GatheringPlan.Build(open.Select(card => card.Contract), InventoryStore.GetCount);
+        var plan = GatheringPlan.Build(open.Select(card => card.Contract), InventoryStore.GetCount);
 
-        SyncGathering(outstanding);
+        SyncGathering(plan);
 
-        HasOutstanding = outstanding.Count > 0;
+        OutstandingCount = plan.Count(item => !item.IsCovered);
+        HasOutstanding = OutstandingCount > 0;
 
-        // The panel exists as long as there is an open starred contract; whether it shows chips or
+        // The panel exists as long as there is an open starred contract; whether it shows cards or
         // the "you have it all" line is the other two flags. With nothing starred the page's own
         // empty state already speaks, and a second reassurance under it would just be noise.
         HasGatheringPlan = open.Count > 0;
         HasNothingToGather = HasGatheringPlan && !HasOutstanding;
+
+        UpdateGatheringEmpty();
     }
+
+    /// <summary>The tab's own filter, over the row's coverage state; index 0 lets everything through.</summary>
+    private bool FilterGatheringRow(object item) =>
+        item is GatheringRowViewModel row &&
+        GatheringFilterIndex switch { 1 => row.IsCovered, 2 => !row.IsCovered, _ => true };
+
+    partial void OnGatheringFilterIndexChanged(int value)
+    {
+        GatheringView.Refresh();
+        UpdateGatheringEmpty();
+    }
+
+    private void UpdateGatheringEmpty() => IsGatheringEmpty = Gathering.Count > 0 && GatheringView.IsEmpty;
 
     /// <summary>
     /// Reconciles the displayed rows with a freshly computed plan, in place.
@@ -156,11 +213,18 @@ public partial class FavoritesViewModel : ContractListViewModel
     /// guarantees it), so one walk reconciles them.
     /// </para>
     /// </summary>
-    private void SyncGathering(IReadOnlyList<GatheringItem> outstanding)
+    private void SyncGathering(IReadOnlyList<GatheringItem> plan)
     {
-        for (var i = 0; i < outstanding.Count; i++)
+        // Whether any row changed sides of the covered line. Insertions and removals reach the view
+        // on their own through the collection; a row that merely flipped state does not, and with a
+        // filter selected it would sit in the wrong half until something else refreshed. Refreshing
+        // unconditionally is what this method exists to avoid — it raises a Reset, and one of the
+        // callers is the ~30x/s held-hotkey path.
+        var coverageMoved = false;
+
+        for (var i = 0; i < plan.Count; i++)
         {
-            var item = outstanding[i];
+            var item = plan[i];
 
             // Anything sorting before the next wanted item has dropped out of the plan.
             while (i < Gathering.Count &&
@@ -172,7 +236,7 @@ public partial class FavoritesViewModel : ContractListViewModel
             if (i < Gathering.Count &&
                 StringComparer.OrdinalIgnoreCase.Equals(Gathering[i].Name, item.Name))
             {
-                Gathering[i].Update(item);
+                coverageMoved |= Gathering[i].Update(item);
             }
             else
             {
@@ -180,9 +244,14 @@ public partial class FavoritesViewModel : ContractListViewModel
             }
         }
 
-        while (Gathering.Count > outstanding.Count)
+        while (Gathering.Count > plan.Count)
         {
             Gathering.RemoveAt(Gathering.Count - 1);
+        }
+
+        if (coverageMoved && GatheringFilterIndex != 0)
+        {
+            GatheringView.Refresh();
         }
     }
 }

@@ -4,8 +4,9 @@ using Xunit;
 namespace WikeloContractor.Tests.Models;
 
 /// <summary>
-/// The combined shortfall across several contracts. Pure arithmetic, so every case below is a table
-/// entry rather than a click path — which is the point of the plan living in a model.
+/// The combined requirement across several contracts, and how much of it is already in the hold.
+/// Pure arithmetic, so every case below is a table entry rather than a click path — which is the
+/// point of the plan living in a model.
 /// </summary>
 public sealed class GatheringPlanTests
 {
@@ -49,22 +50,26 @@ public sealed class GatheringPlanTests
     }
 
     [Fact]
-    public void A_covered_item_is_left_out_entirely()
+    public void A_covered_item_stays_in_the_list_and_says_it_is_covered()
     {
-        // The list answers "what do I still need". An item needing nothing is not an answer to it.
+        // It used to be dropped ("an item needing nothing is not an answer to what do I still
+        // need"). The same list is where overlay pins are made, so a pinned item that reached its
+        // target disappeared and took the only place it could be unpinned from with it.
         var plan = GatheringPlan.Build([Contract(("Gold", 36), ("Quantanium", 4))], Stock(("Gold", 40)));
 
-        var item = Assert.Single(plan);
-        Assert.Equal("Quantanium", item.Name);
+        Assert.Equal(["Gold", "Quantanium"], plan.Select(i => i.Name));
+        Assert.True(plan.Single(i => i.Name == "Gold").IsCovered);
+        Assert.False(plan.Single(i => i.Name == "Quantanium").IsCovered);
     }
 
     [Fact]
     public void A_surplus_never_becomes_a_negative_shortfall()
     {
         // Holding twice what is needed must not subsidise the next item, nor render as "-36".
-        var plan = GatheringPlan.Build([Contract(("Gold", 36))], Stock(("Gold", 100)));
+        var gold = Assert.Single(GatheringPlan.Build([Contract(("Gold", 36))], Stock(("Gold", 100))));
 
-        Assert.Empty(plan);
+        Assert.Equal(0, gold.Outstanding);
+        Assert.True(gold.IsCovered);
     }
 
     [Fact]
@@ -133,13 +138,10 @@ public sealed class GatheringPlanTests
     [InlineData(36, 1.0)]
     public void Coverage_is_what_is_held_over_what_is_asked_for(int held, double expected)
     {
-        var plan = GatheringPlan.Build([Contract(("Gold", 36))], Stock(("Gold", held)));
+        var gold = Assert.Single(GatheringPlan.Build([Contract(("Gold", 36))], Stock(("Gold", held))));
 
-        // A fully covered item leaves the plan, so read the fraction off the item itself.
-        var item = new GatheringItem { Name = "Gold", Required = 36, Have = held };
-
-        Assert.Equal(expected, item.CoveredFraction);
-        Assert.Equal(held < 36, plan.Count > 0);
+        Assert.Equal(expected, gold.CoveredFraction);
+        Assert.Equal(held >= 36, gold.IsCovered);
     }
 
     [Fact]
