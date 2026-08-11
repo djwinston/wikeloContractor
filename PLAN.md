@@ -101,9 +101,9 @@ Reference (what already exists): https://wikelotrades.com , community Excel spre
       progress bar at the top of the catalog. Ranks: New Customer (0) → Very Good Customer (340) →
       Very Best Customer (999) — thresholds are not in the API (`min_standing`/`rank_index` are null),
       so they live in `Models/ReputationLevels`
-- [ ] "Tracked" flag on a contract (persisted) — **superseded by Phase 2.5 (Favorites)**, which is
-      the same idea (a persisted per-contract flag) with a page of its own. Tracked here for history;
-      do not implement a second flag
+- [x] ~~"Tracked" flag on a contract (persisted)~~ — **delivered as Phase 2.5 (Favorites)**: the same
+      idea (a persisted per-contract flag) with a page of its own. Kept here only so nobody builds a
+      second flag beside `IFavoritesService`
 - [x] **Readiness indicator (needs Inventory)**: on the catalog card and detail page, each *Required
       items* chip is colored by availability vs. the inventory — default (none), caution tint (partial),
       success tint (full) — plus a "Ready to turn in" badge and an "X / Y satisfied" count. Computed
@@ -319,24 +319,48 @@ clarifying an individual element.
       `AboutHeroBackgroundBrush` plus the vector mark, it is theme-correct by construction and picks
       up new artwork automatically when `BrandIcons.xaml` is regenerated in Phase 3.7 — which also
       means **`src/Assets/about-hero.png` is no longer referenced**; drop it from the deliverables.
-- [ ] **Shared controls** the screens imply: `ui:CardControl` per row, `ui:ProgressBar` (h=6),
-      completion as a **neutral** toggle (`Checkmark24` ↔ `ArrowUndo24`, *not* `Appearance="Success"`),
-      the inline `COMPLETED` chip, and a `ui:ToggleButton` star for favourites (`Star28`) — the exact
-      Phase 2.5 control, so build it once here.
+- [x] **Shared controls** the screens imply — audited against the code, five items, three deviations
+      each taken deliberately and now documented in `docs/design-system.md` ("Shared controls"):
+      - `ui:ProgressBar` (h=6) → `ReadinessBarStyle` in `Chips.xaml`, `Height` from
+        `SizeProgressBarHeight` = 6. Catalog row, detail heading and gathering card all wear it;
+        only `Width` is local. ✅ as specified.
+      - inline `COMPLETED` chip → `Views/Controls/StatusBadge`, a control rather than markup so
+        `Role` picks all three brushes at once. Used 4× (row + detail, Success + Caution). ✅
+      - completion toggle → `CompletionToggleStyle`. **Deviation:** `Circle24` ↔ `ArrowUndo24`, not
+        `Checkmark24` ↔ `ArrowUndo24` — the checkmark is the COMPLETED badge's glyph and reusing it
+        for "not done yet" says the opposite thing. Neutral as specified (`Appearance="Secondary"`,
+        muted text, never `Success`).
+      - favourite star → `FavoriteStarStyle`. **Deviation:** a plain `ui:Button` with a `DataTrigger`,
+        not `ui:ToggleButton`: `IsFavorite` is computed from the service, and a `ToggleButton` writes
+        `IsChecked` locally on click, replacing the binding.
+      - `ui:CardControl` per row → **not built, superseded** by "Catalog → dense list (3a/3b)" in
+        this same phase: full-width rows separated by a hairline, no card chrome. `ui:CardControl`
+        would reintroduce exactly the per-row box that change removed.
+
+      What the audit actually found: the last two were the only ones never centralised, and both had
+      been written twice — so the detail page's toggle had drifted to `Checkmark24` while the catalog
+      row used `Circle24`. Both now live in `Chips.xaml` with `x:Shared="False"`, and
+      `ContractDetailViewModel.CompletedButtonLabel` is gone (the style's trigger carries the label).
 - [x] **Nav rail**: 150 px, `PaneDisplayMode="Left"`, active item = accent left bar + tinted
       background — already what WPF-UI renders; verified good as-is. The prototypes push Settings /
       About to the bottom via `FooterMenuItems`, but the user is happy with the current single-list
       layout, so **left unchanged**. Favorites (Phase 2.5) joins the main list. Revisit the footer
       split only if the nav list grows crowded.
-- [ ] *(deferred, not now)* **Card-grid view toggle** for the catalog — prototypes 3c/3d (grid) and
-      3e (`ui:CardExpander` with a `16 requirements / 1 reward` summary that expands the chips).
-      A per-user list/cards switch persisted in `settings.json`. Design exists; build later.
-- [ ] **Icon set** (spec §06): standardise on `ui:SymbolIcon` `SymbolRegular` glyphs —
+- [x] ~~**Card-grid view toggle** for the catalog~~ — **dropped** (2026-08-11, user's call). The
+      prototypes were 3c/3d (grid) and 3e (`ui:CardExpander` with a `16 requirements / 1 reward`
+      summary), behind a per-user switch in `settings.json`. The dense list already fits every chip
+      of every contract without truncation, so the toggle buys a second layout to maintain and a
+      persisted setting to migrate, in exchange for nothing the list cannot show. The card grid did
+      get built — as the Favorites gathering tab, where it earns its place because those rows are
+      short and numerous. Do not re-open this for the catalog without a case the list actually fails.
+- [x] **Icon set** (spec §06): standardise on `ui:SymbolIcon` `SymbolRegular` glyphs —
       `Star28` outline→`Filled` (**not** `StarOff28`, which is struck through — see
       docs/design-system.md), `CloudCheckmark16`, `Checkmark24`, `ArrowUndo24`, `ArrowLeft24`,
       `Search24`, `Branch24`, `Open24`, `ArrowDownload24`, `DocumentBulletList`/`Box`/`Info` for nav,
-      `Cube24` as the missing-art placeholder. **Open**: the blueprint glyph is not final
-      (`ChannelShare16 ?`) — pick one and record it.
+      `Cube24` as the missing-art placeholder. The last open one, the blueprint glyph, is
+      **`Ribbon24`** — on the detail page's Blueprints chip only; the catalog card's `BP · name` chip
+      stays text-only. `Reward24` was the alternative and lost to a name collision with the Rewards
+      section right below it. Recorded in `docs/design-system.md`.
 - [ ] **Terminology — UI says "XP"**: the badge is the display mask `+{reputation} XP` over the
       existing API value — always what the contract *awards*, on every row regardless of completion
       (`+0 XP` in prototype 3a is placeholder data, not a rule). Rank bar reads `110 / 340 XP`.
