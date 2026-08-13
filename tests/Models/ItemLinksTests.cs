@@ -36,7 +36,23 @@ public sealed class ItemLinksTests
         // the only per-item address it has.
         Assert.Equal(
             $"https://finder.cstone.space/Search/{_killshotRifle}",
-            ItemLinks.ShopFinder(_killshotRifle));
+            ItemLinks.ShopFinder(_killshotRifle, InventoryCategory.Weapon));
+
+        Assert.Equal(
+            $"https://finder.cstone.space/Search/{_killshotRifle}",
+            ItemLinks.ShopFinder(_killshotRifle, InventoryCategory.Vehicle));
+    }
+
+    [Fact]
+    public void An_ore_gets_no_finder_link_because_the_finder_does_not_carry_ores()
+    {
+        // Measured over the whole corpus: all ten ores redirect to the finder's home page, all but
+        // one of the eighty-three other items resolve. A button onto a blank search box is the same
+        // broken promise as a mislabelled one, so it is not offered.
+        Assert.Null(ItemLinks.ShopFinder(_killshotRifle, InventoryCategory.OreMineral));
+
+        // The wiki still has the ore, so that half of the pair stays.
+        Assert.NotNull(ItemLinks.Wiki(_killshotRifle));
     }
 
     [Theory]
@@ -51,7 +67,7 @@ public sealed class ItemLinksTests
         // Hand-authored files get typos, and a malformed value must render no button rather than one
         // that opens a 404 — the same instinct as the guides' "an empty section beats a made-up one".
         Assert.Null(ItemLinks.Wiki(value));
-        Assert.Null(ItemLinks.ShopFinder(value));
+        Assert.Null(ItemLinks.ShopFinder(value, InventoryCategory.Weapon));
         Assert.False(ItemLinks.IsUuid(value));
     }
 
@@ -60,6 +76,6 @@ public sealed class ItemLinksTests
     {
         // The service trims before this is reached; uppercase is a legitimate way to write a UUID.
         Assert.True(ItemLinks.IsUuid(_killshotRifle.ToUpperInvariant()));
-        Assert.NotNull(ItemLinks.ShopFinder(_killshotRifle.ToUpperInvariant()));
+        Assert.NotNull(ItemLinks.ShopFinder(_killshotRifle.ToUpperInvariant(), InventoryCategory.Weapon));
     }
 }

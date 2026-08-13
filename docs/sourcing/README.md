@@ -13,7 +13,7 @@ the next release.
 ```markdown
 ---
 name: "Carinite"
-uuid: "c098e722-902a-435b-83f8-a96cec36a012"
+uuid: "2c5e97e1-a83a-4333-8846-dcfafc456d39"
 summary: "Align & Mine ore."
 contract: "Retrieve Additional Smuggler Intel"
 faction: "InterSec Defense Solutions"
@@ -47,15 +47,21 @@ Prose, **bold**, *italic*, `code`, [links](https://example.com).
     database that lists shops only for things that are sold, and most of this corpus is mission
     loot: a label like "Where it is sold" promises a shop list that, for something like the Ace
     Interceptor Helmet, does not exist. The tooltip carries that nuance instead.
-  - Get it from the wiki API's exact-name search:
-    `https://api.star-citizen.wiki/api/items?filter[name]=Carinite&page[size]=1` → the `uuid` field.
-    Check the returned `name` matches exactly; a near-miss would attach another item's shops to this
-    guide.
+  - **Ores get no finder button.** The finder does not carry mineable materials at all — measured
+    across the corpus, all ten ores redirect to its home page while every other item but one
+    resolves — so `ItemLinks.ShopFinder` returns nothing for `InventoryCategory.OreMineral`. Nothing
+    to record per guide: the category the item already has decides it.
+  - Get it from the wiki API's name search:
+    `https://api.star-citizen.wiki/api/items?filter[name]=Carinite&page[size]=5` → the `uuid` field.
+    **`filter[name]` matches on substring, not exact equality**, so read past the first row and check
+    the `name` you take: a search for `Tungsten` returns three *Stirling … Tungsten Edition* pieces
+    before the metal itself. A near-miss would attach another item's page to this guide.
+  - Vehicles live under `api/vehicles` and never appear in the item search at all — that is why the
+    ATLS variants need the separate lookup described below.
   - **Never type one by hand.** Both links are built from it (`Models/ItemLinks`), so a wrong digit is
     a button that opens a 404. A malformed value renders no button at all, and the data tests name the
     file it is in.
-  - Absent is fine — the buttons simply do not appear. `Tungsten` has no entry in the API under that
-    name, so its guide has no `uuid`.
+  - Absent is fine — the buttons simply do not appear.
 - **`vehicle: true`** goes with a `uuid` that names a *vehicle* rather than an item: the wiki keeps
   them in separate namespaces and `/items/{vehicle-uuid}` only redirects. The three ATLS variants are
   the whole of it — look the UUID up under `api/vehicles` instead. The shop finder needs no such

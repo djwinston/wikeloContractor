@@ -37,8 +37,11 @@ public sealed class SourcingItemViewModel(string name, InventoryCategory categor
     /// </summary>
     public string? WikiUrl { get; } = ItemLinks.Wiki(guide?.Uuid, guide?.IsVehicle ?? false);
 
-    /// <summary>Where the item is sold, on the cstone.space finder; null on the same condition.</summary>
-    public string? ShopFinderUrl { get; } = ItemLinks.ShopFinder(guide?.Uuid);
+    /// <summary>
+    /// The item's page on the cstone.space finder; null without a UUID, and null for ores — the
+    /// finder does not carry them, so the link would only bounce to its home page.
+    /// </summary>
+    public string? ShopFinderUrl { get; } = ItemLinks.ShopFinder(guide?.Uuid, category);
 
     /// <summary>Localized category name; also the grouping key for the page's section headers.</summary>
     public string CategoryLabel => Localized.String(InventoryCategoryDisplay.LabelKey(Category)) ?? Name;

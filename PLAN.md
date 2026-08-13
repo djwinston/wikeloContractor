@@ -262,6 +262,15 @@ primary source.
         it lists shops only for things that are sold, and most of this corpus is mission loot, so
         the label promised a shop list that for an item like the Ace Interceptor Helmet does not
         exist. The tooltip carries the nuance.
+      - **Ores get no finder button at all**, and that was measured rather than guessed: a one-off
+        pass over all 94 UUIDs found every one of the ten `OreMineral` items redirecting to the
+        finder's home page, and every other item resolving but one consumable. A button onto a blank
+        search box is the same broken promise as a mislabelled one. The gate is the category the
+        item already carries — no per-guide flag to record, and nothing to go stale.
+      - `Tungsten` does have an API record after all; the seeding pass missed it because
+        **`filter[name]` matches on substring** and `page[size]=1` returned *Stirling Exploration
+        Backpack Tungsten Edition*. The exact-name guard rejected that rather than mis-attaching it,
+        which is why only four guides came back empty. All 95 now carry a UUID.
 - [ ] The sheet also covers items the 4.9.0 catalog never requires (Atlasium, Janalite, Picoball,
       Scourge Railgun, Advocacy Badge, Finley plushie, Wowblast pistol, Xanthule Helmet/Suit). No files
       were authored for them — add one if a patch turns any into a requirement.

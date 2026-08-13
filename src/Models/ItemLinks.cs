@@ -45,8 +45,18 @@ public static class ItemLinks
     /// site's front door to retype a name the app already knows.
     /// </para>
     /// </summary>
-    public static string? ShopFinder(string? uuid) =>
-        IsUuid(uuid) ? $"https://finder.cstone.space/Search/{uuid}" : null;
+    /// <param name="category">
+    /// What the item is. <see cref="InventoryCategory.OreMineral"/> yields no link at all: the
+    /// finder is an item database and does not carry mineable ores, so <c>/Search/{uuid}</c> for one
+    /// quietly redirects to its home page. Measured across the whole corpus, not assumed — every one
+    /// of the ten ores bounced, and every one of the eighty-three non-ores resolved but a single
+    /// consumable. A button that lands on a search box the player must now fill in by hand is the
+    /// same broken promise as a mislabelled one.
+    /// </param>
+    public static string? ShopFinder(string? uuid, InventoryCategory category = InventoryCategory.Other) =>
+        IsUuid(uuid) && category != InventoryCategory.OreMineral
+            ? $"https://finder.cstone.space/Search/{uuid}"
+            : null;
 
     /// <summary>
     /// Whether the front matter's value is a UUID at all. Hand-authored files get typos, and a
