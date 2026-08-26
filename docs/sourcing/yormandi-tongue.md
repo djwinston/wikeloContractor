@@ -1,5 +1,6 @@
 ---
 name: "Yormandi Tongue"
+uuid: "2845e7ee-2f52-471b-a0a7-05ca11908fe6"
 summary: "Yormandi boss fight."
 ---
 

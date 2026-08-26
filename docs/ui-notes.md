@@ -143,8 +143,10 @@ Three rules learned in the doing:
 - **A `TabItem` whose header is a panel has no accessible name** — it reports its own `ToString` to
   UI Automation. The gathering tab sets `AutomationProperties.Name` explicitly.
 
-The filters live inside the Contracts tab. "The plan ignores the page's filters" used to be a rule
-stated only in prose; with the two on separate tabs nothing implies otherwise.
+The contract filters live inside the Contracts tab. "The plan ignores the page's filters" used to be
+a rule stated only in prose; with the two on separate tabs nothing implies otherwise. The gathering
+tab's own coverage combo is a separate control on a separate tab for the same reason — it filters
+rows of the plan and nothing else.
 
 ### The gathering plan
 
@@ -168,16 +170,22 @@ Cards in a `UniformGrid` whose `Columns` come from the window width via
 `WrapPanel` with a fixed `ItemWidth`: that flows items at their own width and leaves a ragged gutter
 on the right, where uniform columns stretch to fill the row.
 
-Four rules, each of which is wrong in an obvious-in-hindsight way if reversed:
+Five rules, each of which is wrong in an obvious-in-hindsight way if reversed:
 
 - **Completed contracts are excluded.** Completing already deducted their items, so counting them
   again sends the player out for things they have handed over. This is the correctness of the whole
   feature.
 - **The inventory is one pool.** Two contracts asking for 36 SCU of Gold need 72 between them —
   precisely what a per-contract readiness chip cannot say, and the reason the panel exists.
-- **Fully covered items are left out**, and the amounts are the same whole units
-  `InventoryReadiness.RequiredCount` deducts, so the list a player mines against is the list
-  completing will actually consume.
+- **Fully covered items stay in the list, marked.** They used to be dropped — the list answered
+  "what do I still need", and an item needing nothing is not an answer to it. What that missed is
+  that the same list is where overlay pins are made: a pinned item that reached its target
+  disappeared, taking the only place it could be unpinned from with it, while the budget counter
+  went on counting it at *n*/10. `GatheringItem.IsCovered` carries the state; the tab's
+  All / Gathered / Not gathered combo (`FavoritesViewModel.GatheringFilterIndex` →
+  `GatheringView`) is what keeps the shopping list one selection away.
+- **The amounts are the same whole units** `InventoryReadiness.RequiredCount` deducts, so the list a
+  player mines against is the list completing will actually consume.
 - **It ignores the page's filters.** They are a way to find a row; a shopping list that changes
   because a search box has text in it is not a shopping list. The rebuild instead hangs off the four
   things that genuinely move the number — starring, completing, an inventory edit, enrichment — via
@@ -195,13 +203,25 @@ Chrome decisions, each measured on a real screen rather than reasoned about:
 
 - Card chrome is the **inventory row's** (same brushes, radius and padding), so a required item looks
   the same wherever it is counted, and no new design token was needed.
-- **No status colour anywhere on the card.** See above — the availability brushes are chip-context
-  brushes, and the card is not a chip.
+- **No status colour in the card's text.** See above — the availability brushes are chip-context
+  brushes, and the card is not a chip. The gathered state is **chrome**: `CompletedRow{Accent,Wash}`,
+  the completed catalog row's own pair, on an inner `Border` so the 2 px left accent does not share
+  a `BorderBrush` with the card outline. Reused rather than a new key because it is the same
+  statement — this line is done — and two greens for one meaning is exactly the drift the brand
+  palette exists to prevent. The accent is reserved transparent on every card, so becoming gathered
+  swaps colours without moving content.
+- **The coverage filter refreshes the view only when a row changes sides** (`SyncGathering` folds
+  `GatheringRowViewModel.Update`'s return value into one `coverageMoved` flag, and only refreshes
+  when a filter is actually selected). Insertions and removals reach the view on their own;
+  refreshing unconditionally would raise a `Reset` on the ~30×/s held-hotkey path, which is the
+  churn this whole method exists to avoid.
 - The `Have / Required` pair labels itself through a **tooltip**. At six cards across, a word on
   every one of them is noise, and the pair reads as a ratio on sight.
-- The count is a **badge built from the brand caution palette**, bound straight to `Gathering.Count`
-  (`ObservableCollection` raises `PropertyChanged` for it, so no mirrored property). It has to stay
-  legible on an unselected tab, which "(27)" appended to the header does not.
+- The count is a **badge built from the brand caution palette**, bound to
+  `FavoritesViewModel.OutstandingCount` — what is still short, not how many rows there are. It was
+  `Gathering.Count` while covered items were dropped; now that they stay, the row count would sit
+  still while the player fills their hold. It has to stay legible on an unselected tab, which "(27)"
+  appended to the header does not.
   **Not `ui:InfoBadge`**: its template is sized for a single digit, so a two-digit value is clipped on
   all four sides, and its `Severity` colours are identical in both themes — the brand palette is the
   layer that has a light and a dark answer.
@@ -214,6 +234,9 @@ Chrome decisions, each measured on a real screen rather than reasoned about:
   `TextWrapping` never engages and the sentence is simply clipped at a narrow window.
 - The budget counter is **right-aligned and outlined**. It is the same pill shape as the chips under
   it, so left-aligned and borderless it read as the first chip of the list rather than as its budget.
+  It shares its row with the coverage combo, which takes the left end. Both are shown for as long as
+  there is a plan at all (`HasGatheringPlan`), not only while something is short: a finished plan is
+  exactly when the gathered cards are all there is, and their pins still need a counter and a way off.
 
 ### Pinning from the plan
 

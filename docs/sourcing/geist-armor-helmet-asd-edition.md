@@ -1,5 +1,6 @@
 ---
 name: "Geist Armor Helmet ASD Edition"
+uuid: "92eac214-942c-4b1c-8f2e-2a1288a9992e"
 summary: "Orange lootboxes during the Onyx Facility contracts."
 faction: "Hockrow Agency"
 ---

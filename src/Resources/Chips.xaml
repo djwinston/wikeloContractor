@@ -252,6 +252,66 @@
     </Style.Triggers>
   </Style>
 
+  <!-- Favourite star and completion toggle — the two per-contract actions, rendered identically by
+       the catalog row and the contract detail page. Both were written twice, and the copies had
+       already drifted: the detail page's toggle showed Checkmark24 for "not done yet", which is the
+       glyph docs/design-system.md reserves for the COMPLETED badge, so the same state read as two
+       different things depending on which screen you were on. That is the whole argument for these
+       living here.
+
+       Their contract is the DataContext: `IsFavorite` + `ToggleFavoriteCommand`, and `IsCompleted` +
+       `ToggleCompletedCommand` + `ShowCompletionToggle`. ContractCardViewModel exposes them
+       directly; the detail page sets DataContext="{Binding ViewModel}" on the button so the same
+       names resolve there. Keeping the two VMs' member names aligned is the price, and it is worth
+       it — the alternative is a style per page, which is where this started.
+
+       Both carry x:Shared="False" for the Icon reason spelled out on PinButtonStyle above. Geometry
+       (padding, appearance, font) stays with the caller: the card's toggle is a compact ghost
+       button in the row's right-hand column, the detail page's a full-size one in the header. -->
+  <Style
+    x:Key="FavoriteStarStyle"
+    x:Shared="False"
+    BasedOn="{StaticResource {x:Type ui:Button}}"
+    TargetType="ui:Button">
+    <Setter Property="Padding" Value="4" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Appearance" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Command" Value="{Binding ToggleFavoriteCommand}" />
+    <!-- Same glyph in both states, outline → filled. NOT StarOff28: that is a star with a slash
+         through it ("favourites disabled"), which reads as a broken feature, not "not starred". -->
+    <Setter Property="Icon" Value="{ui:SymbolIcon Symbol=Star28}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+    <Setter Property="ToolTip" Value="{DynamicResource Contract_AddFavorite}" />
+    <Style.Triggers>
+      <DataTrigger Binding="{Binding IsFavorite}" Value="True">
+        <Setter Property="Icon" Value="{ui:SymbolIcon Symbol=Star28, Filled=True}" />
+        <Setter Property="Foreground" Value="{DynamicResource FavoriteStarBrush}" />
+        <Setter Property="ToolTip" Value="{DynamicResource Contract_RemoveFavorite}" />
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+
+  <!-- A hollow circle for "not done yet", flipping to an undo arrow — per design 3a, and because
+       Checkmark24 belongs to the COMPLETED badge. The label follows the same trigger, so the icon
+       and the word cannot disagree; that also means the VM needs no *ButtonLabel property. -->
+  <Style
+    x:Key="CompletionToggleStyle"
+    x:Shared="False"
+    BasedOn="{StaticResource {x:Type ui:Button}}"
+    TargetType="ui:Button">
+    <Setter Property="Command" Value="{Binding ToggleCompletedCommand}" />
+    <Setter Property="Content" Value="{DynamicResource Contract_MarkDone}" />
+    <Setter Property="Icon" Value="{ui:SymbolIcon Circle24}" />
+    <Setter Property="Visibility" Value="{Binding ShowCompletionToggle, Converter={StaticResource ChipBoolToVisibility}}" />
+    <Style.Triggers>
+      <DataTrigger Binding="{Binding IsCompleted}" Value="True">
+        <Setter Property="Content" Value="{DynamicResource Contract_Reopen}" />
+        <Setter Property="Icon" Value="{ui:SymbolIcon ArrowUndo24}" />
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+
   <!-- "Overlay 3/10" and the button that clears it — the pin budget, on every page that offers pins.
        ViewModels/OverlayPinsViewModel is a singleton so the two pages cannot disagree on the number;
        this is the other half of that argument. The outer container stays with the caller: the
@@ -276,14 +336,26 @@
     </StackPanel>
   </DataTemplate>
 
+  <!-- External links read as the accent, everywhere. ui:HyperlinkButton hard-codes its text colour
+       through these three keys and ignores Foreground, so the only way to recolour it is to
+       re-point them — and a Style cannot do it, because FrameworkElement.Resources is not a
+       dependency property and has no setter. Declared once here rather than copied into every page
+       that links out: it was already a local block on the contract detail page, and the pledge link
+       two hundred lines below it had quietly stayed the stock colour. -->
+  <SolidColorBrush x:Key="HyperlinkButtonForeground" Color="{DynamicResource SystemAccentColorPrimary}" />
+  <SolidColorBrush x:Key="HyperlinkButtonForegroundPointerOver" Color="{DynamicResource SystemAccentColorSecondary}" />
+  <SolidColorBrush x:Key="HyperlinkButtonForegroundPressed" Color="{DynamicResource SystemAccentColorTertiary}" />
+
   <!-- Wrapping chip list — the panel every chip ItemsControl uses. -->
   <ItemsPanelTemplate x:Key="ChipWrapPanel">
     <WrapPanel />
   </ItemsPanelTemplate>
 
-  <!-- Readiness meter: how much of the requirement list the inventory covers. Width stays with the
-       caller (the catalog row gives it 360, the detail heading 200); everything else is fixed here
-       so the two bars cannot drift in height or scale.
+  <!-- The app's 0..1 meter. Named for its first use — how much of the requirement list the
+       inventory covers — but it is the shape every progress bar here has, so the catalog's rank
+       banner wears it too rather than re-declaring the same four values one pixel off. Width stays
+       with the caller (the catalog row gives it 360, the detail heading 200, the rank banner the
+       column); everything else is fixed here so the bars cannot drift in height or scale.
        BasedOn is mandatory: assigning a Style replaces the theme's implicit style outright, and
        without it the bar silently falls back to the stock WPF template — square corners, bright
        green fill — instead of the Fluent one. Resolves because App.xaml merges Chips.xaml after

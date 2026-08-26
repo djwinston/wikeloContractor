@@ -1,5 +1,6 @@
 ---
 name: "RCMBNT-XTL-1"
+uuid: "817c395c-22a3-4f08-89dc-0c17ca03112c"
 summary: "Site B experiment sample, Onyx Sites."
 contract: "Jorrit Dossier: Project Hyperion"
 faction: "Hockrow Agency"

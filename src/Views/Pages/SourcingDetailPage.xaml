@@ -97,6 +97,36 @@
             HorizontalAlignment="Left"
             Content="{Binding ViewModel.CategoryLabel}"
             Style="{StaticResource TagStyle}" />
+
+          <!-- The two live lookups, both built from the UUID in the guide's front matter (see
+               Models/ItemLinks). They sit here rather than inside a guide's prose because they are
+               page affordances, not authored text: every guide would otherwise repeat them, and the
+               shared fragments have no per-item substitution to build them with.
+               This is also what the "never name a shop, never quote a price" rule wants — the guide
+               states the route and hands the live answer to the site that maintains it, except the
+               player no longer has to retype a name the app already knows. Accent colouring comes
+               from Resources/Chips.xaml. -->
+          <WrapPanel Margin="0,10,0,0" Visibility="{Binding ViewModel.HasLinks, Converter={StaticResource BoolToVisibility}}">
+            <ui:HyperlinkButton
+              Padding="0"
+              Content="{DynamicResource Details_OpenWiki}"
+              FontSize="12"
+              NavigateUri="{Binding ViewModel.WikiUrl}"
+              Visibility="{Binding ViewModel.WikiUrl, Converter={StaticResource NotNullToVisibility}}" />
+            <!-- Named for where it goes, not for what will be there. The finder is an item
+                 database that lists shops only for things that are sold, and most of this corpus is
+                 mission loot — an earlier "Where it is sold" promised a shop list that, for an item
+                 like the Ace Interceptor Helmet, does not exist. The tooltip carries the nuance the
+                 label deliberately does not. -->
+            <ui:HyperlinkButton
+              Margin="16,0,0,0"
+              Padding="0"
+              Content="{DynamicResource Sourcing_OpenFinder}"
+              FontSize="12"
+              NavigateUri="{Binding ViewModel.ShopFinderUrl}"
+              ToolTip="{DynamicResource Sourcing_OpenFinder_Tooltip}"
+              Visibility="{Binding ViewModel.ShopFinderUrl, Converter={StaticResource NotNullToVisibility}}" />
+          </WrapPanel>
         </StackPanel>
       </Grid>
 

@@ -1,5 +1,6 @@
 ---
 name: "Antium Core"
+uuid: "3c09b16a-0c8b-41df-84c9-e0a4a271c0fa"
 summary: "Align & Mine / Storm Breaker - 300k tan boxes behind locked doors."
 ---
 

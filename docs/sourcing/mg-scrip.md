@@ -1,5 +1,6 @@
 ---
 name: "MG Scrip"
+uuid: "0df18692-2cc7-4d9d-af85-95b8a7a45419"
 summary: "Reward from Mercenary and bounty-hunter contracts; Foxwell Patrol / Ambush and Gilly's Combat Gauntlet."
 contract: "Foxwell Patrol / Ambush / Gilly's Combat Gauntlet"
 ---

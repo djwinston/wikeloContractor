@@ -1,5 +1,6 @@
 ---
 name: "Strata Core"
+uuid: "068b179e-bb1b-471e-9bf8-2f27b0ff2d26"
 summary: "Bought at a shop."
 ---
 

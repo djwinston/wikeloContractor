@@ -1,5 +1,6 @@
 ---
 name: "Warden Backpack Monde"
+uuid: "fb1b6f01-28cd-4185-b2cb-d8dd86c998d2"
 summary: "Rock Breaker locations."
 ---
 

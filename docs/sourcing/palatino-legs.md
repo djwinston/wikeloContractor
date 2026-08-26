@@ -1,5 +1,6 @@
 ---
 name: "Palatino Legs"
+uuid: "987c74f3-73bc-40fa-b3ba-71fc6379321d"
 summary: "Orange lootboxes at hostile Distribution Centers."
 ---
 

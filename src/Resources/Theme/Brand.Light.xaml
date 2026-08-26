@@ -67,7 +67,8 @@
   <SolidColorBrush x:Key="PinBadgeBackgroundBrush" Color="#E2F4F9" />
   <SolidColorBrush x:Key="PinBadgeForegroundBrush" Color="#0D7490" />
 
-  <!-- Completed catalog row: left marker plus a fade-out wash across the row -->
+  <!-- "This line is done": left marker plus a fade-out wash. Shared by the completed catalog row
+       and the fully gathered card — see the note in Brand.Dark.xaml. -->
   <SolidColorBrush x:Key="CompletedRowAccentBrush" Color="#2E8259" />
   <LinearGradientBrush x:Key="CompletedRowWashBrush" StartPoint="0,0" EndPoint="1,0">
     <GradientStop Offset="0" Color="#142E8259" />

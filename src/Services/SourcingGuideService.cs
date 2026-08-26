@@ -232,6 +232,15 @@ public sealed class SourcingGuideService : ISourcingGuideService
         frontMatter.TryGetValue("contract", out var contract);
         frontMatter.TryGetValue("faction", out var faction);
 
+        // The game's item UUID, which both outbound links are built from. Kept as the identifier
+        // rather than as two ready-made URLs: the shapes belong to sites we do not control, and one
+        // constant in Models/ItemLinks is a cheaper thing to update than ~95 files.
+        frontMatter.TryGetValue("uuid", out var uuid);
+
+        // The wiki files vehicles separately from items, so the three ATLS variants say so. Any
+        // value other than "true" reads as false — a typo must not send the player to a redirect.
+        frontMatter.TryGetValue("vehicle", out var vehicle);
+
         // Includes are spliced in first so a fragment's own comments are stripped by the same pass.
         // Stripping comments here means a file that is nothing but authoring hints correctly reports
         // HasBody == false and the page shows its placeholder.
@@ -241,6 +250,8 @@ public sealed class SourcingGuideService : ISourcingGuideService
             summary?.Trim() ?? string.Empty,
             content,
             contract?.Trim() ?? string.Empty,
-            faction?.Trim() ?? string.Empty));
+            faction?.Trim() ?? string.Empty,
+            uuid?.Trim() ?? string.Empty,
+            string.Equals(vehicle?.Trim(), "true", StringComparison.OrdinalIgnoreCase)));
     }
 }

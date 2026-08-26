@@ -1,5 +1,6 @@
 ---
 name: "Carinite"
+uuid: "2c5e97e1-a83a-4333-8846-dcfafc456d39"
 summary: "Align & Mine ore."
 ---
 

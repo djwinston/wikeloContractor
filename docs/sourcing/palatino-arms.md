@@ -1,5 +1,6 @@
 ---
 name: "Palatino Arms"
+uuid: "018cf498-5ff0-4382-9549-372dc92c6a9c"
 summary: "Orange lootboxes at hostile Distribution Centers."
 ---
 

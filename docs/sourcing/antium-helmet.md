@@ -1,5 +1,6 @@
 ---
 name: "Antium Helmet"
+uuid: "8821103e-f5fa-46d9-99c4-f3d6b5e5cb24"
 summary: "Align & Mine / Storm Breaker - 300k tan boxes behind locked doors."
 ---
 

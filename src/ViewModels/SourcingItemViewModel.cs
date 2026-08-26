@@ -31,6 +31,18 @@ public sealed class SourcingItemViewModel(string name, InventoryCategory categor
     /// <summary>Who hands out that contract; null whenever the client is not recorded.</summary>
     public string? Faction { get; } = guide is { HasFaction: true } ? guide.Faction : null;
 
+    /// <summary>
+    /// The item's page on star-citizen.wiki; null when the guide records no UUID. Built here rather
+    /// than stored, so the URL shape lives in one place — see <see cref="ItemLinks"/>.
+    /// </summary>
+    public string? WikiUrl { get; } = ItemLinks.Wiki(guide?.Uuid, guide?.IsVehicle ?? false);
+
+    /// <summary>
+    /// The item's page on the cstone.space finder; null without a UUID, and null for ores — the
+    /// finder does not carry them, so the link would only bounce to its home page.
+    /// </summary>
+    public string? ShopFinderUrl { get; } = ItemLinks.ShopFinder(guide?.Uuid, category);
+
     /// <summary>Localized category name; also the grouping key for the page's section headers.</summary>
     public string CategoryLabel => Localized.String(InventoryCategoryDisplay.LabelKey(Category)) ?? Name;
 }

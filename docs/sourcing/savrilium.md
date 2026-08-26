@@ -1,5 +1,6 @@
 ---
 name: "Savrilium"
+uuid: "fae442fb-a321-4def-b27e-f6a7425ba317"
 summary: "Ship mining in Nyx - Glaciem Ring and Keeger Belt."
 ---
 

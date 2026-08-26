@@ -9,7 +9,22 @@ namespace WikeloContractor.Services;
 /// </param>
 /// <param name="Faction">Who hands out that contract, when it is known. Empty far more often than
 /// <paramref name="Contract"/>: a mission name is usually recorded while its client is not.</param>
-public sealed record SourcingGuide(string Summary, string Body, string Contract = "", string Faction = "")
+/// <param name="Uuid">
+/// The game's item UUID, which both outbound links are built from (<see cref="Models.ItemLinks"/>).
+/// Recorded as the identifier rather than as two ready-made URLs so the shapes stay in one place.
+/// </param>
+/// <param name="IsVehicle">
+/// The record lives in the wiki's vehicle namespace rather than its item one — true for the three
+/// ATLS variants and nothing else in the corpus. Only the wiki link cares; the shop finder files
+/// both under one route.
+/// </param>
+public sealed record SourcingGuide(
+    string Summary,
+    string Body,
+    string Contract = "",
+    string Faction = "",
+    string Uuid = "",
+    bool IsVehicle = false)
 {
     public bool HasSummary => !string.IsNullOrWhiteSpace(Summary);
 
@@ -18,6 +33,13 @@ public sealed record SourcingGuide(string Summary, string Body, string Contract 
     public bool HasContract => !string.IsNullOrWhiteSpace(Contract);
 
     public bool HasFaction => !string.IsNullOrWhiteSpace(Faction);
+
+    /// <summary>
+    /// The game's item UUID, from the guide's front matter — the key to both outbound links
+    /// (<see cref="Models.ItemLinks"/>). Empty for anything the wiki API does not know by name,
+    /// which is a normal state, not a defect.
+    /// </summary>
+    public bool HasUuid => Models.ItemLinks.IsUuid(Uuid);
 }
 
 /// <summary>

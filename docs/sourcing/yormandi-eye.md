@@ -1,5 +1,6 @@
 ---
 name: "Yormandi Eye"
+uuid: "124da32f-de8f-45f6-a2f1-81fd47752b2d"
 summary: "Yormandi boss fight."
 ---
 

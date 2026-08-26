@@ -1,5 +1,6 @@
 ---
 name: "Corundum"
+uuid: "0cbe992e-013a-48ba-b219-0c10c0478ff9"
 summary: "Ship mining, then refine."
 ---
 

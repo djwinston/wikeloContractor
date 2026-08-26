@@ -21,7 +21,6 @@ public partial class ContractDetailViewModel : ViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CategoryLabel))]
     [NotifyPropertyChangedFor(nameof(IsCompleted))]
-    [NotifyPropertyChangedFor(nameof(CompletedButtonLabel))]
     [NotifyPropertyChangedFor(nameof(IsFavorite))]
     [NotifyPropertyChangedFor(nameof(HasBlueprints))]
     [NotifyPropertyChangedFor(nameof(XpLabel))]
@@ -101,13 +100,6 @@ public partial class ContractDetailViewModel : ViewModel
     /// <summary>Flagged for the Favorites page; ungated, mirroring <see cref="ContractCardViewModel"/>.</summary>
     public bool IsFavorite => Contract is { } contract && _favoritesService.IsFavorite(contract.Uuid);
 
-    /// <summary>
-    /// Localized label for the completion toggle. Reads as the *action*, not the state — a
-    /// completed contract offers "Reopen", matching the catalog row's toggle.
-    /// </summary>
-    public string CompletedButtonLabel =>
-        Localized.String(IsCompleted ? "Contract_Reopen" : "Contract_MarkDone") ?? string.Empty;
-
     /// <summary>Localized category name; null when the contract is not classified yet.</summary>
     public string? CategoryLabel =>
         Contract is { } contract && ContractCategoryDisplay.LabelKey(contract.Category) is { } key
@@ -181,7 +173,6 @@ public partial class ContractDetailViewModel : ViewModel
         Application.Current.Dispatcher.Invoke(() =>
         {
             OnPropertyChanged(nameof(IsCompleted));
-            OnPropertyChanged(nameof(CompletedButtonLabel));
             RecomputeReadiness();
         });
 

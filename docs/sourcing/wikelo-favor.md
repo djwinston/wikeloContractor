@@ -1,5 +1,6 @@
 ---
 name: "Wikelo Favor"
+uuid: "3b1cf59f-1e6b-4a91-9edb-f8c5ddf791ae"
 summary: "Traded from Wikelo for 50x MG Scrip, 50x Council Scrip, 50x Carinite, or 15x Irradiated Valakkar Pearl."
 faction: "Wikelo"
 ---

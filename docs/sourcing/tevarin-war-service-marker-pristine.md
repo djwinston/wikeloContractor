@@ -1,5 +1,6 @@
 ---
 name: "Tevarin War Service Marker (Pristine)"
+uuid: "523efc7f-9038-4531-95ea-9719308ae63b"
 summary: "Lootable from Aces (good odds); blue boxes at Align & Mine and Storm Breaker locations, and small boxes at Derelict Outposts (terrible odds)."
 ---
 

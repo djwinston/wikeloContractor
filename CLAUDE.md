@@ -251,14 +251,23 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
     theme-independent companions — see `docs/design-system.md`
   - `Resources/Chips.xaml` — **anything two pages render the same way**: chrome styles
     (`ChipStyle`, `AvailabilityChipStyle`, `BlueprintChipStyle`, `TagStyle`, `ReadinessBarStyle`,
-    the `PinSlotBadgeStyle`/`PinSlotDigitStyle`/`PinButtonStyle` trio) plus whole shared templates
-    (`RequirementChipTemplate`, `OverlayPinBudgetTemplate`, `ChipWrapPanel`) and the `StatusBadge`
-    default style. Re-declaring one of these in a page's `Page.Resources` is a review finding — that
-    is exactly the drift this dictionary exists to stop. The pin trio is **styles, not one
+    the `PinSlotBadgeStyle`/`PinSlotDigitStyle`/`PinButtonStyle` trio, `FavoriteStarStyle` and
+    `CompletionToggleStyle`) plus whole shared templates (`RequirementChipTemplate`,
+    `OverlayPinBudgetTemplate`, `ChipWrapPanel`) and the `StatusBadge` default style.
+    **A second copy of a control that already exists is a review finding**, whether it is a
+    re-declaration in a page's `Page.Resources` or the same markup typed inline on a second screen —
+    that is exactly the drift this dictionary exists to stop, and it is not hypothetical: the
+    favourite star and the completion toggle were written twice and diverged, leaving `Checkmark24`
+    on one screen and `Circle24` on the other for the *same* state. `docs/design-system.md`
+    ("Shared controls") holds the decision ladder — style vs `DataTemplate` vs `Views/Controls/` —
+    and the DataContext contract each shared style expects. The pin trio is **styles, not one
     template**, on purpose: the inventory row and the gathering chip differ only in badge geometry,
     and a local value beats a style setter, so each page overrides size and spacing and nothing
-    else. Their contract is a `PinToggle Pin` on the DataContext; `OverlayPinBudgetTemplate` binds
-    the `OverlayPinsViewModel` itself and leaves the outer container to the page
+    else. Their contract is a `PinToggle Pin` on the DataContext; `FavoriteStarStyle` /
+    `CompletionToggleStyle` expect `IsFavorite`/`IsCompleted` + their commands (which is why the
+    detail page scopes its buttons with `DataContext="{Binding ViewModel}"`);
+    `OverlayPinBudgetTemplate` binds the `OverlayPinsViewModel` itself and leaves the outer
+    container to the page. A dictionary-level style with an `Icon` setter needs `x:Shared="False"`
   - `Views/Controls/StatusBadge` — the COMPLETED / READY badge (icon + label). A control, not
     repeated markup; `Role` (`Success`/`Caution`) picks the whole brush set so the three brushes
     cannot be mismatched. A new status marker adds a `Role`, it doesn't hand-roll a `Border`

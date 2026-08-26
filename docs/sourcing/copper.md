@@ -1,5 +1,6 @@
 ---
 name: "Copper"
+uuid: "9e6a15af-b35f-4387-9598-f1a020455a03"
 summary: "Ship mining, then refine."
 ---
 

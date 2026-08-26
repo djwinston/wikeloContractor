@@ -1,5 +1,6 @@
 ---
 name: "Polaris Bit"
+uuid: "4b697f15-c1e2-4b35-9b79-6bff5db9021b"
 summary: "Traded from Wikelo for 24x ship-mined Quantanium."
 contract: "Want Polaris? Need something special"
 faction: "Wikelo"

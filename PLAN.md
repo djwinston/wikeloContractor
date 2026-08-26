@@ -101,9 +101,9 @@ Reference (what already exists): https://wikelotrades.com , community Excel spre
       progress bar at the top of the catalog. Ranks: New Customer (0) → Very Good Customer (340) →
       Very Best Customer (999) — thresholds are not in the API (`min_standing`/`rank_index` are null),
       so they live in `Models/ReputationLevels`
-- [ ] "Tracked" flag on a contract (persisted) — **superseded by Phase 2.5 (Favorites)**, which is
-      the same idea (a persisted per-contract flag) with a page of its own. Tracked here for history;
-      do not implement a second flag
+- [x] ~~"Tracked" flag on a contract (persisted)~~ — **delivered as Phase 2.5 (Favorites)**: the same
+      idea (a persisted per-contract flag) with a page of its own. Kept here only so nobody builds a
+      second flag beside `IFavoritesService`
 - [x] **Readiness indicator (needs Inventory)**: on the catalog card and detail page, each *Required
       items* chip is colored by availability vs. the inventory — default (none), caution tint (partial),
       success tint (full) — plus a "Ready to turn in" badge and an "X / Y satisfied" count. Computed
@@ -238,8 +238,39 @@ primary source.
       Smuggler Intel* is a stage of Vanduul-Tech Smugglers, whether the contract wants Warden Backpack
       *Monde* or *Epoque*, and whether the Fresnel LMG comes from Site B gun racks or a shop.
       Authoring rules and the research dead-ends live in `.claude/skills/sourcing-guide/SKILL.md`.
-- [ ] Still to do from the original scope: a link to the wiki (`web_url`) when available, and a
-      per-item deep-link into cstone Finder (investigate whether it supports a query URL).
+- [x] **Outbound links from the original scope** — both, as two buttons on the item's detail page.
+      The investigation turned out to answer both halves at once.
+      - cstone Finder has **no name search in its URL**: its inline script never reads the query
+        string (`?search=` is accepted and ignored), and a name in the path redirects to the home
+        page. Its only per-item address is `/Search/{guid}` — and that GUID is **the game's own item
+        UUID**, the same one the wiki API returns. Verified across an item, an armour piece, a
+        commodity and a vehicle.
+      - The wiki's `web_url` for an item is `api.star-citizen.wiki/items/{slug}` — a real
+        player-facing page (description, stats, images, crafting) — and the same page answers to the
+        UUID. So **one identifier gives both links**.
+      - Therefore `uuid` is a front matter key (`docs/sourcing/README.md`), not two stored URLs:
+        the shapes belong to sites we do not control and live once in `Models/ItemLinks`. **94 of 95
+        guides** were seeded from the API's exact-name search — real values, never typed by hand.
+        `Tungsten` has no API entry under that name; its guide simply shows no buttons.
+      - `vehicle: true` accompanies the three ATLS UUIDs: the wiki files vehicles in their own
+        namespace and `/items/{vehicle-uuid}` only redirects. The finder needs no such flag.
+      - The shared `shop-purchase` fragment keeps pointing at the finder's **root**: prose has no
+        per-item substitution, and the per-item link is a page affordance. Both rules are now in
+        `docs/sourcing/README.md` so this is not re-litigated per guide.
+      - **Both buttons are named for the destination, not the content** — "Open on the wiki" /
+        "Open on cstone". The finder shipped for an hour as "Where it is sold" and that was wrong:
+        it lists shops only for things that are sold, and most of this corpus is mission loot, so
+        the label promised a shop list that for an item like the Ace Interceptor Helmet does not
+        exist. The tooltip carries the nuance.
+      - **Ores get no finder button at all**, and that was measured rather than guessed: a one-off
+        pass over all 94 UUIDs found every one of the ten `OreMineral` items redirecting to the
+        finder's home page, and every other item resolving but one consumable. A button onto a blank
+        search box is the same broken promise as a mislabelled one. The gate is the category the
+        item already carries — no per-guide flag to record, and nothing to go stale.
+      - `Tungsten` does have an API record after all; the seeding pass missed it because
+        **`filter[name]` matches on substring** and `page[size]=1` returned *Stirling Exploration
+        Backpack Tungsten Edition*. The exact-name guard rejected that rather than mis-attaching it,
+        which is why only four guides came back empty. All 95 now carry a UUID.
 - [ ] The sheet also covers items the 4.9.0 catalog never requires (Atlasium, Janalite, Picoball,
       Scourge Railgun, Advocacy Badge, Finley plushie, Wowblast pistol, Xanthule Helmet/Suit). No files
       were authored for them — add one if a patch turns any into a requirement.
@@ -319,30 +350,69 @@ clarifying an individual element.
       `AboutHeroBackgroundBrush` plus the vector mark, it is theme-correct by construction and picks
       up new artwork automatically when `BrandIcons.xaml` is regenerated in Phase 3.7 — which also
       means **`src/Assets/about-hero.png` is no longer referenced**; drop it from the deliverables.
-- [ ] **Shared controls** the screens imply: `ui:CardControl` per row, `ui:ProgressBar` (h=6),
-      completion as a **neutral** toggle (`Checkmark24` ↔ `ArrowUndo24`, *not* `Appearance="Success"`),
-      the inline `COMPLETED` chip, and a `ui:ToggleButton` star for favourites (`Star28`) — the exact
-      Phase 2.5 control, so build it once here.
+- [x] **Shared controls** the screens imply — audited against the code, five items, three deviations
+      each taken deliberately and now documented in `docs/design-system.md` ("Shared controls"):
+      - `ui:ProgressBar` (h=6) → `ReadinessBarStyle` in `Chips.xaml`, `Height` from
+        `SizeProgressBarHeight` = 6. Catalog row, detail heading and gathering card all wear it;
+        only `Width` is local. ✅ as specified.
+      - inline `COMPLETED` chip → `Views/Controls/StatusBadge`, a control rather than markup so
+        `Role` picks all three brushes at once. Used 4× (row + detail, Success + Caution). ✅
+      - completion toggle → `CompletionToggleStyle`. **Deviation:** `Circle24` ↔ `ArrowUndo24`, not
+        `Checkmark24` ↔ `ArrowUndo24` — the checkmark is the COMPLETED badge's glyph and reusing it
+        for "not done yet" says the opposite thing. Neutral as specified (`Appearance="Secondary"`,
+        muted text, never `Success`).
+      - favourite star → `FavoriteStarStyle`. **Deviation:** a plain `ui:Button` with a `DataTrigger`,
+        not `ui:ToggleButton`: `IsFavorite` is computed from the service, and a `ToggleButton` writes
+        `IsChecked` locally on click, replacing the binding.
+      - `ui:CardControl` per row → **not built, superseded** by "Catalog → dense list (3a/3b)" in
+        this same phase: full-width rows separated by a hairline, no card chrome. `ui:CardControl`
+        would reintroduce exactly the per-row box that change removed.
+
+      What the audit actually found: the last two were the only ones never centralised, and both had
+      been written twice — so the detail page's toggle had drifted to `Checkmark24` while the catalog
+      row used `Circle24`. Both now live in `Chips.xaml` with `x:Shared="False"`, and
+      `ContractDetailViewModel.CompletedButtonLabel` is gone (the style's trigger carries the label).
 - [x] **Nav rail**: 150 px, `PaneDisplayMode="Left"`, active item = accent left bar + tinted
       background — already what WPF-UI renders; verified good as-is. The prototypes push Settings /
       About to the bottom via `FooterMenuItems`, but the user is happy with the current single-list
       layout, so **left unchanged**. Favorites (Phase 2.5) joins the main list. Revisit the footer
       split only if the nav list grows crowded.
-- [ ] *(deferred, not now)* **Card-grid view toggle** for the catalog — prototypes 3c/3d (grid) and
-      3e (`ui:CardExpander` with a `16 requirements / 1 reward` summary that expands the chips).
-      A per-user list/cards switch persisted in `settings.json`. Design exists; build later.
-- [ ] **Icon set** (spec §06): standardise on `ui:SymbolIcon` `SymbolRegular` glyphs —
+- [x] ~~**Card-grid view toggle** for the catalog~~ — **dropped** (2026-08-11, user's call). The
+      prototypes were 3c/3d (grid) and 3e (`ui:CardExpander` with a `16 requirements / 1 reward`
+      summary), behind a per-user switch in `settings.json`. The dense list already fits every chip
+      of every contract without truncation, so the toggle buys a second layout to maintain and a
+      persisted setting to migrate, in exchange for nothing the list cannot show. The card grid did
+      get built — as the Favorites gathering tab, where it earns its place because those rows are
+      short and numerous. Do not re-open this for the catalog without a case the list actually fails.
+- [x] **Icon set** (spec §06): standardise on `ui:SymbolIcon` `SymbolRegular` glyphs —
       `Star28` outline→`Filled` (**not** `StarOff28`, which is struck through — see
       docs/design-system.md), `CloudCheckmark16`, `Checkmark24`, `ArrowUndo24`, `ArrowLeft24`,
       `Search24`, `Branch24`, `Open24`, `ArrowDownload24`, `DocumentBulletList`/`Box`/`Info` for nav,
-      `Cube24` as the missing-art placeholder. **Open**: the blueprint glyph is not final
-      (`ChannelShare16 ?`) — pick one and record it.
-- [ ] **Terminology — UI says "XP"**: the badge is the display mask `+{reputation} XP` over the
-      existing API value — always what the contract *awards*, on every row regardless of completion
-      (`+0 XP` in prototype 3a is placeholder data, not a rule). Rank bar reads `110 / 340 XP`.
-      Localization strings in both `Strings.en.xaml` and `Strings.uk.xaml` change accordingly. The
-      **domain model stays `reputation`** (`ReputationLevels`, `TotalReputation`, `completed.json`) —
-      it matches the API and the in-game ranks; do not rename it to chase a label.
+      `Cube24` as the missing-art placeholder. The last open one, the blueprint glyph, is
+      **`Ribbon24`** — on the detail page's Blueprints chip only; the catalog card's `BP · name` chip
+      stays text-only. `Reward24` was the alternative and lost to a name collision with the Rewards
+      section right below it. Recorded in `docs/design-system.md`.
+- [x] **Terminology — UI says "XP"**: the badge is the display mask `+{reputation} XP` over the
+      existing API value — always what the contract *awards*, on every row regardless of completion.
+      Rank bar reads `110 / 340 XP`. Localization strings in both `Strings.en.xaml` and
+      `Strings.uk.xaml` change accordingly. The **domain model stays `reputation`**
+      (`ReputationLevels`, `TotalReputation`, `completed.json`) — it matches the API and the in-game
+      ranks; do not rename it to chase a label.
+
+      The strings had been right for a while; the audit found the rule broken in the one place it
+      exists to protect. `ReputationStatus.TotalXp` and `ReputationLevels.Compute(int totalXp)` were
+      named after the label while every neighbour (`ICompletionService.TotalReputation`,
+      `WikeloContract.ReputationAmount`, `MissionDto.ReputationAmount`) was not — and the record's
+      own XML doc read "accumulated Wikelo reputation". Renamed to `TotalReputation`.
+
+      Two decisions taken here rather than left open (both recorded in `docs/design-system.md`):
+      - **`+0 XP` stays.** 12 of the 67 contracts in the 4.9.0 catalog genuinely award nothing (the
+        API sends an explicit null for top-rank trades), so it is a real state, not a parse failure.
+        Hiding the badge would make "awards nothing" and "not loaded yet" look the same. The `+0 XP`
+        in prototype 3a was placeholder data and never bore on this.
+      - **The rank bar wears `ReadinessBarStyle`.** It was declaring `Height="5"`, `Maximum`,
+        `Minimum` and alignment inline — the same four values that style fixes, one pixel off the
+        `SizeProgressBarHeight` token every other bar uses.
 - [x] **Migrate page by page**: Catalog, Contract detail (incl. the shared `ChipListStyle`),
       Inventory, Settings, About. (Favorites is Phase 2.5, still to come.) Verified in **Light and
       Dark** and in **en and uk** — light is the separate palette, not dark inverted, and the uk

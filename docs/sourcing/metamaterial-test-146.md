@@ -1,5 +1,6 @@
 ---
 name: "Metamaterial Test #146"
+uuid: "905ba346-0202-4ee4-853e-cfdb2350b195"
 summary: "Crafted at a refabricator from its blueprint."
 faction: "Wikelo"
 ---

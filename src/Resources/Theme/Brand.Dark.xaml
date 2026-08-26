@@ -64,7 +64,9 @@
   <SolidColorBrush x:Key="PinBadgeBackgroundBrush" Color="#332FD0EE" />
   <SolidColorBrush x:Key="PinBadgeForegroundBrush" Color="#7FDCEF" />
 
-  <!-- Completed catalog row: left marker plus a fade-out wash across the row -->
+  <!-- "This line is done": left marker plus a fade-out wash. The completed catalog row and the
+       fully gathered card on the Favorites plan share it — one role, one pair of keys, so the two
+       cannot drift into two shades of green. -->
   <SolidColorBrush x:Key="CompletedRowAccentBrush" Color="#4FB98A" />
   <LinearGradientBrush x:Key="CompletedRowWashBrush" StartPoint="0,0" EndPoint="1,0">
     <GradientStop Offset="0" Color="#0F4FB98A" />

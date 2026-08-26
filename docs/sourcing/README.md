@@ -13,6 +13,7 @@ the next release.
 ```markdown
 ---
 name: "Carinite"
+uuid: "2c5e97e1-a83a-4333-8846-dcfafc456d39"
 summary: "Align & Mine ore."
 contract: "Retrieve Additional Smuggler Intel"
 faction: "InterSec Defense Solutions"
@@ -39,8 +40,34 @@ Prose, **bold**, *italic*, `code`, [links](https://example.com).
     separated by ` / ` rather than picking one.
   - `faction` is who hands the contract out, and only when a real organisation is named. It is blank
     far more often than `contract` — a mission name is usually recorded while its client is not.
-  - Only these four keys are read. A typo is silently ignored at runtime, so the data tests reject any
-    key outside `name` / `summary` / `contract` / `faction`.
+- **`uuid`** is the game's item UUID, and it is what turns the two canonical lookups below into *two
+  buttons on the item's page* — "Open on the wiki" and "Open on cstone" — instead of a sentence
+  telling the reader to go and retype the name somewhere else.
+  - Both buttons are named for **where they go, not for what will be there**. The finder is an item
+    database that lists shops only for things that are sold, and most of this corpus is mission
+    loot: a label like "Where it is sold" promises a shop list that, for something like the Ace
+    Interceptor Helmet, does not exist. The tooltip carries that nuance instead.
+  - **Ores get no finder button.** The finder does not carry mineable materials at all — measured
+    across the corpus, all ten ores redirect to its home page while every other item but one
+    resolves — so `ItemLinks.ShopFinder` returns nothing for `InventoryCategory.OreMineral`. Nothing
+    to record per guide: the category the item already has decides it.
+  - Get it from the wiki API's name search:
+    `https://api.star-citizen.wiki/api/items?filter[name]=Carinite&page[size]=5` → the `uuid` field.
+    **`filter[name]` matches on substring, not exact equality**, so read past the first row and check
+    the `name` you take: a search for `Tungsten` returns three *Stirling … Tungsten Edition* pieces
+    before the metal itself. A near-miss would attach another item's page to this guide.
+  - Vehicles live under `api/vehicles` and never appear in the item search at all — that is why the
+    ATLS variants need the separate lookup described below.
+  - **Never type one by hand.** Both links are built from it (`Models/ItemLinks`), so a wrong digit is
+    a button that opens a 404. A malformed value renders no button at all, and the data tests name the
+    file it is in.
+  - Absent is fine — the buttons simply do not appear.
+- **`vehicle: true`** goes with a `uuid` that names a *vehicle* rather than an item: the wiki keeps
+  them in separate namespaces and `/items/{vehicle-uuid}` only redirects. The three ATLS variants are
+  the whole of it — look the UUID up under `api/vehicles` instead. The shop finder needs no such
+  flag; it files both under one route.
+  - Only these six keys are read. A typo is silently ignored at runtime, so the data tests reject any
+    key outside `name` / `summary` / `contract` / `faction` / `uuid` / `vehicle`.
 - **Body** is optional. A file with no body (only comments) correctly shows the "not written yet"
   placeholder.
 - `<!-- comments -->` are stripped before rendering, so authoring hints are safe to leave in place.
@@ -84,6 +111,10 @@ needs alternatives. Ordinary paragraphs may wrap freely; consecutive lines join 
 - **Two canonical lookups**, used instead of a hardcoded list:
   [cstone.space shop finder](https://finder.cstone.space/) for where something is sold, and
   [SCMDB](https://scmdb.net/) for contract wording, requirements and rewards.
+  - The finder link in the shared `shop-purchase` fragment stays pointed at the **site root** on
+    purpose: prose has no per-item substitution, and the per-item link is a button on the page,
+    built from `uuid`. Do not paste `/Search/<uuid>` URLs into guide text — that is the one place
+    the URL shape would be copied 95 times.
 - Item names are game data and stay **English**, as does everything in this folder.
 - Only `http`/`https` links are opened; anything else is rendered inert on purpose.
 

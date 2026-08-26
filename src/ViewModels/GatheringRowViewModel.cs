@@ -45,25 +45,44 @@ public sealed partial class GatheringRowViewModel : ObservableObject
     [ObservableProperty]
     private double _progress;
 
+    /// <summary>
+    /// Everything this item is asked for is already in the inventory. Drives the card's green
+    /// accent and wash, and the tab's Gathered / Not gathered filter — the row stays either way, so
+    /// a pinned item does not vanish the moment it is complete.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isCovered;
+
     public PinToggle Pin { get; }
 
     /// <summary>
-    /// Re-reads the numbers after the plan was recomputed for the same item.
+    /// Re-reads the numbers after the plan was recomputed for the same item, and reports whether
+    /// the row crossed the covered line.
     /// <para>
     /// The plan is rebuilt whole on every inventory change, but one edit moves one row — so an
     /// unchanged row returns before formatting anything. Record equality is the comparison:
-    /// <see cref="GatheringItem"/> is the numbers, and both derived values follow from them.
+    /// <see cref="GatheringItem"/> is the numbers, and every derived value follows from them.
+    /// </para>
+    /// <para>
+    /// The return value is what lets the owner refresh the tab's filter only when a row actually
+    /// changed sides, instead of on every one of the thirty inventory events a held overlay hotkey
+    /// raises per second.
     /// </para>
     /// </summary>
-    public void Update(GatheringItem item)
+    /// <returns><c>true</c> when <see cref="IsCovered"/> flipped.</returns>
+    public bool Update(GatheringItem item)
     {
         if (item == _item)
         {
-            return;
+            return false;
         }
 
         _item = item;
         StockLabel = string.Format(CultureInfo.InvariantCulture, "{0} / {1}", item.Have, item.Required);
         Progress = item.CoveredFraction;
+
+        var wasCovered = IsCovered;
+        IsCovered = item.IsCovered;
+        return IsCovered != wasCovered;
     }
 }

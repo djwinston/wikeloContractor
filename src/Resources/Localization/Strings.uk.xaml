@@ -67,10 +67,15 @@
   <sys:String x:Key="Favorites_Title">Обране</sys:String>
   <sys:String x:Key="Favorites_Empty">Обраного ще немає. Натисніть зірочку на контракті, щоб зберегти його тут.</sys:String>
   <sys:String x:Key="Favorites_Gather_Title">Що ще зібрати</sys:String>
-  <sys:String x:Key="Favorites_Gather_Hint">Сумарно за обраними контрактами, які ви ще не завершили. На кожній картці — скільки є в інвентарі проти того, скільки просять ці контракти; те, чого вже вистачає, у список не потрапляє.</sys:String>
+  <sys:String x:Key="Favorites_Gather_Hint">Сумарно за обраними контрактами, які ви ще не завершили. На кожній картці — скільки є в інвентарі проти того, скільки просять ці контракти; те, чого вже вистачає, позначено зеленим і лишається у списку.</sys:String>
   <sys:String x:Key="Favorites_Gather_Covered">Інвентарю вже вистачає на всі обрані контракти.</sys:String>
   <sys:String x:Key="Favorites_Tab_Contracts">Контракти</sys:String>
   <sys:String x:Key="Favorites_Gather_InStock">Зібрано з того, що просять обрані контракти</sys:String>
+  <!-- Gathering tab filter. Index 0 is "all", matching the contract filters' convention. -->
+  <sys:String x:Key="Favorites_Gather_Filter_All">Усі позиції</sys:String>
+  <sys:String x:Key="Favorites_Gather_Filter_Gathered">Зібрано</sys:String>
+  <sys:String x:Key="Favorites_Gather_Filter_NotGathered">Не зібрано</sys:String>
+  <sys:String x:Key="Favorites_Gather_FilterEmpty">Жодна позиція не підходить під цей фільтр.</sys:String>
   <sys:String x:Key="Catalog_RewardsLabel">НАГОРОДИ</sys:String>
   <!-- {0} is the reputation the contract awards; the UI calls it XP (see docs/design-system.md) -->
   <sys:String x:Key="Catalog_XpBadge">+{0} XP</sys:String>
@@ -158,6 +163,11 @@
   <sys:String x:Key="Sourcing_HowToObtain">ЯК ЗДОБУТИ</sys:String>
   <sys:String x:Key="Sourcing_Contract">Контракт</sys:String>
   <sys:String x:Key="Sourcing_Faction">Видає</sys:String>
+  <!-- Live lookups on the item page, both built from the guide's uuid front matter. The finder's
+       label names the destination rather than the content: it is an item database that lists shops
+       only for things that are sold, and most of this corpus is mission loot. -->
+  <sys:String x:Key="Sourcing_OpenFinder">Відкрити на cstone</sys:String>
+  <sys:String x:Key="Sourcing_OpenFinder_Tooltip">Деталі предмета в cstone.space Universal Item Finder — і які магазини його тримають, якщо це записано</sys:String>
   <sys:String x:Key="Sourcing_GuidePlaceholder">Покрокову інструкцію для цього предмета ще не написано.</sys:String>
 
   <sys:String x:Key="Settings_Title">Налаштування</sys:String>

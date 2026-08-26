@@ -1,5 +1,6 @@
 ---
 name: "Killshot Rifle"
+uuid: "c098e722-902a-435b-83f8-a96cec36a012"
 summary: "Nyx Retrieve Additional Smuggler Intel mission, or bought at a shop."
 contract: "Retrieve Additional Smuggler Intel / Vanduul-Tech Smugglers"
 ---

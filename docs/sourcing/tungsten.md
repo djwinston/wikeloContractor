@@ -1,5 +1,6 @@
 ---
 name: "Tungsten"
+uuid: "71ee8b89-5a81-40c4-89db-03fdd9c5da5f"
 summary: "Ship mining, then refine."
 ---
 

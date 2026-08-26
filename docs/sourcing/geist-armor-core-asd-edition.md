@@ -1,5 +1,6 @@
 ---
 name: "Geist Armor Core ASD Edition"
+uuid: "d42f4198-292d-44cf-8a9e-c8dfa8cb6954"
 summary: "Orange lootboxes during the Onyx Facility contracts."
 faction: "Hockrow Agency"
 ---

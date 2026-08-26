@@ -1,5 +1,6 @@
 ---
 name: "Geist Armor Legs ASD Edition"
+uuid: "9f19f5f7-cae2-4700-ab1f-5ba645f93fe8"
 summary: "Orange lootboxes during the Onyx Facility contracts."
 faction: "Hockrow Agency"
 ---

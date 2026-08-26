@@ -17,8 +17,8 @@ public sealed class ReputationSummary
     public static ReputationSummary From(ReputationStatus status)
     {
         var progressText = status.NextThreshold is { } next
-            ? Localized.Format("Reputation_Progress", status.TotalXp, next)
-            : Localized.Format("Reputation_Max", status.TotalXp);
+            ? Localized.Format("Reputation_Progress", status.TotalReputation, next)
+            : Localized.Format("Reputation_Max", status.TotalReputation);
 
         return new ReputationSummary
         {

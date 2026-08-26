@@ -142,7 +142,9 @@ Keys, and why each one is not just a Fluent brush:
 - `ChipReward{Background,Border,Foreground}Brush` — the cyan reward role.
 - `ChipBlueprint{Background,Border,Foreground}Brush` — no Fluent equivalent at all.
 - `XpBadgeForegroundBrush` — the `+N XP` badge.
-- `CompletedRow{Accent,Wash}Brush` — the completed catalog row's left marker and gradient wash.
+- `CompletedRow{Accent,Wash}Brush` — "this line is done": a left marker and a gradient wash, shared
+  by the completed catalog row and the fully gathered card on the Favorites plan. One role, one
+  pair of keys — a second green for the second surface is how two shades of "done" get shipped.
 - `ReputationBannerBrush` — the rank banner above the contract list.
 - `Overlay{Background,Border,RowBackground,InteractiveBorder}Brush`,
   `OverlaySlotBadge{Background,Foreground}Brush` — the in-game HUD. Fluent has no "translucent panel
@@ -273,9 +275,11 @@ Chrome styles (caller supplies the content):
   from `FrameworkElement` and `{ui:SymbolIcon}` is evaluated once per Style, so a shared style hands
   the *same* icon element to all ~120 pin buttons (measured: 20 rows → 1 instance shared, 20 with
   the flag). WPF-UI happens not to parent it today, so it still renders — that is luck, not a
-  contract. **Any dictionary-level style with an `Icon` setter needs this flag**; that is why every
-  other `Icon` setter in the project sits inline in a `DataTemplate`, which re-instantiates on its
-  own.
+  contract. **Any dictionary-level style with an `Icon` setter needs this flag** — `FavoriteStarStyle`
+  and `CompletionToggleStyle` below carry it for the same reason. An `Icon` setter that sits inline
+  in a `DataTemplate` does not need it, because the template re-instantiates on its own.
+- `FavoriteStarStyle` / `CompletionToggleStyle` — the two per-contract actions, on the catalog row
+  and the contract detail page. See "Shared controls" below for what they replaced.
 - `BlueprintChipStyle` — the blueprint chip, fully self-colouring from the blueprint brand brushes.
   Same solid-bordered geometry as `ChipStyle`; the purple hue is the schematic cue. (It was a dashed
   outline earlier — a `Rectangle` with `StrokeDashArray`, since `Border` cannot dash — but the dash
@@ -283,9 +287,11 @@ Chrome styles (caller supplies the content):
 - `TagStyle` — the small outline marker that qualifies a title: the catalog row's contract category
   and the detail page's reward rarity. Set `Content` to a plain string; the style's font and colour
   setters inherit into the generated `TextBlock`, so no nested `TextBlock` is needed.
-- `ReadinessBarStyle` — the requirement-coverage `ProgressBar`. Height/scale are fixed here; only
-  `Width` stays with the caller (360 on a catalog row, 200 in the detail heading, the card width on
-  a gathering card), so coverage reads the same wherever it is shown.
+- `ReadinessBarStyle` — the app's 0..1 meter, named for its first use (requirement coverage) but
+  worn by every progress bar of that shape, the catalog's rank banner included. Height/scale are
+  fixed here; only `Width` stays with the caller (360 on a catalog row, 200 in the detail heading,
+  the card width on a gathering card, the column on the rank banner), so a meter reads the same
+  wherever it is shown.
 
 Whole templates (identical on both pages):
 
@@ -308,11 +314,6 @@ Two layout rules the gathering tab paid for, worth stating once:
 - **Wrapping text does not belong in a horizontal `StackPanel`.** A stack hands its children infinite
   width in the stacking direction, so `TextWrapping` never engages and the text is clipped instead —
   invisible until the window is narrow enough. Use a `Grid` with an `Auto` and a `*` column.
-
-`Views/Controls/StatusBadge` is the COMPLETED / READY badge — a control, not markup, because the
-icon-plus-label composition is identical on both pages and only `Symbol`, `Text` and `Role` vary.
-`Role` (`Success` / `Caution`) picks the whole brush set, so a caller cannot mismatch the three
-brushes. Its default style lives in `Chips.xaml` with everything else.
 
 Named text styles live in `Typography.xaml`, not per page: `OverlineTextStyle` (9 px mono uppercase
 label — `REWARDS`, tags, badge text) and `MonoCaptionStyle` (technical values — readiness counts,
@@ -349,6 +350,62 @@ other, whatever the swap does. If a value outside a chip wants a status colour, 
 chip (fill, border and text together) or give it no colour at all — the gathering card took the
 second option and lost nothing.
 
+## Shared controls
+
+**If two screens render the same thing, it is built once and reused. A second copy is a review
+finding — not a style preference.**
+
+The reason is not tidiness, it is drift, and this project has already paid for it twice. The
+favourite star and the completion toggle were each written separately on the catalog row and the
+contract detail page, and the copies diverged: the detail page's toggle showed `Checkmark24` for
+"not done yet" while the row showed `Circle24`, so the *same state* read as two different things
+depending on which screen you reached it from. Nobody changed anything to cause that — the second
+copy was simply written on a different day. Two copies of a control do not stay identical; they
+stay identical only for as long as someone remembers to edit both.
+
+Where a shared thing goes, in order of how much it carries:
+
+| What is repeated | Where it lives | Example |
+|---|---|---|
+| Chrome only — brushes, radius, padding, a state trigger | a `Style` in `Resources/Chips.xaml` | `ChipStyle`, `FavoriteStarStyle`, `PinButtonStyle` |
+| Content **and** chrome, identical on every site | a `DataTemplate` in `Resources/*.xaml` | `RequirementChipTemplate`, `ContractCardTemplate`, `ItemThumbTemplate` |
+| Markup **plus** behaviour or invariants a caller could get wrong | a control in `Views/Controls/` | `StatusBadge`, `HotkeyBox`, `MarkdownViewer` |
+| A decision, not a visual | a model or service, never the view | `Models/ContractFilter`, `Models/InventoryReadiness` |
+
+What exists today, and what each one's callers must provide:
+
+| Shared control | Used by | Contract |
+|---|---|---|
+| `FavoriteStarStyle` | catalog row, contract detail header | `IsFavorite` + `ToggleFavoriteCommand` on the DataContext |
+| `CompletionToggleStyle` | catalog row, contract detail header | `IsCompleted` + `ToggleCompletedCommand` + `ShowCompletionToggle` |
+| `PinSlotBadgeStyle` / `PinSlotDigitStyle` / `PinButtonStyle` | inventory row, gathering card | a `PinToggle Pin` on the DataContext |
+| `RequirementChipTemplate` | catalog row, contract detail | a `ViewModels/RequirementChip` |
+| `OverlayPinBudgetTemplate` | inventory grid, gathering tab | the `OverlayPinsViewModel` itself |
+| `ContractCardTemplate` | catalog page, favorites page | a `ContractCardViewModel` |
+| `ItemThumbTemplate` | inventory grid, sourcing grid | `Name` + `Category`, and an `OpenPreviewCommand` on the page |
+| `StatusBadge` | catalog row, contract detail | `Role` + `Symbol` + `Text` |
+| `ReadinessBarStyle` | catalog row, contract detail, gathering card | a value in [0, 1]; caller sets `Width` |
+
+Three rules that keep this workable:
+
+- **A style's contract is its DataContext.** `FavoriteStarStyle` binds `IsFavorite` and
+  `ToggleFavoriteCommand` by name, so `ContractCardViewModel` and `ContractDetailViewModel` keep
+  those members aligned, and the detail page scopes the button with `DataContext="{Binding ViewModel}"`
+  so the same names resolve. That alignment is the price of one control instead of two, and it is
+  the cheaper side of the trade.
+- **Geometry stays with the caller.** A local value beats a style setter, so the sites can differ in
+  padding, size and appearance without a second style: the row's completion toggle is a compact
+  ghost button, the detail page's a full-size one, and only the glyph pair, the label and the
+  command are shared. When *only* geometry differs, prefer styles over one template for exactly this
+  reason (the pin trio).
+- **Behaviour that can be got wrong belongs in a control, not a style.** `StatusBadge` is a control
+  because `Role` picks all three brushes at once — a caller cannot mismatch them. A new status
+  marker adds a `Role`; it does not hand-roll a `Border`.
+
+Extracting a duplicate into `Chips.xaml` has one trap: **a dictionary-level `Style` with an `Icon`
+setter needs `x:Shared="False"`** — see the `PinButtonStyle` note above. Inline in a `DataTemplate`
+it does not, which is why the duplicates that lived in templates worked before they were shared.
+
 ## Icons
 
 `ui:SymbolIcon` with `SymbolRegular` glyphs only — no bitmap icons, no bespoke paths.
@@ -362,7 +419,7 @@ and belong to mute/disable actions, never to an "unset" state.
 |---|---|
 | Favourite | `Star28` outline (not starred) → `Star28` `Filled="True"` + `FavoriteStarBrush` (starred) |
 | Data status / sync | `CloudCheckmark16` |
-| Blueprint | `Molecule24` |
+| Blueprint | `Ribbon24` (detail page only — see below) |
 | Mark done (pending) / reopen | `Circle24` / `ArrowUndo24` |
 | Completed badge | `Checkmark24` |
 | Back | `ArrowLeft24` |
@@ -374,6 +431,17 @@ and belong to mute/disable actions, never to an "unset" state.
 | Nav: Settings / About | `Settings24` / `Info24` |
 | Missing artwork placeholder | `Cube24` |
 
+The blueprint glyph was the last one left open (`ChannelShare16 ?` in the spec, `Molecule24` in the
+code — the decision was never actually taken). It is `Ribbon24`, and it appears in exactly **one**
+place: the Blueprints chip on the contract detail page. The catalog card's blueprint chip is the
+`BP · name` abbreviation and stays text-only — at that size a 13 px glyph before a two-word chip is
+noise, and the card already carries a row of reward pills beside it.
+
+`Ribbon24` rather than `Reward24` from the same Fluent family: the detail page renders a **Rewards**
+section directly below these chips, and a glyph literally named for it on a chip that is not one of
+them is a collision worth avoiding. Not `DocumentRibbon24` either — a document plus a seal has too
+many strokes to survive 13 px.
+
 ## Terminology
 
 The UI says **XP** — `+250 XP`, `110 / 340 XP` — as a display mask over the reputation value from
@@ -381,7 +449,21 @@ the API. The badge always shows what the contract *awards*, on every row regardl
 
 The **domain model stays `reputation`** (`Models/ReputationLevels`, `TotalReputation`,
 `completed.json`): it matches the API and the in-game rank names. Do not rename the model to match
-the label.
+the label. The point of the mask is that if the game ever renames what it shows, **only the
+resource strings change** — so every identifier named after the label is one more place to chase.
+`ReputationStatus.TotalXp` was exactly that and is now `TotalReputation`; its own XML doc had said
+"accumulated Wikelo reputation" the whole time.
+
+The mask lives in the localization strings and nowhere else: `Catalog_XpBadge` (`+{0} XP`),
+`Reputation_Progress` (`{0} / {1} XP`) and `Reputation_Max` (`{0} XP · Max rank`), identical keys in
+both dictionaries. The rank names (`Reputation_Tier_*`) stay **English in Ukrainian too** — they are
+in-game standing names, like item names.
+
+**A contract that awards nothing still shows `+0 XP`.** The API sends an explicit null for top-rank
+trades and 12 of the 67 contracts in the 4.9.0 catalog are in that group, so this is a real state,
+not a parse failure. Hiding the badge at zero was considered and rejected: an absent badge and a row
+whose data has not arrived look identical, and "+0" is the honest answer to "what does this pay". The
+`+0 XP` in design prototype 3a was placeholder data and is unrelated to this decision.
 
 ## Adding something new
 

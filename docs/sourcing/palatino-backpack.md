@@ -1,5 +1,6 @@
 ---
 name: "Palatino Backpack"
+uuid: "3e79b1d5-d213-4c0d-b212-eba3399bcfa2"
 summary: "Orange lootboxes at hostile Distribution Centers."
 ---
 

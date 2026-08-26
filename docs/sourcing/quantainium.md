@@ -1,5 +1,6 @@
 ---
 name: "Quantainium"
+uuid: "b83976c6-9580-4179-a3b7-54ac2f8bea23"
 summary: "Ship mining, then refine."
 ---
 

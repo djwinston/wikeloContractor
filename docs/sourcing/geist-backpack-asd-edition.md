@@ -1,5 +1,6 @@
 ---
 name: "Geist Backpack ASD Edition"
+uuid: "1f5ae92e-620d-4234-82cd-89aa90f0eacc"
 summary: "Orange lootboxes during the Onyx Facility contracts."
 faction: "Hockrow Agency"
 ---

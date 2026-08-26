@@ -1,5 +1,6 @@
 ---
 name: "Antium Arms"
+uuid: "127fb2c6-6566-4e17-8e6c-ce214e2ec408"
 summary: "Align & Mine / Storm Breaker - 300k tan boxes behind locked doors."
 ---
 
