@@ -74,4 +74,35 @@ public static class ReputationLevels
             VeryGoodThreshold,
             (double)totalReputation / VeryGoodThreshold);
     }
+
+    /// <summary>
+    /// One segment per rank, in ascending order, for the catalog's three-section rank bar. A rank's
+    /// segment fills as the total climbs from its threshold to the next one; ranks already passed are
+    /// full, ranks not reached are empty. The top rank has no ceiling, so its segment is simply full
+    /// once reached — which also keeps <see cref="ReputationStatus.Fraction"/> equal to the current
+    /// rank's fill below the top.
+    /// </summary>
+    public static IReadOnlyList<ReputationSegment> Segments(int totalReputation)
+    {
+        return
+        [
+            Segment(ReputationTier.NewCustomer, 0, VeryGoodThreshold),
+            Segment(ReputationTier.VeryGoodCustomer, VeryGoodThreshold, VeryBestThreshold),
+            Segment(ReputationTier.VeryBestCustomer, VeryBestThreshold, null),
+        ];
+
+        ReputationSegment Segment(ReputationTier tier, int threshold, int? next)
+        {
+            var fill = next is { } ceiling
+                ? Math.Clamp((double)(totalReputation - threshold) / (ceiling - threshold), 0, 1)
+                : totalReputation >= threshold ? 1 : 0;
+            return new ReputationSegment(tier, threshold, fill);
+        }
+    }
 }
+
+/// <summary>One rank's section of the rank bar.</summary>
+/// <param name="Tier">The rank this section stands for.</param>
+/// <param name="Threshold">Reputation at which the rank is reached.</param>
+/// <param name="Fill">How much of the section is filled, in [0, 1].</param>
+public readonly record struct ReputationSegment(ReputationTier Tier, int Threshold, double Fill);

@@ -18,8 +18,9 @@ public sealed partial class InventoryViewModel : RequirementListViewModel
         IContractCatalogService catalogService,
         IInventoryStore store,
         IPinnedItemsService pins,
-        OverlayPinsViewModel overlayPins)
-        : base(catalogService)
+        OverlayPinsViewModel overlayPins,
+        ILocalizationService localization)
+        : base(catalogService, localization)
     {
         _store = store;
         _pins = pins;

@@ -290,7 +290,7 @@ Chrome styles (caller supplies the content):
 - `ReadinessBarStyle` — the app's 0..1 meter, named for its first use (requirement coverage) but
   worn by every progress bar of that shape, the catalog's rank banner included. Height/scale are
   fixed here; only `Width` stays with the caller (360 on a catalog row, 200 in the detail heading,
-  the card width on a gathering card, the column on the rank banner), so a meter reads the same
+  the card width on a gathering card, an equal third per rank on the rank banner), so a meter reads the same
   wherever it is shown.
 
 Whole templates (identical on both pages):
@@ -385,6 +385,7 @@ What exists today, and what each one's callers must provide:
 | `ItemThumbTemplate` | inventory grid, sourcing grid | `Name` + `Category`, and an `OpenPreviewCommand` on the page |
 | `StatusBadge` | catalog row, contract detail | `Role` + `Symbol` + `Text` |
 | `ReadinessBarStyle` | catalog row, contract detail, gathering card | a value in [0, 1]; caller sets `Width` |
+| `VirtualizedListStyle` | catalog, favorites, inventory grid, sourcing grid | an `ItemsControl` that is the page body's scrolling list; the page gives it no `ScrollViewer` of its own. Performance, not looks — see `docs/ui-notes.md`, "List performance" |
 
 Three rules that keep this workable:
 

@@ -263,6 +263,64 @@ Sending them to the Inventory page to find each name again was the manual step t
   inventing a new arrangement. As a chip this needed an explicit divider to separate the two
   meanings; a card separates them by position, so the divider went away with it.
 
+## List performance
+
+Every page body list — the contract cards (Catalog, Favorites) and the grouped item grids
+(Inventory, Where to Find) — wears `VirtualizedListStyle` from `Resources/Chips.xaml`, and a visit to
+a list page does not rebuild what is already on screen. Both came out of one measurement, and both
+are needed.
+
+**What it cost before.** Measured in-process (a dispatcher hook timing every UI-thread operation,
+plus "action → dispatcher idle" for each step of a scripted run over the real 69-contract catalog):
+
+| Action | Before | After |
+|---|---|---|
+| Catalog search, first letter | 680–920 ms | 50–130 ms |
+| Catalog search cleared (all 69 back) | 640–715 ms | 45–60 ms |
+| Catalog category → All | 560–620 ms | ~50 ms |
+| Open Catalog | ~760 ms | ~30 ms |
+| Open Inventory | 720–770 ms | 50–150 ms |
+| Inventory search cleared | ~525 ms | 55–80 ms |
+| Open Where to Find | 340–420 ms | 65–110 ms |
+| Open Favorites | 310–340 ms | 20–125 ms |
+
+The data side was never the cost: the catalog is served from memory after the first load and the
+filter itself runs in well under a millisecond. The time was all WPF building visuals.
+
+**Cause 1 — nothing was virtualized.** The lists were a plain `ItemsControl` inside a `ScrollViewer`,
+which realizes every row up front, off-screen or not; a contract card is heavy (WPF-UI buttons,
+5–20 chips, triggers). A filter change is `ICollectionView.Refresh()`, which is a collection *Reset*,
+which for that layout means every container torn down and rebuilt. The cost scaled with how many rows
+the filter let through, which is why *clearing* a search was the slowest keystroke of all. The style
+moves the `ScrollViewer` into the template around the `ItemsPresenter` and uses a
+`VirtualizingStackPanel` with `CanContentScroll`, so only the rows on screen exist.
+`IsVirtualizingWhenGrouping` keeps the grouped grids virtual. `ScrollUnit=Pixel` keeps the smooth
+scroll; the price is a scrollbar thumb that re-estimates as rows of unknown height come into view.
+The inventory grid overrides `Recycling` to `Standard` because its rows hold a `NumberBox` — a
+recycled container would carry a half-typed number over to another item.
+
+**Cause 2 — every visit rebuilt the list.** `OnNavigatedTo` called `SetContracts` / `BuildItems`
+unconditionally, and a rebuild is a new collection view, so opening a page paid the full
+regeneration for data that had not changed. Now the navigation path skips it:
+`ContractListViewModel.SetContractsIfChanged` compares the incoming contracts with the cards'
+by **instance and order** (the Favorites list is a fresh filtered `List` every time, so list identity
+would never match), `RequirementListViewModel` compares the catalog list instance. Both also compare
+the UI language: rows bake localized text in when built (the XP badge, category tags, the
+"All resources" option, the group headers), and a language switch on Settings must reach them on the
+next visit. Records are immutable and enrichment replaces them wholesale, so an unchanged instance is
+unchanged content; completion, favorites, inventory and sync state reach the existing rows through
+the service events either way. The event paths (`CatalogUpdated`, a favorite toggled) still rebuild
+unconditionally. Side effect worth keeping: a page keeps its scroll position when you come back.
+
+The one opt-out is `SourcingViewModel.RebuildOnEveryVisit`. Its rows read their note from
+`ISourcingGuideService` when built, and that service picks up edited guide files on a throttle without
+raising anything, so a rebuild on visit is the only way an edited guide reaches the list — cheap now
+that the grid is virtualized.
+
+A second, parallel list of a page body should wear the same style; a non-virtualized one will bring
+the half-second back as soon as it holds a few dozen rows. `tests/E2E/ListRebuildScenarios` pins the
+skip-when-unchanged rule.
+
 ## Status surface pattern (CatalogPage)
 
 One `StackPanel` row hosts all transient states; each is an InfoBar/element bound to its
@@ -391,7 +449,14 @@ as a UUID→earned-reputation map (storing the amount, not just the id, keeps th
 correct when a contract rotates out of the catalog across patches). `TotalReputation` feeds
 `ReputationLevels.Compute` (thresholds New 0 / Very Good 340 / Very Best 999 — the API leaves
 `min_standing`/`rank_index` null, so they live in `Models/ReputationLevels`) → `ReputationSummary`
-(localized rank label + `Fraction` for the catalog's top progress bar, `Maximum="1"`).
+(localized rank label + `Segments` for the catalog's three-section rank bar).
+
+The rank bar is **one equal-width section per rank**, built by `ReputationLevels.Segments`: ranks
+already passed are full, the current one is filled by the progress made inside it, later ones are
+empty, and the top rank (no ceiling) is full once reached. It replaced a single bar that showed only
+the in-rank share beside a `460 / 999 XP` total — 18 % of the bar next to a number that reads as
+46 %, with nothing saying which rank the bar belonged to. The sections carry no labels of their
+own: the rank name on the left and the `N / M XP` total on the right already say it.
 
 Catalog cards bind a per-item `ContractCardViewModel` wrapper (not the raw record) so completion is
 observable and it is the home for the readiness indicator (below). The completion toggle lives
@@ -561,6 +626,13 @@ clue why. Alt-combinations arrive as `Key.System` with the real key in `SystemKe
 row, which is how a hotkey is disabled: `HotkeyPlan.Build` skips an unparseable entry. Modifier-less
 bindings are rejected — owning a bare "O" globally would swallow the key in every application on the
 machine.
+
+Its look comes from a `HotkeyBox` style in `Resources/Chips.xaml` based on the `ui:TextBox` one, and
+that style is load-bearing: **WPF resolves an implicit style by the element's exact type**, so
+subclassing a themed control does not inherit its theme. Without the entry the box rendered as the
+stock system `TextBox` — white, square, Windows-classic — while its own XML doc claimed otherwise. Any future subclass of a WPF-UI control needs the same one-line `BasedOn` style. The style
+also sets the mono face and a `Keyboard24` glyph, and turns off `ClearButtonEnabled`: that button
+clears `Text` only, so the bound `Hotkey` would keep the old combination behind an empty box.
 
 ## Notification area (Phase 5)
 

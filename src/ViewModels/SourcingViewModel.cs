@@ -20,8 +20,9 @@ public partial class SourcingViewModel : RequirementListViewModel
         IContractCatalogService catalogService,
         ISourcingGuideService guides,
         INavigationService navigationService,
-        SourcingDetailViewModel detailViewModel)
-        : base(catalogService)
+        SourcingDetailViewModel detailViewModel,
+        ILocalizationService localization)
+        : base(catalogService, localization)
     {
         _guides = guides;
         _navigationService = navigationService;
@@ -30,6 +31,13 @@ public partial class SourcingViewModel : RequirementListViewModel
 
     protected override IRequirementItem CreateItem(string name, InventoryCategory category) =>
         new SourcingItemViewModel(name, category, _guides.GetGuide(name));
+
+    /// <summary>
+    /// Each row's note is read from the guide service when the row is built, and the service picks up
+    /// edited guide files on its own throttle without raising anything — so a rebuild on visit is how
+    /// an edited guide reaches the list. Cheap now that the grid is virtualized.
+    /// </summary>
+    protected override bool RebuildOnEveryVisit => true;
 
     // Search covers the note too: "where do I get anything from Kareah?" is a real question.
     protected override bool MatchesSearch(IRequirementItem item, string search) =>

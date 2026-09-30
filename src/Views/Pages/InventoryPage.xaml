@@ -98,122 +98,125 @@
       Text="{DynamicResource Inventory_Empty}"
       Visibility="{Binding ViewModel.IsEmpty, Converter={StaticResource BoolToVisibility}}" />
 
-    <!-- Item list, grouped by category -->
-    <ScrollViewer
+    <!-- Item list, grouped by category; virtualized, see VirtualizedListStyle in Resources/Chips.xaml.
+         Standard, not Recycling: each row holds a NumberBox, and a recycled container carries its
+         editor over to another item — scrolling mid-edit could then commit the typed number into
+         the wrong row. Standard discards the container instead; rows are built only on screen
+         either way, which is where the gain is. -->
+    <ItemsControl
       Grid.Row="3"
       Margin="0,12,0,0"
-      HorizontalScrollBarVisibility="Disabled"
-      VerticalScrollBarVisibility="Auto">
-      <ItemsControl Margin="0,0,16,0" ItemsSource="{Binding ViewModel.Items}">
-        <ItemsControl.GroupStyle>
-          <GroupStyle>
-            <GroupStyle.HeaderTemplate>
-              <DataTemplate>
-                <TextBlock
-                  Margin="0,18,0,11"
-                  FontSize="12"
-                  FontWeight="Bold"
-                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                  Text="{Binding Name, Converter={StaticResource ToUpper}}" />
-              </DataTemplate>
-            </GroupStyle.HeaderTemplate>
-          </GroupStyle>
-        </ItemsControl.GroupStyle>
-        <ItemsControl.ItemTemplate>
-          <DataTemplate>
-            <Border
-              Margin="0,0,0,9"
-              Padding="16,12"
-              Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-              BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
-              BorderThickness="1"
-              CornerRadius="{StaticResource RadiusCard}">
-              <Grid>
-                <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="Auto" />
-                  <ColumnDefinition Width="*" />
-                  <ColumnDefinition Width="Auto" />
-                  <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+      ItemsSource="{Binding ViewModel.Items}"
+      Style="{StaticResource VirtualizedListStyle}"
+      VirtualizingPanel.VirtualizationMode="Standard">
+      <ItemsControl.GroupStyle>
+        <GroupStyle>
+          <GroupStyle.HeaderTemplate>
+            <DataTemplate>
+              <TextBlock
+                Margin="0,18,0,11"
+                FontSize="12"
+                FontWeight="Bold"
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                Text="{Binding Name, Converter={StaticResource ToUpper}}" />
+            </DataTemplate>
+          </GroupStyle.HeaderTemplate>
+        </GroupStyle>
+      </ItemsControl.GroupStyle>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate>
+          <Border
+            Margin="0,0,0,9"
+            Padding="16,12"
+            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="{StaticResource RadiusCard}">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
 
-                <!-- Item image: category icon until the configured image loads.
-                     Shared with SourcingPage — see Resources/ItemThumb.xaml. -->
-                <ContentControl
-                  Grid.Column="0"
-                  Margin="0,0,15,0"
-                  Content="{Binding}"
-                  ContentTemplate="{StaticResource ItemThumbTemplate}" />
+              <!-- Item image: category icon until the configured image loads.
+                   Shared with SourcingPage — see Resources/ItemThumb.xaml. -->
+              <ContentControl
+                Grid.Column="0"
+                Margin="0,0,15,0"
+                Content="{Binding}"
+                ContentTemplate="{StaticResource ItemThumbTemplate}" />
 
-                <!-- Name -->
-                <TextBlock
-                  Grid.Column="1"
-                  VerticalAlignment="Center"
-                  FontSize="{StaticResource FontSizeBodyStrong}"
-                  FontWeight="SemiBold"
-                  Text="{Binding Name}"
-                  TextTrimming="CharacterEllipsis"
-                  TextWrapping="Wrap" />
+              <!-- Name -->
+              <TextBlock
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                FontSize="{StaticResource FontSizeBodyStrong}"
+                FontWeight="SemiBold"
+                Text="{Binding Name}"
+                TextTrimming="CharacterEllipsis"
+                TextWrapping="Wrap" />
 
-                <!-- Editable counter: type a value directly (e.g. 100 / 1000) or step with the spin
-                     buttons. Mono, because it is a quantity. An empty stock (0) is muted so a
-                     glance down the list reads as "what do I still need".
+              <!-- Editable counter: type a value directly (e.g. 100 / 1000) or step with the spin
+                   buttons. Mono, because it is a quantity. An empty stock (0) is muted so a
+                   glance down the list reads as "what do I still need".
 
-                     The width has to cover the inline spin buttons *plus* the text: the buttons take
-                     their desired size first and the text area gets whatever is left, so a box sized
-                     for the number alone shows a single digit. Five digits is the floor — scrip is
-                     traded in the tens of thousands — and this leaves room for six. Do not shrink
-                     this back without checking how many digits stay visible. -->
-                <ui:NumberBox
-                  Grid.Column="2"
-                  Width="150"
-                  Margin="15,0,0,0"
-                  VerticalAlignment="Center"
-                  ClearButtonEnabled="False"
-                  FontFamily="{StaticResource MonoFontFamily}"
-                  MaxDecimalPlaces="0"
-                  Minimum="0"
-                  SmallChange="1"
-                  SpinButtonPlacementMode="Inline"
-                  ToolTip="{DynamicResource Inventory_CountTooltip}"
-                  Value="{Binding Count, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                  <ui:NumberBox.Style>
-                    <Style BasedOn="{StaticResource {x:Type ui:NumberBox}}" TargetType="ui:NumberBox">
-                      <Style.Triggers>
-                        <!-- Secondary, not tertiary: tertiary on the light theme's white row is
-                             effectively invisible, and an unreadable count is worse than a weak
-                             empty/non-empty contrast. -->
-                        <DataTrigger Binding="{Binding Count}" Value="0">
-                          <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
-                        </DataTrigger>
-                      </Style.Triggers>
-                    </Style>
-                  </ui:NumberBox.Style>
-                </ui:NumberBox>
+                   The width has to cover the inline spin buttons *plus* the text: the buttons take
+                   their desired size first and the text area gets whatever is left, so a box sized
+                   for the number alone shows a single digit. Five digits is the floor — scrip is
+                   traded in the tens of thousands — and this leaves room for six. Do not shrink
+                   this back without checking how many digits stay visible. -->
+              <ui:NumberBox
+                Grid.Column="2"
+                Width="150"
+                Margin="15,0,0,0"
+                VerticalAlignment="Center"
+                ClearButtonEnabled="False"
+                FontFamily="{StaticResource MonoFontFamily}"
+                MaxDecimalPlaces="0"
+                Minimum="0"
+                SmallChange="1"
+                SpinButtonPlacementMode="Inline"
+                ToolTip="{DynamicResource Inventory_CountTooltip}"
+                Value="{Binding Count, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                <ui:NumberBox.Style>
+                  <Style BasedOn="{StaticResource {x:Type ui:NumberBox}}" TargetType="ui:NumberBox">
+                    <Style.Triggers>
+                      <!-- Secondary, not tertiary: tertiary on the light theme's white row is
+                           effectively invisible, and an unreadable count is worse than a weak
+                           empty/non-empty contrast. -->
+                      <DataTrigger Binding="{Binding Count}" Value="0">
+                        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </ui:NumberBox.Style>
+              </ui:NumberBox>
 
-                <!-- Overlay pin: the slot digit and the button that sets it, shared verbatim with
-                     the Favorites gathering chip (Resources/Chips.xaml). Only the geometry is here —
-                     a fixed square badge, because this row has the height for one. -->
-                <StackPanel
-                  Grid.Column="3"
-                  Margin="10,0,0,0"
-                  VerticalAlignment="Center"
-                  Orientation="Horizontal">
-                  <Border
-                    Width="{StaticResource SizeOverlaySlotBadge}"
-                    Height="{StaticResource SizeOverlaySlotBadge}"
-                    Margin="0,0,4,0"
-                    Style="{StaticResource PinSlotBadgeStyle}">
-                    <TextBlock Style="{StaticResource PinSlotDigitStyle}" />
-                  </Border>
+              <!-- Overlay pin: the slot digit and the button that sets it, shared verbatim with
+                   the Favorites gathering chip (Resources/Chips.xaml). Only the geometry is here —
+                   a fixed square badge, because this row has the height for one. -->
+              <StackPanel
+                Grid.Column="3"
+                Margin="10,0,0,0"
+                VerticalAlignment="Center"
+                Orientation="Horizontal">
+                <Border
+                  Width="{StaticResource SizeOverlaySlotBadge}"
+                  Height="{StaticResource SizeOverlaySlotBadge}"
+                  Margin="0,0,4,0"
+                  Style="{StaticResource PinSlotBadgeStyle}">
+                  <TextBlock Style="{StaticResource PinSlotDigitStyle}" />
+                </Border>
 
-                  <ui:Button Padding="4" Style="{StaticResource PinButtonStyle}" />
-                </StackPanel>
-              </Grid>
-            </Border>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
-    </ScrollViewer>
+                <ui:Button Padding="4" Style="{StaticResource PinButtonStyle}" />
+              </StackPanel>
+            </Grid>
+          </Border>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
   </Grid>
 
     <!-- Full-window item image preview; click anywhere or press Esc to close -->

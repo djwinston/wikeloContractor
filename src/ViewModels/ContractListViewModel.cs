@@ -35,6 +35,7 @@ public abstract partial class ContractListViewModel : ViewModel
     private readonly ContractCompletionInteraction _completionInteraction;
     private readonly INavigationService _navigationService;
     private readonly ContractDetailViewModel _detailViewModel;
+    private readonly ILocalizationService _localization;
 
     /// <summary>Card wrappers (one per shown contract); the collection view is built and filtered over these.</summary>
     private List<ContractCardViewModel> _cards = [];
@@ -45,6 +46,13 @@ public abstract partial class ContractListViewModel : ViewModel
     /// <summary>Last observed sync state, so per-tick progress events collapse to the two real transitions.</summary>
     private bool _wasSyncing;
 
+    /// <summary>
+    /// UI language the cards were built in. Cards bake localized text in at construction (the
+    /// category tag, the XP badge, the "All resources" option), so a language switch is a reason to
+    /// rebuild even when the contracts themselves did not move.
+    /// </summary>
+    private string? _builtLanguage;
+
     protected ContractListViewModel(
         IContractCatalogService catalogService,
         ICompletionService completionService,
@@ -52,7 +60,8 @@ public abstract partial class ContractListViewModel : ViewModel
         IInventoryStore inventoryStore,
         ContractCompletionInteraction completionInteraction,
         INavigationService navigationService,
-        ContractDetailViewModel detailViewModel)
+        ContractDetailViewModel detailViewModel,
+        ILocalizationService localization)
     {
         CatalogService = catalogService;
         CompletionService = completionService;
@@ -61,6 +70,7 @@ public abstract partial class ContractListViewModel : ViewModel
         _completionInteraction = completionInteraction;
         _navigationService = navigationService;
         _detailViewModel = detailViewModel;
+        _localization = localization;
 
         // Every subscriber here and every publisher is an app-lifetime singleton — no teardown.
         CatalogService.CatalogUpdated += OnCatalogUpdated;
@@ -189,8 +199,33 @@ public abstract partial class ContractListViewModel : ViewModel
         _suppressFilter = false;
 
         Contracts = new ListCollectionView(_cards) { Filter = FilterContract };
+        _builtLanguage = _localization.CurrentLanguage;
         UpdateIsEmpty();
         OnContractsSet();
+    }
+
+    /// <summary>
+    /// <see cref="SetContracts"/> for the navigation path: does nothing when the cards already show
+    /// exactly these contracts — the same instances, in the same order — in the current language.
+    /// <para>
+    /// Opening a page used to rebuild its list unconditionally, and a rebuild is a new collection
+    /// view, i.e. every row container torn down and recreated — for data that had not changed since
+    /// the last visit. Nothing is lost by skipping it. Records are immutable and enrichment replaces
+    /// them wholesale, so unchanged instances mean unchanged content; completion, favorites,
+    /// inventory and sync state reach the existing cards through the service events either way. It
+    /// also keeps the scroll position when coming back to the page.
+    /// </para>
+    /// </summary>
+    protected void SetContractsIfChanged(IReadOnlyList<WikeloContract> contracts)
+    {
+        if (Contracts is not null
+            && _builtLanguage == _localization.CurrentLanguage
+            && _cards.Select(card => card.Contract).SequenceEqual(contracts, ReferenceEqualityComparer.Instance))
+        {
+            return;
+        }
+
+        SetContracts(contracts);
     }
 
     /// <summary>Re-evaluates the current view against the filters without reallocating the collection.</summary>

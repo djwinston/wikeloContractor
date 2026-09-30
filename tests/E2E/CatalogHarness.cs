@@ -80,6 +80,12 @@ public sealed class CatalogHarness : IDisposable
     /// <summary>The shell: owns the sync overlay and the app-wide navigation lock.</summary>
     public MainWindowViewModel Shell { get; private set; } = null!;
 
+    /// <summary>
+    /// The UI language the list pages read to decide whether a visit must rebuild. A scenario switches
+    /// it with <c>ApplyLanguage</c>; nothing here swaps a resource dictionary.
+    /// </summary>
+    public ILocalizationService Localization { get; } = new LanguageOnlyLocalization();
+
     /// <summary>The notification-area menu, already attached to <see cref="TrayHost"/>.</summary>
     public TrayViewModel Tray { get; private set; } = null!;
 
@@ -118,7 +124,8 @@ public sealed class CatalogHarness : IDisposable
                 interaction,
                 new RateLimitWatcher(harness.Catalog),
                 navigation,
-                harness.Detail);
+                harness.Detail,
+                harness.Localization);
 
             // One counter for one set of pins — the same object both pages bind, as in App.xaml.cs.
             harness.OverlayPins = new OverlayPinsViewModel(harness.Pins);
@@ -132,10 +139,11 @@ public sealed class CatalogHarness : IDisposable
                 navigation,
                 harness.Detail,
                 harness.Pins,
-                harness.OverlayPins);
+                harness.OverlayPins,
+                harness.Localization);
 
             harness.Inventoried = new InventoryViewModel(
-                harness.Catalog, harness.Inventory, harness.Pins, harness.OverlayPins);
+                harness.Catalog, harness.Inventory, harness.Pins, harness.OverlayPins, harness.Localization);
 
             harness.Hud = new OverlayViewModel(harness.Pins, harness.Inventory, harness.Catalog);
 
@@ -217,6 +225,17 @@ public sealed class CatalogHarness : IDisposable
         {
             // Best effort: a leftover temp directory is harmless.
         }
+    }
+
+    /// <summary>
+    /// Records the language and nothing else. The real service swaps the merged string dictionary by
+    /// pack URI, which the test app does not host; the list pages only ever read the code.
+    /// </summary>
+    private sealed class LanguageOnlyLocalization : ILocalizationService
+    {
+        public string CurrentLanguage { get; private set; } = "en";
+
+        public void ApplyLanguage(string languageCode) => CurrentLanguage = languageCode;
     }
 
     /// <summary>Navigation is page-switching only; no scenario here asserts on it.</summary>
