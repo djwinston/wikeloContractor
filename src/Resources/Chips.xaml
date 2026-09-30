@@ -85,6 +85,25 @@
     </Setter>
   </Style>
 
+  <!-- Default look for Views/Controls/HotkeyBox. Mandatory, not decoration: WPF looks an implicit
+       style up by the element's EXACT type, so a subclass of ui:TextBox does not inherit the Fluent
+       style keyed on {x:Type ui:TextBox}. Without this entry the box fell through to the stock
+       system TextBox — a white, square, Windows-classic field in the middle of a themed page.
+
+       Mono, because a combination is a value read as data (same rule as MonoCaptionStyle); the
+       keyboard glyph says "press keys here", not "type here". ClearButtonEnabled is off because that
+       button clears Text only — Hotkey, the bound value, would keep the old combination while the
+       box showed nothing. Esc / Delete / Backspace is the clear gesture (HotkeyBox.OnPreviewKeyDown),
+       as the hint under the fields says. x:Shared="False" for the Icon reason on PinButtonStyle. -->
+  <Style
+    x:Shared="False"
+    BasedOn="{StaticResource {x:Type ui:TextBox}}"
+    TargetType="{x:Type controls:HotkeyBox}">
+    <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+    <Setter Property="Icon" Value="{ui:SymbolIcon Keyboard24}" />
+    <Setter Property="ClearButtonEnabled" Value="False" />
+  </Style>
+
   <!-- Default look for Views/Controls/StatusBadge (COMPLETED / READY). Role picks the brush set, so
        a caller never hand-pairs three brushes and cannot mismatch them. -->
   <Style TargetType="{x:Type controls:StatusBadge}">

@@ -627,6 +627,13 @@ row, which is how a hotkey is disabled: `HotkeyPlan.Build` skips an unparseable 
 bindings are rejected — owning a bare "O" globally would swallow the key in every application on the
 machine.
 
+Its look comes from a `HotkeyBox` style in `Resources/Chips.xaml` based on the `ui:TextBox` one, and
+that style is load-bearing: **WPF resolves an implicit style by the element's exact type**, so
+subclassing a themed control does not inherit its theme. Without the entry the box rendered as the
+stock system `TextBox` — white, square, Windows-classic — while its own XML doc claimed otherwise. Any future subclass of a WPF-UI control needs the same one-line `BasedOn` style. The style
+also sets the mono face and a `Keyboard24` glyph, and turns off `ClearButtonEnabled`: that button
+clears `Text` only, so the bound `Hotkey` would keep the old combination behind an empty box.
+
 ## Notification area (Phase 5)
 
 `WPF-UI.Tray`'s `NotifyIcon`, declared in `MainWindow.xaml`; `ViewModels/TrayViewModel` holds the

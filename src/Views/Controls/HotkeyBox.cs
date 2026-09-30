@@ -9,8 +9,10 @@ namespace WikeloContractor.Views.Controls;
 /// of row the overlay settings need: a full binding (<c>Ctrl+Alt+O</c>) and a modifier-only
 /// <see cref="PatternOnly"/> pattern (<c>Ctrl+Alt</c>), which the slot digit is appended to.
 /// <para>
-/// Subclasses WPF-UI's TextBox rather than hand-rolling a control so it inherits the themed chrome —
-/// per <c>docs/design-system.md</c>, the Fluent theme is the token layer.
+/// Subclasses WPF-UI's TextBox rather than hand-rolling a control so it can wear the themed chrome —
+/// per <c>docs/design-system.md</c>, the Fluent theme is the token layer. Subclassing alone does not
+/// apply it: WPF finds implicit styles by the exact type, so <c>Resources/Chips.xaml</c> carries a
+/// <c>HotkeyBox</c> style based on the <c>ui:TextBox</c> one.
 /// </para>
 /// </summary>
 public class HotkeyBox : Wpf.Ui.Controls.TextBox
