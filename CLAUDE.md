@@ -203,7 +203,8 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
     all project from, so they cannot disagree on the item set or on an item's glyph.
     `Models/InventoryCategoryDisplay.LabelKey` is its `XDisplay.LabelKey` companion
   - `Models/ReputationLevels` — Wikelo rank thresholds (New 0 / Very Good 340 / Very Best 999,
-    not in the API) + `Compute(total)`; the single home for the tier math, unit-tested
+    not in the API) + `Compute(total)` + `Segments(total)` (per-rank fill for the three-section rank
+    bar); the single home for the tier math, unit-tested
   - `ViewModels/ContractCardViewModel` — the per-catalog-card wrapper over a `WikeloContract`
     holding observable completion state and the inventory-readiness state (colored requirement
     chips, `IsReady`, `ReadinessLabel`). `ViewModels/ReputationSummary` — display-ready reputation

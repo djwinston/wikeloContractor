@@ -2,7 +2,7 @@ using WikeloContractor.Models;
 
 namespace WikeloContractor.ViewModels;
 
-/// <summary>Display-ready reputation standing for the Catalog progress bar (localized at build time).</summary>
+/// <summary>Display-ready reputation standing for the Catalog rank bar (localized at build time).</summary>
 public sealed class ReputationSummary
 {
     /// <summary>Localized rank name, e.g. "Very Good Customer".</summary>
@@ -11,11 +11,15 @@ public sealed class ReputationSummary
     /// <summary>"640 / 999 XP", or the max-rank line at the top tier.</summary>
     public required string ProgressText { get; init; }
 
-    /// <summary>Progress toward the next rank in [0, 1] for the ProgressBar (Maximum="1").</summary>
-    public required double Fraction { get; init; }
+    /// <summary>
+    /// Fill in [0, 1] of each rank's bar section, lowest rank first — so the bar shows which of the
+    /// three ranks is reached and how far into the current one the total is.
+    /// </summary>
+    public required IReadOnlyList<double> Segments { get; init; }
 
-    public static ReputationSummary From(ReputationStatus status)
+    public static ReputationSummary From(int totalReputation)
     {
+        var status = ReputationLevels.Compute(totalReputation);
         var progressText = status.NextThreshold is { } next
             ? Localized.Format("Reputation_Progress", status.TotalReputation, next)
             : Localized.Format("Reputation_Max", status.TotalReputation);
@@ -24,7 +28,7 @@ public sealed class ReputationSummary
         {
             TierLabel = Localized.String(ReputationTierDisplay.LabelKey(status.Tier)) ?? string.Empty,
             ProgressText = progressText,
-            Fraction = status.Fraction,
+            Segments = ReputationLevels.Segments(totalReputation).Select(s => s.Fill).ToList(),
         };
     }
 }

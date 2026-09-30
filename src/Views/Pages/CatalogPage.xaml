@@ -71,7 +71,7 @@
       </StackPanel>
     </Grid>
 
-    <!-- Wikelo reputation standing: rank + progress toward the next rank -->
+    <!-- Wikelo reputation standing: rank + a three-section bar, one section per rank -->
     <Border
       Grid.Row="1"
       Margin="0,16,0,0"
@@ -100,13 +100,31 @@
             Text="{Binding ViewModel.Reputation.TierLabel}" />
         </StackPanel>
 
-        <!-- The app's shared 0..1 meter, not a bar of its own: it was declaring the same height,
-             alignment and range inline, one pixel off the token everything else uses. -->
-        <ProgressBar
+        <!-- One equal-width section per rank (ViewModels/ReputationSummary.Segments): passed ranks
+             full, the current one filled by progress inside it, the rest empty. A single bar used
+             to show only the in-rank share next to a "460 / 999" total, so the two read as
+             contradicting each other. No per-section labels: the rank name sits on the left and the
+             total on the right already. Each section is the app's shared 0..1 meter; the 2 px item
+             margins make the 4 px gaps. -->
+        <ItemsControl
           Grid.Column="1"
-          Margin="16,0"
-          Style="{StaticResource ReadinessBarStyle}"
-          Value="{Binding ViewModel.Reputation.Fraction, Mode=OneWay}" />
+          Margin="14,0"
+          VerticalAlignment="Center"
+          ItemsSource="{Binding ViewModel.Reputation.Segments}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <UniformGrid Rows="1" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <ProgressBar
+                Margin="2,0"
+                Style="{StaticResource ReadinessBarStyle}"
+                Value="{Binding Mode=OneWay}" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
 
         <TextBlock
           Grid.Column="2"

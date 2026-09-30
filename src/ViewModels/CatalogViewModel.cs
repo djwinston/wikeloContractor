@@ -130,7 +130,7 @@ public partial class CatalogViewModel : ContractListViewModel
         });
 
     private void RecomputeReputation() =>
-        Reputation = ReputationSummary.From(ReputationLevels.Compute(CompletionService.TotalReputation));
+        Reputation = ReputationSummary.From(CompletionService.TotalReputation);
 
     private async Task LoadAsync()
     {

@@ -57,4 +57,34 @@ public class ReputationLevelsTests
 
         Assert.Equal(165.0 / 659.0, status.Fraction, precision: 6);
     }
+
+    [Fact]
+    public void Segments_lists_the_three_ranks_in_order_with_their_thresholds()
+    {
+        var segments = ReputationLevels.Segments(0);
+
+        Assert.Equal(
+            [ReputationTier.NewCustomer, ReputationTier.VeryGoodCustomer, ReputationTier.VeryBestCustomer],
+            segments.Select(s => s.Tier));
+        Assert.Equal([0, 340, 999], segments.Select(s => s.Threshold));
+    }
+
+    [Theory]
+    [InlineData(0, 0.0, 0.0, 0.0)]
+    [InlineData(170, 0.5, 0.0, 0.0)]            // halfway through New
+    [InlineData(340, 1.0, 0.0, 0.0)]            // New passed, Very Good just started
+    [InlineData(460, 1.0, 120.0 / 659, 0.0)]    // the screenshot case
+    [InlineData(998, 1.0, 658.0 / 659, 0.0)]
+    [InlineData(999, 1.0, 1.0, 1.0)]            // top rank has no ceiling — full once reached
+    [InlineData(5000, 1.0, 1.0, 1.0)]
+    [InlineData(-10, 0.0, 0.0, 0.0)]            // never below empty
+    public void Segments_fill_passed_ranks_and_the_current_one_by_progress(
+        int total, double newFill, double veryGoodFill, double veryBestFill)
+    {
+        var segments = ReputationLevels.Segments(total);
+
+        Assert.Equal(newFill, segments[0].Fill, precision: 6);
+        Assert.Equal(veryGoodFill, segments[1].Fill, precision: 6);
+        Assert.Equal(veryBestFill, segments[2].Fill, precision: 6);
+    }
 }

@@ -391,7 +391,14 @@ as a UUID→earned-reputation map (storing the amount, not just the id, keeps th
 correct when a contract rotates out of the catalog across patches). `TotalReputation` feeds
 `ReputationLevels.Compute` (thresholds New 0 / Very Good 340 / Very Best 999 — the API leaves
 `min_standing`/`rank_index` null, so they live in `Models/ReputationLevels`) → `ReputationSummary`
-(localized rank label + `Fraction` for the catalog's top progress bar, `Maximum="1"`).
+(localized rank label + `Segments` for the catalog's three-section rank bar).
+
+The rank bar is **one equal-width section per rank**, built by `ReputationLevels.Segments`: ranks
+already passed are full, the current one is filled by the progress made inside it, later ones are
+empty, and the top rank (no ceiling) is full once reached. It replaced a single bar that showed only
+the in-rank share beside a `460 / 999 XP` total — 18 % of the bar next to a number that reads as
+46 %, with nothing saying which rank the bar belonged to. The sections carry no labels of their
+own: the rank name on the left and the `N / M XP` total on the right already say it.
 
 Catalog cards bind a per-item `ContractCardViewModel` wrapper (not the raw record) so completion is
 observable and it is the home for the readiness indicator (below). The completion toggle lives
