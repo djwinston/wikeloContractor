@@ -60,7 +60,9 @@ state, which is what the XAML binds to; rendering stays covered by the manual sm
   on `CatalogUpdated`. Any scenario asserting on requirements needs it or it races a background pass
   and reads whichever list happened to be current — and waiting on the syncing *flag* instead is the
   trap, because the flag drops before the enriched contracts are published. Do not hand-roll a
-  second copy of that wait.
+  second copy of that wait. `Localization` is a language-only fake (`ApplyLanguage` records the
+  code, swaps no dictionary): the list VMs read it to decide whether a visit must rebuild, which is
+  what `ListRebuildScenarios` switches.
 - `E2E/OverlayDoubles` — `FakeHotkeyService` (the one `IHotkeyService` fake — **never add a second**),
   `FakeOverlayWindow` and `FakeTrayHost`. `Press(action, slot)` raises the same event the real
   service raises from `WM_HOTKEY`.

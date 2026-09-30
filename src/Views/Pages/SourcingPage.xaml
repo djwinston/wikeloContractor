@@ -98,94 +98,92 @@
         Text="{DynamicResource Sourcing_Empty}"
         Visibility="{Binding ViewModel.IsEmpty, Converter={StaticResource BoolToVisibility}}" />
 
-      <!-- Item list, grouped by category -->
-      <ScrollViewer
+      <!-- Item list, grouped by category; virtualized, see VirtualizedListStyle in Resources/Chips.xaml -->
+      <ItemsControl
         Grid.Row="4"
         Margin="0,12,0,0"
-        HorizontalScrollBarVisibility="Disabled"
-        VerticalScrollBarVisibility="Auto">
-        <ItemsControl Margin="0,0,16,0" ItemsSource="{Binding ViewModel.Items}">
-          <ItemsControl.GroupStyle>
-            <GroupStyle>
-              <GroupStyle.HeaderTemplate>
-                <DataTemplate>
+        ItemsSource="{Binding ViewModel.Items}"
+        Style="{StaticResource VirtualizedListStyle}">
+        <ItemsControl.GroupStyle>
+          <GroupStyle>
+            <GroupStyle.HeaderTemplate>
+              <DataTemplate>
+                <TextBlock
+                  Margin="0,18,0,11"
+                  FontSize="12"
+                  FontWeight="Bold"
+                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                  Text="{Binding Name, Converter={StaticResource ToUpper}}" />
+              </DataTemplate>
+            </GroupStyle.HeaderTemplate>
+          </GroupStyle>
+        </ItemsControl.GroupStyle>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Border
+              Margin="0,0,0,9"
+              Padding="16,12"
+              Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+              BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+              BorderThickness="1"
+              CornerRadius="{StaticResource RadiusCard}"
+              Cursor="Hand">
+              <Border.InputBindings>
+                <MouseBinding
+                  Command="{Binding ViewModel.OpenDetailsCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                  CommandParameter="{Binding}"
+                  MouseAction="LeftClick" />
+              </Border.InputBindings>
+
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <ContentControl
+                  Grid.Column="0"
+                  Margin="0,0,15,0"
+                  VerticalAlignment="Top"
+                  Content="{Binding}"
+                  ContentTemplate="{StaticResource ItemThumbTemplate}" />
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
                   <TextBlock
-                    Margin="0,18,0,11"
-                    FontSize="12"
-                    FontWeight="Bold"
+                    FontSize="{StaticResource FontSizeBodyStrong}"
+                    FontWeight="SemiBold"
+                    Text="{Binding Name}"
+                    TextWrapping="Wrap" />
+                  <!-- The short sourcing line. Wraps rather than trims: a row that hides half its
+                       answer would send the user to the detail page for no reason. -->
+                  <TextBlock
+                    Margin="0,4,0,0"
                     Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                    Text="{Binding Name, Converter={StaticResource ToUpper}}" />
-                </DataTemplate>
-              </GroupStyle.HeaderTemplate>
-            </GroupStyle>
-          </ItemsControl.GroupStyle>
-          <ItemsControl.ItemTemplate>
-            <DataTemplate>
-              <Border
-                Margin="0,0,0,9"
-                Padding="16,12"
-                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
-                BorderThickness="1"
-                CornerRadius="{StaticResource RadiusCard}"
-                Cursor="Hand">
-                <Border.InputBindings>
-                  <MouseBinding
-                    Command="{Binding ViewModel.OpenDetailsCommand, RelativeSource={RelativeSource AncestorType=Page}}"
-                    CommandParameter="{Binding}"
-                    MouseAction="LeftClick" />
-                </Border.InputBindings>
-
-                <Grid>
-                  <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                  </Grid.ColumnDefinitions>
-
-                  <ContentControl
-                    Grid.Column="0"
-                    Margin="0,0,15,0"
-                    VerticalAlignment="Top"
-                    Content="{Binding}"
-                    ContentTemplate="{StaticResource ItemThumbTemplate}" />
-
-                  <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <TextBlock
-                      FontSize="{StaticResource FontSizeBodyStrong}"
-                      FontWeight="SemiBold"
-                      Text="{Binding Name}"
-                      TextWrapping="Wrap" />
-                    <!-- The short sourcing line. Wraps rather than trims: a row that hides half its
-                         answer would send the user to the detail page for no reason. -->
-                    <TextBlock
-                      Margin="0,4,0,0"
-                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                      Text="{Binding Note}"
-                      TextWrapping="Wrap"
-                      Visibility="{Binding Note, Converter={StaticResource NotNullToVisibility}}" />
-                    <TextBlock
-                      Margin="0,4,0,0"
-                      FontStyle="Italic"
-                      Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                      Text="{DynamicResource Sourcing_NoNote}"
-                      TextWrapping="Wrap"
-                      Visibility="{Binding Note, Converter={StaticResource NullToVisibility}}" />
-                  </StackPanel>
-
-                  <ui:SymbolIcon
-                    Grid.Column="2"
-                    Margin="12,0,0,0"
-                    VerticalAlignment="Center"
-                    FontSize="14"
+                    Text="{Binding Note}"
+                    TextWrapping="Wrap"
+                    Visibility="{Binding Note, Converter={StaticResource NotNullToVisibility}}" />
+                  <TextBlock
+                    Margin="0,4,0,0"
+                    FontStyle="Italic"
                     Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                    Symbol="ChevronRight24" />
-                </Grid>
-              </Border>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-      </ScrollViewer>
+                    Text="{DynamicResource Sourcing_NoNote}"
+                    TextWrapping="Wrap"
+                    Visibility="{Binding Note, Converter={StaticResource NullToVisibility}}" />
+                </StackPanel>
+
+                <ui:SymbolIcon
+                  Grid.Column="2"
+                  Margin="12,0,0,0"
+                  VerticalAlignment="Center"
+                  FontSize="14"
+                  Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                  Symbol="ChevronRight24" />
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
     </Grid>
 
     <!-- Full-window item image preview; click anywhere or press Esc to close -->

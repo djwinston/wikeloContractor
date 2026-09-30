@@ -385,6 +385,7 @@ What exists today, and what each one's callers must provide:
 | `ItemThumbTemplate` | inventory grid, sourcing grid | `Name` + `Category`, and an `OpenPreviewCommand` on the page |
 | `StatusBadge` | catalog row, contract detail | `Role` + `Symbol` + `Text` |
 | `ReadinessBarStyle` | catalog row, contract detail, gathering card | a value in [0, 1]; caller sets `Width` |
+| `VirtualizedListStyle` | catalog, favorites, inventory grid, sourcing grid | an `ItemsControl` that is the page body's scrolling list; the page gives it no `ScrollViewer` of its own. Performance, not looks — see `docs/ui-notes.md`, "List performance" |
 
 Three rules that keep this workable:
 

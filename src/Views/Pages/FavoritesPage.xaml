@@ -311,17 +311,13 @@
               Visibility="{Binding ViewModel.IsEmpty, Converter={StaticResource BoolToVisibility}}" />
           </StackPanel>
 
-          <!-- Contract list -->
-          <ScrollViewer
+          <!-- Contract list — virtualized, see VirtualizedListStyle in Resources/Chips.xaml -->
+          <ItemsControl
             Grid.Row="2"
             Margin="0,12,0,0"
-            HorizontalScrollBarVisibility="Disabled"
-            VerticalScrollBarVisibility="Auto">
-            <ItemsControl
-              Margin="0,0,16,0"
-              ItemsSource="{Binding ViewModel.Contracts}"
-              ItemTemplate="{StaticResource ContractCardTemplate}" />
-          </ScrollViewer>
+            ItemTemplate="{StaticResource ContractCardTemplate}"
+            ItemsSource="{Binding ViewModel.Contracts}"
+            Style="{StaticResource VirtualizedListStyle}" />
         </Grid>
       </TabItem>
 

@@ -354,8 +354,8 @@
   <!-- The app's 0..1 meter. Named for its first use — how much of the requirement list the
        inventory covers — but it is the shape every progress bar here has, so the catalog's rank
        banner wears it too rather than re-declaring the same four values one pixel off. Width stays
-       with the caller (the catalog row gives it 360, the detail heading 200, the rank banner the
-       column); everything else is fixed here so the bars cannot drift in height or scale.
+       with the caller (the catalog row gives it 360, the detail heading 200, the rank banner an
+       equal third per rank); everything else is fixed here so the bars cannot drift in height or scale.
        BasedOn is mandatory: assigning a Style replaces the theme's implicit style outright, and
        without it the bar silently falls back to the stock WPF template — square corners, bright
        green fill — instead of the Fluent one. Resolves because App.xaml merges Chips.xaml after
@@ -368,6 +368,52 @@
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="Maximum" Value="1" />
     <Setter Property="Minimum" Value="0" />
+  </Style>
+
+  <!-- The scrolling list every page body uses: contract cards (catalog, favorites) and the grouped
+       item grids (inventory, sourcing). Virtualized, so only the rows on screen exist as visuals.
+
+       This is a performance rule, not a look. The lists used to be a plain ItemsControl inside a
+       ScrollViewer, which realizes every row up front; a filter change is an ICollectionView.Refresh(),
+       i.e. a Reset, i.e. every row torn down and rebuilt. With 69 heavy contract cards that was
+       0.4–0.9 s per keystroke or combo pick, and the same again on each navigation — measured, see
+       docs/ui-notes.md "List performance". Virtualized, the same actions take ~50 ms.
+
+       The pieces that make it work, all required: the ScrollViewer lives in the template around the
+       ItemsPresenter (outside it, the panel would be offered infinite height and realize everything),
+       CanContentScroll hands scrolling to the panel, and IsVirtualizingWhenGrouping keeps the grouped
+       grids virtual too. ScrollUnit=Pixel keeps the smooth scrolling of the old layout instead of
+       jumping a whole card per wheel notch; the cost is a scrollbar thumb that re-estimates its size
+       as rows of unknown height come into view. Recycling reuses row containers — a page whose rows
+       hold an editor overrides it to Standard (see InventoryPage). Padding is the gutter between the
+       rows and the scrollbar. -->
+  <Style x:Key="VirtualizedListStyle" TargetType="ItemsControl">
+    <Setter Property="Padding" Value="0,0,16,0" />
+    <Setter Property="ScrollViewer.CanContentScroll" Value="True" />
+    <Setter Property="VirtualizingPanel.IsVirtualizing" Value="True" />
+    <Setter Property="VirtualizingPanel.IsVirtualizingWhenGrouping" Value="True" />
+    <Setter Property="VirtualizingPanel.ScrollUnit" Value="Pixel" />
+    <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling" />
+    <Setter Property="ItemsPanel">
+      <Setter.Value>
+        <ItemsPanelTemplate>
+          <VirtualizingStackPanel />
+        </ItemsPanelTemplate>
+      </Setter.Value>
+    </Setter>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ItemsControl">
+          <ScrollViewer
+            CanContentScroll="True"
+            Focusable="False"
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto">
+            <ItemsPresenter Margin="{TemplateBinding Padding}" />
+          </ScrollViewer>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
   </Style>
 
 </ResourceDictionary>

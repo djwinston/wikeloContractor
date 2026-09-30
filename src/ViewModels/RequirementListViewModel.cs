@@ -36,11 +36,20 @@ public abstract partial class RequirementListViewModel : ViewModel
     /// </summary>
     private static readonly InventoryCategory[] _categoryOrder = Enum.GetValues<InventoryCategory>();
 
+    private readonly ILocalizationService _localization;
+
     private List<IRequirementItem> _itemVms = [];
 
-    protected RequirementListViewModel(IContractCatalogService catalogService)
+    /// <summary>The catalog list the rows were projected from, so a visit can tell nothing moved.</summary>
+    private IReadOnlyList<WikeloContract>? _builtFrom;
+
+    /// <summary>UI language the rows were built in — their category label is the group header.</summary>
+    private string? _builtLanguage;
+
+    protected RequirementListViewModel(IContractCatalogService catalogService, ILocalizationService localization)
     {
         CatalogService = catalogService;
+        _localization = localization;
 
         // Both this VM and the service are app-lifetime singletons — the subscription needs no teardown.
         CatalogService.CatalogUpdated += OnCatalogUpdated;
@@ -87,13 +96,30 @@ public abstract partial class RequirementListViewModel : ViewModel
     protected virtual bool MatchesSearch(IRequirementItem item, string search) =>
         item.Name.Contains(search, StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Rebuild the rows on every visit, even when the catalog did not change. Off by default: a
+    /// rebuild is a new grouped view with every row container recreated, and the catalog list the
+    /// rows are projected from stays the same instance until it really changes (see
+    /// <see cref="OnNavigatedToAsync"/>). A page whose rows read something else that can change
+    /// between visits without raising an event opts back in.
+    /// </summary>
+    protected virtual bool RebuildOnEveryVisit => false;
+
     public override async Task OnNavigatedToAsync()
     {
         // Cheap after the first call: served from memory unless a version check is due.
         try
         {
             var result = await CatalogService.GetContractsAsync();
-            BuildItems(result.Contracts);
+
+            // The service hands back the same list instance until a version change or enrichment
+            // replaces it, and both of those also raise CatalogUpdated, which rebuilds regardless.
+            if (RebuildOnEveryVisit
+                || !ReferenceEquals(result.Contracts, _builtFrom)
+                || _builtLanguage != _localization.CurrentLanguage)
+            {
+                BuildItems(result.Contracts);
+            }
         }
         catch (Exception)
         {
@@ -138,6 +164,8 @@ public abstract partial class RequirementListViewModel : ViewModel
         var view = new ListCollectionView(_itemVms) { Filter = FilterItem };
         view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(IRequirementItem.CategoryLabel)));
         Items = view;
+        _builtFrom = contracts;
+        _builtLanguage = _localization.CurrentLanguage;
         UpdateIsEmpty();
     }
 

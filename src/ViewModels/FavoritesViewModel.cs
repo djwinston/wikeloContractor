@@ -25,9 +25,10 @@ public partial class FavoritesViewModel : ContractListViewModel
         INavigationService navigationService,
         ContractDetailViewModel detailViewModel,
         IPinnedItemsService pins,
-        OverlayPinsViewModel overlayPins)
+        OverlayPinsViewModel overlayPins,
+        ILocalizationService localization)
         : base(catalogService, completionService, favoritesService, inventoryStore,
-               completionInteraction, navigationService, detailViewModel)
+               completionInteraction, navigationService, detailViewModel, localization)
     {
         _pins = pins;
         OverlayPins = overlayPins;
@@ -123,18 +124,17 @@ public partial class FavoritesViewModel : ContractListViewModel
 
     public override void OnNavigatedTo() =>
         // This VM is created on the first navigation here, which can be long after the catalog
-        // finished loading — so its CatalogUpdated never reached us. Pull the current list in.
-        RebuildFromCatalog();
+        // finished loading — so its CatalogUpdated never reached us. Pull the current list in; on
+        // later visits this is a no-op unless the starred set or the catalog moved in between.
+        SetContractsIfChanged(StarredContracts());
+
+    protected override void RebuildFromCatalog() => SetContracts(StarredContracts());
 
     /// <summary>Only the flagged contracts, in the catalog's own order.</summary>
-    protected override void RebuildFromCatalog()
-    {
-        var favorites = CatalogService.Current?.Contracts
+    private List<WikeloContract> StarredContracts() =>
+        CatalogService.Current?.Contracts
             .Where(c => FavoritesService.IsFavorite(c.Uuid))
             .ToList() ?? [];
-
-        SetContracts(favorites);
-    }
 
     /// <summary>Un-starring a contract here removes its row, so the list is rebuilt, not just refreshed.</summary>
     protected override void OnFavoritesChangedCore() => RebuildFromCatalog();

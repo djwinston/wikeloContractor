@@ -74,9 +74,10 @@ public partial class CatalogViewModel : ContractListViewModel
         ContractCompletionInteraction completionInteraction,
         RateLimitWatcher rateLimit,
         INavigationService navigationService,
-        ContractDetailViewModel detailViewModel)
+        ContractDetailViewModel detailViewModel,
+        ILocalizationService localization)
         : base(catalogService, completionService, favoritesService, inventoryStore,
-               completionInteraction, navigationService, detailViewModel)
+               completionInteraction, navigationService, detailViewModel, localization)
     {
         RateLimit = rateLimit;
         RateLimit.WindowElapsed += OnRateLimitWindowElapsed;
@@ -149,7 +150,9 @@ public partial class CatalogViewModel : ContractListViewModel
             // Read before publishing the cards: a sync started by this very call (or already in
             // flight from Settings' update check) must be reflected the moment they appear.
             SyncState = CatalogService.SyncState;
-            SetContracts(result.Contracts);
+            // Runs on every visit to the page; unchanged data keeps the cards (and the scroll
+            // position) it already has.
+            SetContractsIfChanged(result.Contracts);
             // Header shows the version without the API build number — see GameVersionDisplay.
             GameVersion = GameVersionDisplay.WithoutBuild(result.GameVersion);
             Status = result.Status;

@@ -154,7 +154,10 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
     (starred only) differ solely in `RebuildFromCatalog`. A third list page subclasses this — it does
     not re-filter. **`OnCompletionChanged` refreshes the view, not only the cards** — the completion
     filter reads a card property the `ICollectionView` cannot observe. Do **not** add the same
-    refresh to `OnInventoryChanged`: that is the ~30×/s held-hotkey path
+    refresh to `OnInventoryChanged`: that is the ~30×/s held-hotkey path. **Navigation goes through
+    `SetContractsIfChanged`**, never a bare `SetContracts`: a rebuild recreates every row container,
+    so a visit over unchanged contracts (same instances, same language) keeps the cards it has —
+    see `docs/ui-notes.md` "List performance"
   - `ViewModels/RequirementListViewModel` — the item-grid analogue: the base for **any page showing
     the catalog's required items as a category-grouped grid** (the distinct-item projection, the
     grouped `ICollectionView`, the search + category filter, the empty state, the image-preview
@@ -162,7 +165,9 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
     `InventoryViewModel` (adds a count store + overlay pins) and `SourcingViewModel` (adds a sourcing
     note + detail nav) override only `CreateItem` (and Sourcing widens `MatchesSearch`). A third
     item-grid page subclasses this — it does not re-implement the grouping/filter/preview. `ItemVms`
-    is the seam for fanning a service event onto every row without keeping a second list
+    is the seam for fanning a service event onto every row without keeping a second list. A visit
+    rebuilds only when the catalog list instance or the language changed; `RebuildOnEveryVisit` is
+    the opt-out for rows that read something eventless (Sourcing's guide notes)
   - `Models/ContractFilter` — the pure search/category/resource/completion matching decision
     (`Matches(contract, isCompleted)`), deliberately free of UI notions so it is testable without a
     WPF `Application`; the VM maps combo box indices onto it (index 0 → `null` → "all"). Completion
@@ -255,6 +260,9 @@ The roadmap lives in **PLAN.md** — work through it phase by phase, check items
     the `PinSlotBadgeStyle`/`PinSlotDigitStyle`/`PinButtonStyle` trio, `FavoriteStarStyle` and
     `CompletionToggleStyle`) plus whole shared templates (`RequirementChipTemplate`,
     `OverlayPinBudgetTemplate`, `ChipWrapPanel`) and the `StatusBadge` default style.
+    `VirtualizedListStyle` also lives here: **every page body's scrolling list wears it** (catalog,
+    favorites, inventory, sourcing) — a plain `ItemsControl` in a `ScrollViewer` realizes every row
+    and cost 0.4–0.9 s per filter keystroke and page visit (`docs/ui-notes.md` "List performance").
     **A second copy of a control that already exists is a review finding**, whether it is a
     re-declaration in a page's `Page.Resources` or the same markup typed inline on a second screen —
     that is exactly the drift this dictionary exists to stop, and it is not hypothetical: the
