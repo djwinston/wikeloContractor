@@ -1,11 +1,11 @@
 # Inventory image inventory
 
 Which required items have an image in `src/Resources/img-inventory-overrides.json` and where it
-comes from — the inventory counterpart of `reward-images.md`. **All 95 items are covered.**
+comes from — the inventory counterpart of `reward-images.md`. **All 98 items are covered.**
 
 Inventory requirements carry **no UUID**: the API returns them as bare names, and `InventoryStore`
 keys by name too. So unlike reward images there is nothing to look an item up by, and every entry
-here is a manual name → image mapping. The bundled file lists all 95 names; an empty value
+here is a manual name → image mapping. The bundled file lists all 98 names; an empty value
 is a placeholder waiting for one, ignored at runtime.
 
 Personal entries go in `%AppData%\WikeloContractor\img-inventory-overrides.json`, which wins per
@@ -22,12 +22,14 @@ The **Image** column reflects the bundled file:
 - 🖼 a **bundled image** shipped in `src/Resources/img/inventory/` — a hand-made screenshot or crop
   for the items no site has a usable picture of: the nine RCMBNT components, the Apex Valakkar fang
   and both pearl grades, Sadaryx, Saldynium (Ore), the Monde set incl. its Warden backpack, the
-  Geist ASD backpack and Metamaterial Test #146. The value is a path relative to the install dir —
+  Geist ASD backpack and Metamaterial Tests #146 and #152 (one shared picture). The value is a path relative to the install dir —
   see `src/Resources/img/README.md`.
 - ⬜ still empty — needs a URL or a bundled image. There are currently none.
 
 Snapshot from the enriched catalog cache; regenerate by asking Claude.
-Game version: 4.9.0-LIVE.12232306. Items: 95, with an image: 95 (74 URLs, 21 bundled).
+Game version: 4.10.1-LIVE.12660092. Items: 98, with an image: 98 (76 URLs, 22 bundled).
+Argo ATLS GEO and Argo ATLS IKTI keep their entries in the bundled file although no 4.10 contract
+asks for them (Make jumpy ATLS shoot now takes a plain Argo ATLS) — kept for the day they return.
 
 
 ## Ore / mineral
@@ -39,7 +41,7 @@ Game version: 4.9.0-LIVE.12232306. Items: 95, with an image: 95 (74 URLs, 21 bun
 | ✅ (generic) | Copper | ATLS Orange Line |
 | ✅ (generic) | Corundum | ATLS Orange Line |
 | ✅ | Jaclium (Ore) | Fun Kopion Skull Gun, Fun Military Skull Gun, Make a Ursa Mod, Prospects Look Good |
-| ✅ (generic) | Quantainium | ATLS Orange Line, Want Polaris? Need something special. |
+| ✅ (generic) | Quantainium | ATLS Orange Line, Make jumpy ATLS shoot, Want Polaris? Need something special. |
 | 🖼 | Sadaryx | Red Fight Armor, Red Fight Shotgun |
 | 🖼 | Saldynium (Ore) | Fun Kopion Skull Gun, Fun Military Skull Gun, Make a Ursa Mod, Prospects Look Good |
 | ✅ (generic) | Savrilium | Red Fight Apollo |
@@ -54,6 +56,8 @@ Game version: 4.9.0-LIVE.12232306. Items: 95, with an image: 95 (74 URLs, 21 bun
 | ✅ | Antium Core | Armor with horn and string, Make glowy armor |
 | ✅ | Antium Helmet | Armor with horn and string, Make glowy armor |
 | ✅ | Antium Legs | Armor with horn and string, Make glowy armor |
+| ✅ | BUL-H4 Armor | Heavy and Bright |
+| ✅ | BUL-H4 Helmet | Heavy and Bright |
 | ✅ | Corbel Arms Mire | Shiny Builder Suit |
 | ✅ | Corbel Core Mire | Shiny Builder Suit |
 | ✅ | Corbel Helmet Mire | Shiny Builder Suit |
@@ -64,6 +68,7 @@ Game version: 4.9.0-LIVE.12232306. Items: 95, with an image: 95 (74 URLs, 21 bun
 | ✅ | Geist Armor Helmet ASD Edition | Hide Snow Suit |
 | ✅ | Geist Armor Legs ASD Edition | Hide Snow Suit |
 | 🖼 | Geist Backpack ASD Edition | Hide Snow Suit |
+| ✅ | H4-PBF Ammo Carrier | Heavy and Bright |
 | 🖼 | Monde Arms | Red Fight Armor |
 | 🖼 | Monde Core | Red Fight Armor |
 | 🖼 | Monde Helmet | Red Fight Armor |
@@ -100,15 +105,14 @@ Game version: 4.9.0-LIVE.12232306. Items: 95, with an image: 95 (74 URLs, 21 bun
 | ✅ | Prism Laser Shotgun | Make VOLT shotgun angrier |
 | ✅ | R97 Shotgun | Red Fight Shotgun |
 | ✅ | Tripledown Pistol | Hot Shot |
+| ✅ | Vendetta HMG | Too Much Gun |
 | ✅ | Zenith Laser Sniper Rifle | Snow Snipe |
 
 ## Vehicle
 
 | Image | Required item | Contract(s) |
 |:---:|---|---|
-| ✅ | Argo ATLS | ATLS Cool Metal Color, ATLS Orange Line, ATLS Snowland Color, Make ATLS shoot |
-| ✅ | Argo ATLS GEO | Make jumpy ATLS shoot |
-| ✅ | Argo ATLS IKTI | Make jumpy ATLS shoot |
+| ✅ | Argo ATLS | ATLS Cool Metal Color, ATLS Orange Line, ATLS Snowland Color, Make ATLS shoot, Make jumpy ATLS shoot |
 
 ## Component
 
@@ -116,7 +120,8 @@ Game version: 4.9.0-LIVE.12232306. Items: 95, with an image: 95 (74 URLs, 21 bun
 |:---:|---|---|
 | ✅ | ASD Secure Drive | Asgard Fight Mod, Golem Rocks, Hide Snow Suit, New Move Big Starlancer Ship, Now make Polaris. Short Time Deal., Shiny Builder Suit, Snow Snipe, Special Idris For Killing, Starlifter A2 War Mod, What is Terrapin? |
 | ✅ | DCHS-05 Orbital Positioning Comp-Board | Build a Mod Scorpius, Firebird Mod, Guardian take down ship, New Move Big Starlancer Ship, Now make Polaris. Short Time Deal., Peregrine Wikelo Mod, Sneaky Stabber, Special Idris For Killing, Starlifter A2 War Mod, Wikelo Navy F7 |
-| 🖼 | Metamaterial Test #146 | Clipper Fight Now, Extra Special Wolf |
+| 🖼 | Metamaterial Test #146 | Extra Special Wolf |
+| 🖼 | Metamaterial Test #152 | Clipper Fight Now |
 | 🖼 | RCMBNT-PWL-1 | Asgard Fight Mod, Do Lava Suit, Now make Polaris. Short Time Deal., Special Idris For Killing |
 | 🖼 | RCMBNT-PWL-2 | Asgard Fight Mod, Do Lava Suit, Now make Polaris. Short Time Deal., Special Idris For Killing |
 | 🖼 | RCMBNT-PWL-3 | Asgard Fight Mod, Do Lava Suit, Now make Polaris. Short Time Deal., Special Idris For Killing |
@@ -134,7 +139,7 @@ Game version: 4.9.0-LIVE.12232306. Items: 95, with an image: 95 (74 URLs, 21 bun
 | ✅ | Bluemoon Fungus | Hot Shot |
 | ✅ | Irradiated Kopion Horn | Ready for RAFT? |
 | ✅ | Irradiated Valakkar Fang (Adult) | Make VOLT shotgun angrier, Ready for RAFT? |
-| 🖼 | Irradiated Valakkar Fang (Apex) | Make ATLS shoot, Now make Polaris. Short Time Deal., Special Idris For Killing |
+| 🖼 | Irradiated Valakkar Fang (Apex) | Make ATLS shoot, Make jumpy ATLS shoot, Now make Polaris. Short Time Deal., Special Idris For Killing |
 | ✅ | Irradiated Valakkar Fang (Juvenile) | Fun Military Skull Gun, Make VOLT shotgun angrier, Ready for RAFT? |
 | 🖼 | Irradiated Valakkar Pearl (Grade AA) | Guardian Fight Mod, Guardian take down ship, Trade Worm Parts for Favors? |
 | 🖼 | Irradiated Valakkar Pearl (Grade AAA) | ATLS Snowland Color, F8 War Mod, Make glowy armor, More than a Max, New Move Big Starlancer Ship, Now make Polaris. Short Time Deal., Prowler More Utility, Ready for RAFT?, Sneaky Stabber, Special Idris For Killing, Starlifter A2 War Mod, Want Taurus ship |
@@ -168,4 +173,4 @@ Game version: 4.9.0-LIVE.12232306. Items: 95, with an image: 95 (74 URLs, 21 bun
 | ✅ | Council Scrip | Trade Council Scrip for Favors? |
 | ✅ | MG Scrip | Now make Polaris. Short Time Deal., Special Idris For Killing, Starlifter A2 War Mod, Trade Merc Scrip for Favors? |
 | ✅ | Polaris Bit | Now make Polaris. Short Time Deal., Special Idris For Killing, Starlifter A2 War Mod |
-| ✅ | Wikelo Favor | ATLS Cool Metal Color, ATLS Orange Line, ATLS Snowland Color, Asgard Fight Mod, Build a Mod Scorpius, F8 War Mod, Firebird Mod, Fortune ship for you, Golem Rocks, Guardian Fight Mod, Guardian WiK-X, Guardian take down ship, Make ATLS shoot, Make a Ursa Mod, Make jumpy ATLS shoot, More than a Max, Most Special Wolf, New Move Big Starlancer Ship, Now make Polaris. Short Time Deal., Noxy Mod, Peregrine Wikelo Mod, Prospects Look Good, Prowler More Utility, Pulse Plus, RSI Meteor Mod, Ready for RAFT?, Red Fight Apollo, Red Fight Armor, Red Fight Shotgun, Sneaky Stabber, Sneaky Starfighter Ion, Special Idris For Killing, Spirit Cargo mod, Starfighter Inferno Special, Starlifter A2 War Mod, Suit Up Take Off, Upgrade Intrepid, Want Taurus ship, What is Terrapin?, Where Wolf? Here Wolf, Wikelo Navy F7, Your Best Shot, Zeus Cargo Special, Zeus Special |
+| ✅ | Wikelo Favor | ATLS Cool Metal Color, ATLS Orange Line, ATLS Snowland Color, Asgard Fight Mod, Build a Mod Scorpius, F8 War Mod, Firebird Mod, Fortune ship for you, Golem Rocks, Guardian Fight Mod, Guardian WiK-X, Guardian take down ship, Heavy and Bright, Make ATLS shoot, Make a Ursa Mod, Make jumpy ATLS shoot, More than a Max, Most Special Wolf, New Move Big Starlancer Ship, Now make Polaris. Short Time Deal., Noxy Mod, Peregrine Wikelo Mod, Prospects Look Good, Prowler More Utility, Pulse Plus, RSI Meteor Mod, Ready for RAFT?, Red Fight Apollo, Red Fight Armor, Red Fight Shotgun, Sneaky Stabber, Sneaky Starfighter Ion, Special Idris For Killing, Spirit Cargo mod, Starfighter Inferno Special, Starlifter A2 War Mod, Suit Up Take Off, Too Much Gun, Upgrade Intrepid, Want Taurus ship, What is Terrapin?, Where Wolf? Here Wolf, Wikelo Navy F7, Your Best Shot, Zeus Cargo Special, Zeus Special |

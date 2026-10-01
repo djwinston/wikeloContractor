@@ -151,10 +151,22 @@
       Severity="Warning" />
 
     <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
-      <ui:Button
-        Command="{Binding ViewModel.ShowOverlayCommand}"
-        Content="{DynamicResource Settings_Overlay_Show}"
-        Icon="{ui:SymbolIcon Eye24}" />
+      <!-- Show / hide toggle. Label and glyph follow the HUD's real state (OverlayViewModel.IsShown),
+           so they stay right when a hotkey or the tray menu flips it while this page is open. -->
+      <ui:Button Command="{Binding ViewModel.ToggleOverlayCommand}">
+        <ui:Button.Style>
+          <Style BasedOn="{StaticResource {x:Type ui:Button}}" TargetType="ui:Button">
+            <Setter Property="Content" Value="{DynamicResource Settings_Overlay_Show}" />
+            <Setter Property="Icon" Value="{ui:SymbolIcon Eye24}" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding ViewModel.Hud.IsShown}" Value="True">
+                <Setter Property="Content" Value="{DynamicResource Overlay_Hide}" />
+                <Setter Property="Icon" Value="{ui:SymbolIcon EyeOff24}" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </ui:Button.Style>
+      </ui:Button>
       <ui:Button
         Margin="8,0,0,0"
         Command="{Binding ViewModel.ResetOverlayPositionCommand}"
