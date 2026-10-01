@@ -78,8 +78,8 @@ public static class InventoryCategoryClassifier
             return InventoryCategory.OreMineral;
         }
 
-        // Hand weapons.
-        if (ContainsAny(name, "Rifle", "Shotgun", "Pistol", "Cannon", "Launcher", "LMG", "Sniper"))
+        // Hand weapons. "HMG" is the Vendetta heavy machine gun (4.10).
+        if (ContainsAny(name, "Rifle", "Shotgun", "Pistol", "Cannon", "Launcher", "LMG", "HMG", "Sniper"))
         {
             return InventoryCategory.Weapon;
         }
@@ -98,7 +98,9 @@ public static class InventoryCategoryClassifier
         }
 
         // Armor set pieces (checked after weapons/components so e.g. "Comp-Board" is not caught by "Core").
-        if (ContainsAny(name, "Helmet", "Core", "Arms", "Legs", "Backpack", "Flight Suit", "Flight Helmet"))
+        // Heavy sets do not follow the Helmet/Core/Arms/Legs naming: the BUL-H4 body piece is just
+        // "Armor" and its backpack slot is the "H4-PBF Ammo Carrier" (both 4.10).
+        if (ContainsAny(name, "Helmet", "Core", "Arms", "Legs", "Backpack", "Armor", "Ammo Carrier", "Flight Suit", "Flight Helmet"))
         {
             return InventoryCategory.Armor;
         }
