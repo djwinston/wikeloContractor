@@ -458,4 +458,38 @@ public sealed class OverlayScenarios(WpfAppFixture app)
             Assert.Equal("Wikelo Favor", restarted.Hud.SlotAt(2)!.Name);
         });
     }
+
+    // The Settings button used to be show-only: once the HUD was up (click-through by default), the
+    // page offered no way to take it down again. It toggles now, and its label reads the same
+    // IsShown the tray check mark and the hotkey move — so a hotkey press flips the button too.
+    [Fact]
+    public async Task The_settings_button_toggles_the_overlay_and_follows_a_hotkey()
+    {
+        using var harness = await ReadyAsync();
+
+        var settings = await app.OnUiAsync(() => new SettingsViewModel(
+            harness.Settings,
+            harness.Localization,
+            harness.Catalog,
+            harness.Overlay,
+            harness.Hotkeys,
+            new RateLimitWatcher(harness.Catalog),
+            harness.Hud));
+
+        await app.OnUiAsync(() =>
+        {
+            Assert.False(settings.Hud.IsShown);
+
+            settings.ToggleOverlayCommand.Execute(null);
+            Assert.True(settings.Hud.IsShown);
+            Assert.True(harness.OverlayWindow.IsVisible);
+
+            settings.ToggleOverlayCommand.Execute(null);
+            Assert.False(settings.Hud.IsShown);
+            Assert.False(harness.OverlayWindow.IsVisible);
+
+            harness.Hotkeys.Press(HotkeyAction.ToggleOverlay, slot: 0);
+            Assert.True(settings.Hud.IsShown);
+        });
+    }
 }

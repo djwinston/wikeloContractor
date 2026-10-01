@@ -77,7 +77,8 @@ public partial class SettingsViewModel : ViewModel
         IContractCatalogService catalogService,
         IOverlayService overlayService,
         IHotkeyService hotkeyService,
-        RateLimitWatcher rateLimit)
+        RateLimitWatcher rateLimit,
+        OverlayViewModel hud)
     {
         _settingsService = settingsService;
         _localizationService = localizationService;
@@ -85,6 +86,7 @@ public partial class SettingsViewModel : ViewModel
         _overlayService = overlayService;
         _hotkeyService = hotkeyService;
         RateLimit = rateLimit;
+        Hud = hud;
 
         // Both are app-lifetime singletons, as is this VM — no teardown needed.
         _hotkeyService.ResultChanged += (_, _) => RefreshHotkeyIssue();
@@ -134,9 +136,19 @@ public partial class SettingsViewModel : ViewModel
         DataLastSync = result?.FetchedAt.ToLocalTime().ToString("g");
     }
 
-    /// <summary>Brings the HUD up from the Settings page, so it can be checked without a hotkey.</summary>
+    /// <summary>
+    /// The HUD's shown state, for the toggle button's label — the same observable the tray menu's
+    /// check mark binds, so the two cannot disagree whichever of them (or a hotkey) flipped it.
+    /// </summary>
+    public OverlayViewModel Hud { get; }
+
+    /// <summary>
+    /// Shows or hides the HUD from the Settings page, so it can be checked without a hotkey. A toggle,
+    /// not a show-only button: the HUD is click-through by default, so once it is up the page is the
+    /// one place a mouse user can take it down again.
+    /// </summary>
     [RelayCommand]
-    private void ShowOverlay() => _overlayService.Show();
+    private void ToggleOverlay() => _overlayService.Toggle();
 
     /// <summary>
     /// Forgets the saved geometry. The escape hatch for an overlay stranded off-screen — the window
